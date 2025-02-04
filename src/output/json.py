@@ -4,6 +4,7 @@ from src.sniff import Sniff
 from src.create_csv import delete_middle_content_csv
 from libs.check import has_additional_data, is_global_unicast_ipv6, is_ipv6_ula, is_link_local_ipv6, is_valid_ipv6, is_llsnm_ipv6, get_status_ip, is_dhcp_slaac
 from libs.convert import in6_getansma, in6_getnsma
+from src.output.oui import get_vendor
 
 # Creating an instance of the PtJsonLib class
 from src.parameters import ptjsonlib_object
@@ -85,7 +86,7 @@ class Json:
         ptjsonlib_object.get_result_json()
 
 
-    def output_object(interface, mode, prefix_len=None, network=None, duration_aggressive=None, extract_to_json=True):
+    def output_object(interface, mode, mac_db, prefix_len=None, network=None, duration_aggressive=None, extract_to_json=True):
         
         delete_middle_content_csv("src/tmp/start_end_mode.csv")
         # Generate information to property
@@ -159,7 +160,7 @@ class Json:
                         if 'IP' in mldv1_entry.columns and not mldv1_entry['IP'].isnull().all():
                             vul.append("MLDv1 is active")
                 
-                node_ele = ptjsonlib_object.create_node_object(node_type=f"Device {device_number}", parent_type="Site", parent=None, properties={"name": f"Device {device_number}", "type": role, "MAC": mac_address, "vulnerabilities": vul})
+                node_ele = ptjsonlib_object.create_node_object(node_type=f"Device {device_number}", parent_type="Site", parent=None, properties={"name": f"Device {device_number}", "type": role, "MAC": mac_address, "description": get_vendor(mac_address, mac_db), "vulnerabilities": vul})
                 key_node_ele = node_ele["key"]
                 ptjsonlib_object.add_node(node_ele)
 
