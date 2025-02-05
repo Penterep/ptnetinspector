@@ -31,6 +31,7 @@ def get_help():
             ["-n", "     Does not delete .csv files in tmp folder"],
             ["-more", "     Shows full details of network scan. Only default data is displayed if not used. If being used together with option j, details output + json output are given."],
             ["-less", "     Shows minimum details of network scan. Default data is displayed if not used. If being used together with option j, minimum details output + json output are given."],
+            ["-c", "     Checks found addresses for their availability. This option is not included if not used"],
             ["-h", "     Shows this help message and exits"]
         ]},
         {"Specific options (for Passive scan)": [
@@ -85,7 +86,7 @@ def enablePrint():
     sys.stdout = sys.__stdout__
 
 
-def parameter_control(interface, json_output, del_tmp, type, more_detail, less_detail, duration_passive, duration_aggressive, prefix, 
+def parameter_control(interface, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix,
                       smac, sip, rpref, period, chl, mtu, dns, nofwd):
     '''
     Checking inserted parameters. If no error, it returns all variables.
@@ -271,6 +272,10 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
         
         if nofwd:
             err = "No forwarding is not applied in this mode. Program exits!"
+            list_error.append(err)
+
+        if check_addresses:
+            err = "Checking addresses is not applied in this mode. Program exits!"
             list_error.append(err)
 
     elif type == ["a"] or ("a" in type and "802.1x" in type and len(type) == 2):
@@ -567,5 +572,5 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
             if nofwd:
                 ptprinthelper.ptprint(f"Packets to remote network will be dropped at the scanner in aggressive mode", "INFO")
 
-    return interface, json_output, del_tmp, type, more_detail, less_detail, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd           
+    return interface, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd
 

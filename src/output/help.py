@@ -129,6 +129,7 @@ def parse_args():
     parser.add_argument("-n", action="store_false")
     parser.add_argument("-more", action="store_true", default=False)
     parser.add_argument("-less", action="store_true", default=False)
+    parser.add_argument("-c", action="store_true", default=False)
     parser.add_argument("-d", action="store")
     parser.add_argument("-da+", dest="duration_router", action="store")
     parser.add_argument("-prefix", action="store")

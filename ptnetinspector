@@ -4,6 +4,7 @@ import warnings
 from libs.check import has_additional_data
 from ptlibs import ptprinthelper
 from libs.set_IP_interface import shutdown_interface_traffic, restore_interface_traffic, check_interface
+from src.address_validator import validate_addresses
 from src.output.non_json import Non_json
 from src.output.json import Json
 from src.output.oui import load_mac_database
@@ -25,7 +26,7 @@ args = parse_args()
 create_csv("src/tmp")
 
 # Getting all variables, it returns errors if inserted parameters are wrong
-interface, json_output, del_tmp_para, type, more_detail, less_detail, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (args.interface, args.j, args.n, args.t, args.more, args.less, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd)
+interface, json_output, del_tmp_para, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (args.interface, args.j, args.n, args.t, args.more, args.less, args.c, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd)
 
 mac_db = load_mac_database('libs/manuf')
 
@@ -58,7 +59,13 @@ def ptnet_passive():
     
     
     Sniff.run_normal_mode(interface, "p", duration_passive)
-    
+
+
+    if check_addresses:
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
+        validate_addresses(interface)
+
     if not json_output or (more_detail or less_detail):
         Non_json.output_general(mac_db)
 
@@ -95,6 +102,11 @@ def ptnet_active():
             ptprinthelper.ptprint("Adding rules in configuration to perform scanning", "INFO")
     
     Sniff.run_normal_mode(interface, "a", None)
+
+    if check_addresses:
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
+        validate_addresses(interface)
     
     if not json_output or (more_detail or less_detail):
         Non_json.output_general(mac_db)
@@ -142,6 +154,11 @@ def ptnet_aggressive():
     
     # Running scan
     Sniff.run_aggressive_mode(interface, prefix_len, network, smac, sip, rpref, duration_aggressive, period, chl, mtu, dns)
+
+    if check_addresses:
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
+        validate_addresses(interface)
     
     if not json_output or (more_detail or less_detail):
         if Sniff.detect_RA_guard_missing(interface, prefix_len, network, duration_aggressive):
