@@ -105,7 +105,7 @@ class AddressValidator:
             psrc=get_if_addr(self.interface)
         ))
 
-        arp_reply = srp1(arp_request, timeout=1, verbose=False, iface=self.interface, filter=f"arp and ether src {mapping.mac}")
+        arp_reply = srp1(arp_request, timeout=self.timeout, verbose=False, iface=self.interface, filter=f"arp and ether src {mapping.mac}")
 
         if arp_reply.haslayer(ARP) and arp_reply.op == 2 and arp_reply.psrc == mapping.ip and arp_reply.hwsrc == mapping.mac:
             return True
@@ -129,7 +129,7 @@ class AddressValidator:
                      ICMPv6ND_NS(tgt=mapping.ip) /
                      ICMPv6NDOptSrcLLAddr(lladdr=get_if_hwaddr(self.interface)))
 
-        advertisement = srp1(ns_packet, timeout=1, verbose=False, iface=self.interface, filter=f"icmp6 and ether src {mapping.mac}")
+        advertisement = srp1(ns_packet, timeout=self.timeout, verbose=False, iface=self.interface, filter=f"icmp6 and ether src {mapping.mac}")
 
         if advertisement.haslayer(ICMPv6ND_NA) and advertisement[IPv6].src == mapping.ip and advertisement[Ether].src == mapping.mac:
             return True
