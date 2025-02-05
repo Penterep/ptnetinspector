@@ -117,6 +117,35 @@ class Send:
                         sendp(pkt, iface=interface, verbose=False)
                     except ipaddress.AddressValueError:
                         pass
+
+    def send_invalid_ipv6_hbh(interface):
+        # Checking the existence of the interface
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            avail_ipv6 = Interface(interface).check_available_ipv6
+            if avail_ipv6:
+                # Function to send invalid IPv6 HBH packet
+                ip_addresses = Interface(interface).get_interface_ips()
+                src_mac = get_if_hwaddr(interface)
+
+                for ip in ip_addresses:
+                    try:
+                        ipaddress.IPv4Address(ip)
+                        continue
+                    except ipaddress.AddressValueError:
+                        pass
+                    try:
+                        ipaddress.IPv6Address(ip)
+                        src_ip = ip
+                        pkt = (Ether(src=src_mac, dst="33:33:00:00:00:01") /
+                               IPv6(src=src_ip, dst="ff02::1", hlim=255) /
+                               IPv6ExtHdrHopByHop(
+                                   options=[HBHOptUnknown(otype=255, optdata=b"\x00\x00\x00")]) /
+                               ICMPv6EchoRequest())
+                        sendp(pkt, iface=interface, verbose=False)
+                    except ipaddress.AddressValueError:
+                        pass
     
     def send_multicast_ping_router(interface):
         # Function to send an IPv6 ping to a router multicast address

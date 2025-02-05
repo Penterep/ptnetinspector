@@ -368,6 +368,7 @@ class Sniff:
                 Send.send_normal_multicast_ping(interface)
                 Send.send_invalid_multicast_icmpv6(interface)
                 Send.send_invalid_multicast_ping(interface)
+                Send.send_invalid_ipv6_hbh(interface)
                 # Send.send_multicast_ping_router(interface)
                 Send.send_RS(interface)
 
