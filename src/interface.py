@@ -18,6 +18,19 @@ class Interface:
                         interface_ips.append(addr_info['addr'])
         return interface_ips
 
+    def get_interface_ipv6_ips(self):
+        # Function to retrieve IPv6 IPs of a given network interface
+        interface_ips = []
+        if self.interface in netifaces.interfaces():
+            interface_addrs = netifaces.ifaddresses(self.interface)
+            if netifaces.AF_INET6 in interface_addrs:
+                for addr_info in interface_addrs[netifaces.AF_INET6]:
+                    if '%' in addr_info['addr']:
+                        interface_ips.append(addr_info['addr'].split('%')[0])
+                    else:
+                        interface_ips.append(addr_info['addr'])
+        return interface_ips
+
     def get_interface_link_local_list(self):
         # Function to retrieve link-local address's list of a given network interface (if there are more than one LL address)
         ips = self.get_interface_ips()
