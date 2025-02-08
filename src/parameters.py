@@ -530,6 +530,12 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
         if not more_detail:
             ptprinthelper.ptprint(f"Displaying only basic detail (except for mode 802.1x)", "INFO")
 
+        # Control the check addresses
+        if check_addresses:
+            ptprinthelper.ptprint("Checking the found addresses if they are valid or not", "INFO")
+        if not check_addresses:
+            ptprinthelper.ptprint("Not checking the found addresses if they are valid or not", "INFO")
+
         if "p" in type:
             # Duration passive
             ptprinthelper.ptprint(f"Passive duration: {duration_passive}s", "INFO")
