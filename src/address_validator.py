@@ -1,6 +1,7 @@
 import ipaddress
 import asyncio
 import csv
+import os
 
 from typing import List
 from dataclasses import dataclass
@@ -67,14 +68,15 @@ def filter_unicast_addresses(mappings: List[AddressMapping]) -> List[AddressMapp
     return result
 
 
-def write_mappings(mappings: List[AddressMapping]) -> None:
+def write_mappings(mappings: List[AddressMapping], file_path: str = ADDR_MAPPING_FILE_PATH) -> None:
     """
     Write valid mappings back to CSV file.
 
     Args:
         mappings (List[AddressMapping]): List of mac and ip address mappings.
+        file_path (str): Path to the CSV file to write to.
     """
-    with open(ADDR_MAPPING_FILE_PATH, 'w', newline='') as f:
+    with open(file_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['MAC', 'IP'])
         for mapping in mappings:
@@ -186,11 +188,21 @@ def validate_addresses(interface: str, passive: bool = False) -> None:
     """
     validator = AddressValidator(interface)
 
-    mappings = read_mappings()
-    filtered_mapping = filter_unicast_addresses(mappings)
+    original_mappings = read_mappings()
+    filtered_mapping = filter_unicast_addresses(original_mappings)
+
+    write_mappings(original_mappings, file_path=ADDR_MAPPING_FILE_PATH[:-4] + '_unfiltered.csv')
 
     if not passive:
         filtered_mapping = asyncio.run(validator.verify_all_mappings(filtered_mapping))
 
     write_mappings(filtered_mapping)
 
+def delete_tmp_validating_files():
+    """
+    Delete the unfiltered CSV file.
+    """
+    try:
+        os.remove(ADDR_MAPPING_FILE_PATH[:-4] + '_unfiltered.csv')
+    except FileNotFoundError:
+        pass
