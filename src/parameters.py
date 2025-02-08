@@ -31,7 +31,7 @@ def get_help():
             ["-n", "     Does not delete .csv files in tmp folder"],
             ["-more", "     Shows full details of network scan. Only default data is displayed if not used. If being used together with option j, details output + json output are given."],
             ["-less", "     Shows minimum details of network scan. Default data is displayed if not used. If being used together with option j, minimum details output + json output are given."],
-            ["-c", "     Checks found addresses for their availability. This option is not included if not used"],
+            ["-nc", "     Does not check the found addresses if they are valid or not."],
             ["-h", "     Shows this help message and exits"]
         ]},
         {"Specific options (for Passive scan)": [
@@ -272,10 +272,6 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
         
         if nofwd:
             err = "No forwarding is not applied in this mode. Program exits!"
-            list_error.append(err)
-
-        if check_addresses:
-            err = "Checking addresses is not applied in this mode. Program exits!"
             list_error.append(err)
 
     elif type == ["a"] or ("a" in type and "802.1x" in type and len(type) == 2):

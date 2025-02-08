@@ -26,7 +26,7 @@ args = parse_args()
 create_csv("src/tmp")
 
 # Getting all variables, it returns errors if inserted parameters are wrong
-interface, json_output, del_tmp_para, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (args.interface, args.j, args.n, args.t, args.more, args.less, args.c, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd)
+interface, json_output, del_tmp_para, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (args.interface, args.j, args.n, args.t, args.more, args.less, args.nc, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd)
 
 mac_db = load_mac_database('libs/manuf')
 
