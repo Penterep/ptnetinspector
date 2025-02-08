@@ -64,7 +64,7 @@ def ptnet_passive():
     if check_addresses:
         if (not json_output or more_detail) and not less_detail:
             ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
-        validate_addresses(interface)
+        validate_addresses(interface, True)
 
     if not json_output or (more_detail or less_detail):
         Non_json.output_general(mac_db)

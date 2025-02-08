@@ -176,17 +176,21 @@ class AddressValidator:
         return valid_mappings
 
 
-def validate_addresses(interface: str) -> None:
+def validate_addresses(interface: str, passive: bool = False) -> None:
     """
     Validate MAC-IP mappings editing the addresses CSV.
 
     Args:
         interface (str): Name of the interface to use for validation.
+        passive (bool): If True, do not send packets. Default is False.
     """
     validator = AddressValidator(interface)
 
     mappings = read_mappings()
-    unicast_mappings = filter_unicast_addresses(mappings)
-    valid_mappings = asyncio.run(validator.verify_all_mappings(unicast_mappings))
-    write_mappings(valid_mappings)
+    filtered_mapping = filter_unicast_addresses(mappings)
+
+    if not passive:
+        filtered_mapping = asyncio.run(validator.verify_all_mappings(filtered_mapping))
+
+    write_mappings(filtered_mapping)
 
