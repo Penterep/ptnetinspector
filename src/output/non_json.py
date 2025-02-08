@@ -25,13 +25,13 @@ class Non_json:
         
         return unique_mac_addresses
 
-    def output_general(mac_db):
-        if has_additional_data("src/tmp/addresses.csv") and has_additional_data("src/tmp/role_node.csv"):
+    def output_general(mac_db, addresses_file_name="src/tmp/addresses.csv"):
+        if has_additional_data(addresses_file_name) and has_additional_data("src/tmp/role_node.csv"):
             # Read the role_node.csv file
             role_node_df = pd.read_csv('src/tmp/role_node.csv')
 
             # Read the addresses.csv file
-            addresses_df = pd.read_csv('src/tmp/addresses.csv')
+            addresses_df = pd.read_csv(addresses_file_name)
 
             # Check the vulnerability of PVLAN missing
             # Merge the dataframes on the 'MAC' column

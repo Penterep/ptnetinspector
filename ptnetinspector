@@ -4,7 +4,7 @@ import warnings
 from libs.check import has_additional_data
 from ptlibs import ptprinthelper
 from libs.set_IP_interface import shutdown_interface_traffic, restore_interface_traffic, check_interface
-from src.address_validator import validate_addresses
+from src.address_validator import validate_addresses, delete_tmp_validating_files
 from src.output.non_json import Non_json
 from src.output.json import Json
 from src.output.oui import load_mac_database
@@ -65,12 +65,18 @@ def ptnet_passive():
         if (not json_output or more_detail) and not less_detail:
             ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
         validate_addresses(interface, True)
+    else:
+        delete_tmp_validating_files()
+
 
     if not json_output or (more_detail or less_detail):
         Non_json.output_general(mac_db)
 
         if more_detail:
             Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", mac_db, less_detail)
+            if check_addresses:
+                Non_json.print_box("Unfiltered found addresses")
+                Non_json.output_general(mac_db, 'src/tmp/addresses_unfiltered.csv')
             
         Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", mac_db, less_detail)
         Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", mac_db, less_detail)
@@ -107,11 +113,16 @@ def ptnet_active():
         if (not json_output or more_detail) and not less_detail:
             ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
         validate_addresses(interface)
+    else:
+        delete_tmp_validating_files()
     
     if not json_output or (more_detail or less_detail):
         Non_json.output_general(mac_db)
         if more_detail:
             Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", mac_db, less_detail)
+            if check_addresses:
+                Non_json.print_box("Unfiltered found addresses")
+                Non_json.output_general(mac_db, 'src/tmp/addresses_unfiltered.csv')
             
         Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", mac_db, less_detail)
         Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", mac_db, less_detail)
@@ -159,6 +170,8 @@ def ptnet_aggressive():
         if (not json_output or more_detail) and not less_detail:
             ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
         validate_addresses(interface)
+    else:
+        delete_tmp_validating_files()
     
     if not json_output or (more_detail or less_detail):
         if Sniff.detect_RA_guard_missing(interface, prefix_len, network, duration_aggressive):
@@ -166,6 +179,9 @@ def ptnet_aggressive():
         Non_json.output_general(mac_db)
         if more_detail:
             Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", mac_db, less_detail)
+            if check_addresses:
+                Non_json.print_box("Unfiltered found addresses")
+                Non_json.output_general(mac_db, 'src/tmp/addresses_unfiltered.csv')
             
         Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", mac_db, less_detail)
         Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", mac_db, less_detail)
