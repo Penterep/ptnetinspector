@@ -5,6 +5,7 @@ import os
 
 from typing import List
 from dataclasses import dataclass
+from ptlibs import ptprinthelper
 from scapy.all import (
     Ether, ARP, IPv6, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr,
     srp1
@@ -115,6 +116,16 @@ class AddressValidator:
 
         return False
 
+    def ipv6_address_on_interface_check(self) -> bool:
+        """
+        Check for presence of IPv6 address on the interface.
+
+        Returns:
+            bool: True if IPv6 address is present, False otherwise.
+        """
+        candidate_ipv6_src_addr = Interface.get_interface_ipv6_ips(Interface(self.interface))
+        return bool(candidate_ipv6_src_addr)
+
     def verify_ipv6_mapping(self, mapping: AddressMapping) -> bool:
         """
         Verify IPv6 address mapping using Neighbor Solicitation.
@@ -169,6 +180,10 @@ class AddressValidator:
         Returns:
             List[AddressMapping]: List of MAC-IP mappings that are valid.
         """
+        if not self.ipv6_address_on_interface_check():
+            ptprinthelper.ptprint(f"Could not validate IPv6 addresses. No IPv6 address on interface {self.interface}", "ERROR")
+            mappings = [mapping for mapping in mappings if not isinstance(ipaddress.ip_address(mapping.ip), ipaddress.IPv6Address)]
+
         tasks = [asyncio.create_task(self.verify_mapping(mapping)) for mapping in mappings]
         results = await asyncio.gather(*tasks)
 
