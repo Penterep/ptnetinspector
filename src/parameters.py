@@ -31,7 +31,7 @@ def get_help():
             ["-n", "     Does not delete .csv files in tmp folder"],
             ["-more", "     Shows full details of network scan. Only default data is displayed if not used. If being used together with option j, details output + json output are given."],
             ["-less", "     Shows minimum details of network scan. Default data is displayed if not used. If being used together with option j, minimum details output + json output are given."],
-            ["-nc", "     Does not check the found addresses if they are valid or not."],
+            ["-nc", "     Does not check the found addresses if they are valid or not. Default is checking if not used"],
             ["-h", "     Shows this help message and exits"]
         ]},
         {"Specific options (for Passive scan)": [
