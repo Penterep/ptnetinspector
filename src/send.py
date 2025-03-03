@@ -1,5 +1,6 @@
 import ipaddress
 import csv
+
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR, DNSRR
 from scapy.layers.eap import EAPOL
@@ -8,7 +9,7 @@ from scapy.layers.inet6 import IPv6, ICMPv6MLQuery, ICMPv6EchoRequest, IPv6ExtHd
     IPv6ExtHdrDestOpt, HBHOptUnknown, ICMPv6EchoReply, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_NA, ICMPv6MLQuery2, \
     ICMPv6MLReport2, ICMPv6MLDMultAddrRec, ICMPv6MLReport, ICMPv6MLDone, ICMPv6ND_RS, ICMPv6ND_RA, ICMPv6NDOptRDNSS, \
     ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, ICMPv6NDOptDstLLAddr, ICMPv6ParamProblem
-from scapy.layers.l2 import Ether
+from scapy.layers.l2 import Ether, ARP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from src.interface import Interface
 from src.device.mdns import mDNS
@@ -836,41 +837,113 @@ class Send:
                         sendp(pkt2, iface=interface, verbose=False)
                         sendp(pkt3, iface=interface, verbose=False)
 
-                
+
+    def probe_gateways(interface: str, ip_version: int = 0) -> None:
+        """
+        Retrieve all gateways for the specified interface and send probes.
+
+        Args:
+            interface (str): Network interface to check
+            ip_version (int): IP version to probe (0 = both, 4 = IPv4, 6 = IPv6)
+        """
+        gateway_addresses = get_gateway_addresses(interface, ip_version)
+
+        for address in gateway_addresses:
+            send_neighbor_discovery(address, interface)
+
+def get_gateway_addresses(interface: str, ip_version: int = 0) -> List[str]:
+    """
+    Extract gateway addresses from routing table for the specified interface.
+
+    Args:
+        interface (str): The network interface to check
+
+    Returns:
+        List[str]: List of gateway IP addresses (both IPv4 and IPv6)
+    """
+    gateways = []
+
+    if ip_version == 0:
+        ip_versions = [4, 6]
+    else:
+        ip_versions = [ip_version]
+
+    for ip_version in ip_versions:
+        try:
+            result = subprocess.run(['ip', f'-{ip_version}', 'route'],
+                                    capture_output=True,
+                                    text=True,
+                                    check=True)
+
+            for line in result.stdout.splitlines():
+                if line.startswith('default via') and f"dev {interface}" in line:
+                    parts = line.split()
+                    if len(parts) >= 5 and parts[0] == 'default' and parts[1] == 'via':
+                        gateway_ip = parts[2]
+                        gateways.append(gateway_ip)
+        except subprocess.CalledProcessError:
+            pass
+
+    return gateways
 
 
+def send_neighbor_discovery(address: str, interface: str) -> None:
+    """
+    Send appropriate neighbor discovery packet based on IP version.
+
+    Args:
+        address (str): IP address (IPv4 or IPv6)
+        interface (str): The network interface to use
+    """
+    try:
+        socket.inet_pton(socket.AF_INET, address)
+        send_arp_request(address, interface)
+    except socket.error:
+        try:
+            socket.inet_pton(socket.AF_INET6, address)
+            send_ns(address, interface)
+        except socket.error:
+            pass
 
 
+def send_arp_request(address: str, interface: str) -> None:
+    """
+    Send an ARP request to an IPv4 address.
 
-        
+    Args:
+        address (str): The IPv4 address
+        interface (str): The network interface to use
+    """
+    try:
+        arp_request = ARP(pdst=address)
+        ether = Ether(dst="ff:ff:ff:ff:ff:ff")
 
+        pkt = ether / arp_request
 
+        sendp(pkt, verbose=0, iface=interface)
 
-
-
-    
-
-        
-    
-
-                
-    
-
-    
-
-    
-
-
-
-        
+    except Exception:
+        pass
 
 
+def send_ns(address: str, interface: str) -> None:
+    """
+    Send an ICMPv6 Neighbor Solicitation to an IPv6 address.
 
+    Args:
+        address (str): The IPv6 address
+        interface (str): The network interface to use
+    """
+    exist_interface = Interface(interface).check_interface()
 
-        
+    if exist_interface:
+        avail_ipv6 = Interface(interface).check_available_ipv6
+        if avail_ipv6:
+            ether = Ether(src=get_if_hwaddr(interface))
+            ipv6 = IPv6(dst=inet_ntop(socket.AF_INET6, in6_getnsma(inet_pton(socket.AF_INET6, address))))
+            ns = ICMPv6ND_NS(tgt=address)
+            slla = ICMPv6NDOptSrcLLAddr(lladdr=get_if_hwaddr(interface))
 
+            pkt = ether / ipv6 / ns / slla
 
-
-
-
-
+            sendp(pkt, verbose=0, iface=interface)

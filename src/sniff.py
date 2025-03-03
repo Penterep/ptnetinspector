@@ -10,7 +10,7 @@ from scapy.layers.inet6 import IPv6, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptM
 from scapy.layers.dhcp6 import DHCP6OptIAAddress, DHCP6OptIAPrefix, DHCP6_Request, DHCP6_Rebind, DHCP6_Release, DHCP6_Renew, DHCP6_Decline, DHCP6_Confirm
 from scapy.layers.dhcp import DHCP
 from scapy.layers.dns import DNSRR, DNS
-from scapy.layers.l2 import Ether, Dot3
+from scapy.layers.l2 import Ether, Dot3, ARP
 from scapy.layers.dot11 import Dot11
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from src.device.remote_node import Remote_node
@@ -322,6 +322,10 @@ class Sniff:
                         DHCP(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
                         Node(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
 
+            # ARP responses
+            if packet is not None and ARP in packet:
+                Node(packet[0].src, packet[ARP].psrc).save_addresses()
+
         sort('src/tmp/packets.csv', 'src/tmp/addresses.csv')
             
 
@@ -371,6 +375,7 @@ class Sniff:
                 Send.send_invalid_ipv6_hbh(interface)
                 # Send.send_multicast_ping_router(interface)
                 Send.send_RS(interface)
+                Send.probe_gateways(interface, 0)
 
                 time.sleep(1.5) # Sleeping to make the tool capture packets
                 pkts.stop()
