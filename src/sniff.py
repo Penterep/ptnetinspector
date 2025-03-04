@@ -19,7 +19,7 @@ from src.create_csv import sort_csv_role_node, delete_middle_content_csv
 from src.interface import Interface
 from src.device.router import Router
 from src.device.node import Node
-from src.device.dhcp import DHCP
+from src.device.dhcp import DHCP as DHCP_ptnet
 from src.device.mldv2 import MLDv2
 from src.device.mldv1 import MLDv1
 from src.device.llmnr import LLMNR
@@ -312,15 +312,14 @@ class Sniff:
             # DHCPv6 Request, Renew, Release, Decline, Confirm, Rebind (If they include address)
             if packet is not None and (DHCP6_Request in packet or DHCP6_Renew in packet or DHCP6_Release in packet or DHCP6_Decline in packet or DHCP6_Confirm in packet or DHCP6_Rebind in packet):
                 if DHCP6OptIAAddress in packet:
-                    DHCP(packet[0].src, packet[0][DHCP6OptIAAddress].addr).save_addresses()
+                    DHCP_ptnet(packet[0].src, packet[0][DHCP6OptIAAddress].addr).save_addresses()
                     Node(packet[0].src, packet[0][DHCP6OptIAAddress].addr).save_addresses()
-            
+
             # DHCP Request
             if packet is not None and DHCP in packet:
-                if packet[0][DHCP].options:
-                    if find_requested_addr(packet[0][DHCP].options):
-                        DHCP(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
-                        Node(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
+                if find_requested_addr(packet[0][DHCP].options):
+                    DHCP_ptnet(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
+                    Node(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
 
             # ARP responses
             if packet is not None and ARP in packet:
