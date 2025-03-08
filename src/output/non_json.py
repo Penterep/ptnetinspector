@@ -4,7 +4,7 @@ from src.create_csv import sort_csv_based_MAC, delete_middle_content_csv
 from libs.check import has_additional_data, is_global_unicast_ipv6, is_ipv6_ula, is_link_local_ipv6, is_valid_ipv6, is_llsnm_ipv6, get_status_ip, is_dhcp_slaac
 from ptlibs import ptprinthelper
 from libs.convert import in6_getansma, in6_getnsma
-from src.output.oui import load_mac_database, get_vendor
+from src.output.oui import lookup_vendor_from_csv
 
 class Non_json:
     def print_box(string):
@@ -25,7 +25,7 @@ class Non_json:
         
         return unique_mac_addresses
 
-    def output_general(mac_db, addresses_file_name="src/tmp/addresses.csv"):
+    def output_general(addresses_file_name="src/tmp/addresses.csv"):
         if has_additional_data(addresses_file_name) and has_additional_data("src/tmp/role_node.csv"):
             # Read the role_node.csv file
             role_node_df = pd.read_csv('src/tmp/role_node.csv')
@@ -71,6 +71,7 @@ class Non_json:
                 role = row['Role']
                 
                 ptprinthelper.ptprint(f"Device number {device_number}: ({role} - {get_vendor(mac_address, mac_db)})", "INFO")
+                ptprinthelper.ptprint(f"Device number {device_number}: ({role} - {lookup_vendor_from_csv(mac_address)}) [{device_name}]", "INFO")
                 ptprinthelper.ptprint(f"    MAC   {mac_address}")
                 
                 # Find IP addresses associated with this MAC address
@@ -184,7 +185,7 @@ class Non_json:
                     
                     # Need to skip the situation of Host when printing router scan, and situation when device in role_node but not in specified file name
                     if (protocol == "RA" and role != "Host") or (protocol != "RA" and mac_address in list_mac_protocol):
-                        ptprinthelper.ptprint(f"Device number {device_number}: ({role} - {get_vendor(mac_address, mac_db)})", "INFO")
+                        ptprinthelper.ptprint(f"Device number {device_number}: ({role} - {lookup_vendor_from_csv(mac_address)})", "INFO")
 
                         if less_detail:
                             continue

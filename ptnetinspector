@@ -7,7 +7,7 @@ from libs.set_IP_interface import shutdown_interface_traffic, restore_interface_
 from src.address_validator import validate_addresses, delete_tmp_validating_files
 from src.output.non_json import Non_json
 from src.output.json import Json
-from src.output.oui import load_mac_database
+from src.output.oui import create_vendor_csv
 from src.sniff import Sniff
 from src.interface import Interface
 from src.create_csv import create_csv
@@ -28,12 +28,13 @@ create_csv("src/tmp")
 # Getting all variables, it returns errors if inserted parameters are wrong
 interface, json_output, del_tmp_para, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (args.interface, args.j, args.n, args.t, args.more, args.less, args.nc, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd)
 
-mac_db = load_mac_database('libs/manuf')
-
 def ptnet_eap(combine=False):
     Sniff.run_normal_mode(interface, "802.1x", 3)
+
+    create_vendor_csv()
+
     if not json_output or (more_detail or less_detail):      
-        Non_json.output_protocol(interface, "802.1x", "src/tmp/eap.csv", mac_db)
+        Non_json.output_protocol(interface, "802.1x", "src/tmp/eap.csv")
         if more_detail:
             ptprinthelper.ptprint("802.1x scan ended \n", "INFO")
 
@@ -68,23 +69,24 @@ def ptnet_passive():
     else:
         delete_tmp_validating_files()
 
+    create_vendor_csv()
 
     if not json_output or (more_detail or less_detail):
-        Non_json.output_general(mac_db)
+        Non_json.output_general()
 
         if more_detail:
-            Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", mac_db, less_detail)
+            Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", less_detail)
             if check_addresses:
                 Non_json.print_box("Unfiltered found addresses")
-                Non_json.output_general(mac_db, 'src/tmp/addresses_unfiltered.csv')
+                Non_json.output_general('src/tmp/addresses_unfiltered.csv')
             
-        Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", mac_db, less_detail)
-        Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", mac_db, less_detail)
-        Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", mac_db, less_detail)
+        Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", less_detail)
+        Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", less_detail)
+        Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", less_detail)
         
         if more_detail:
-            Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", mac_db, less_detail)
-            Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", mac_db, less_detail)
+            Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+            Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
         
 def ptnet_active():
     if not json_output or (more_detail or less_detail):
@@ -115,22 +117,24 @@ def ptnet_active():
         validate_addresses(interface)
     else:
         delete_tmp_validating_files()
+
+    create_vendor_csv()
     
     if not json_output or (more_detail or less_detail):
-        Non_json.output_general(mac_db)
+        Non_json.output_general()
         if more_detail:
-            Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", mac_db, less_detail)
+            Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", less_detail)
             if check_addresses:
                 Non_json.print_box("Unfiltered found addresses")
-                Non_json.output_general(mac_db, 'src/tmp/addresses_unfiltered.csv')
+                Non_json.output_general('src/tmp/addresses_unfiltered.csv')
             
-        Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", mac_db, less_detail)
-        Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", mac_db, less_detail)
-        Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", mac_db, less_detail)
+        Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", less_detail)
+        Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", less_detail)
+        Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", less_detail)
         
         if more_detail:
-            Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", mac_db, less_detail)
-            Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", mac_db, less_detail)
+            Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+            Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
         
 
 def ptnet_aggressive():
@@ -172,30 +176,32 @@ def ptnet_aggressive():
         validate_addresses(interface)
     else:
         delete_tmp_validating_files()
+
+    create_vendor_csv()
     
     if not json_output or (more_detail or less_detail):
         if Sniff.detect_RA_guard_missing(interface, prefix_len, network, duration_aggressive):
             ptprinthelper.ptprint("Vulnerable: RA guard missing or misconfigured", "VULN", colortext=True)
-        Non_json.output_general(mac_db)
+        Non_json.output_general()
         if more_detail:
-            Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", mac_db, less_detail)
+            Non_json.output_protocol(interface, "time", "src/tmp/time_incoming.csv", less_detail)
             if check_addresses:
                 Non_json.print_box("Unfiltered found addresses")
-                Non_json.output_general(mac_db, 'src/tmp/addresses_unfiltered.csv')
+                Non_json.output_general('src/tmp/addresses_unfiltered.csv')
             
-        Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", mac_db, less_detail)
-        Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", mac_db, less_detail)
-        Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", mac_db, less_detail)
+        Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", less_detail)
+        Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", less_detail)
+        Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", less_detail)
         
         if more_detail:
-            Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", mac_db, less_detail)
-            Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", mac_db, less_detail)
+            Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+            Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
         
     if json_output:
         enablePrint()
         if more_detail:
             Non_json.print_box("Json output")
-        print(Json.output_object(interface, type, mac_db, prefix_len, network, duration_aggressive, True))
+        print(Json.output_object(interface, type, prefix_len, network, duration_aggressive, True))
     
     if check_rule("a"):
         remove_rule(True, "a")
@@ -214,7 +220,7 @@ if args.t == ["802.1x"]:
     if json_output:
         if more_detail:
             Non_json.print_box("Json output")
-        print(Json.output_object(interface, args.t, mac_db, None, None, None, True))
+        print(Json.output_object(interface, args.t, None, None, None, True))
     if del_tmp_para == True:
         del_tmp()
     sys.exit()
@@ -226,7 +232,7 @@ if args.t == ["p"] or ("802.1x" in args.t and "p" in args.t and len(args.t) == 2
         if "802.1x" in args.t:
             ptnet_eap(combine=True)
             if json_output:
-                Json.output_object(interface, args.t, mac_db, None, None, None, False)
+                Json.output_object(interface, args.t, None, None, None, False)
         
         # Start passive scan
         # Turning off the interface before scanning
@@ -239,7 +245,7 @@ if args.t == ["p"] or ("802.1x" in args.t and "p" in args.t and len(args.t) == 2
             if more_detail:
                 Non_json.print_box("Json output")
             enablePrint()
-            print(Json.output_object(interface, args.t, mac_db, None, None, None, True))
+            print(Json.output_object(interface, args.t, None, None, None, True))
 
         # Enabling interface again
         status = restore_interface_traffic(interface)
@@ -284,10 +290,10 @@ if args.t == ["a"] or ("802.1x" in args.t and "a" in args.t and len(args.t) == 2
                 ptprinthelper.ptprint("802.1x is detected, so active scan will be cancelled", "WARNING")                    
                 if json_output:
                     Non_json.print_box("Json output")
-                    print(Json.output_object(interface, args.t, mac_db, None, None, None, True))
+                    print(Json.output_object(interface, args.t, None, None, None, True))
                 sys.exit(0)
            if json_output:
-                Json.output_object(interface, args.t, mac_db, None, None, None, False)
+                Json.output_object(interface, args.t, None, None, None, False)
 
         # Start active scan
         ptnet_active()
@@ -296,7 +302,7 @@ if args.t == ["a"] or ("802.1x" in args.t and "a" in args.t and len(args.t) == 2
             enablePrint()
             if more_detail:
                 Non_json.print_box("Json output")
-            print(Json.output_object(interface, args.t, mac_db, None, None, None, True))
+            print(Json.output_object(interface, args.t, None, None, None, True))
     
         if check_rule("a"):
             remove_rule(True, "a")
@@ -344,10 +350,10 @@ if args.t == ["a+"] or ("802.1x" in args.t and "a+" in args.t and len(args.t) ==
                 ptprinthelper.ptprint("802.1x is detected, so aggressive scan will be cancelled", "WARNING")
                 if json_output:
                     Non_json.print_box("Json output")
-                    print(Json.output_object(interface, args.t, mac_db, None, None, None, True))
+                    print(Json.output_object(interface, args.t, None, None, None, True))
                 sys.exit(0)
             if json_output:
-                Json.output_object(interface, args.t, mac_db, None, None, None, False)
+                Json.output_object(interface, args.t, None, None, None, False)
 
         # Start aggressive scan
         ptnet_aggressive()
@@ -397,10 +403,10 @@ if args.t == ["a+"] or ("a" in args.t and "a+" in args.t and len(args.t) == 2) o
                 ptprinthelper.ptprint("802.1x is detected, so aggressive scan will be cancelled", "WARNING")
                 if json_output:
                     Non_json.print_box("Json output")
-                    print(Json.output_object(interface, "802.1x", mac_db, None, None, None, True))
+                    print(Json.output_object(interface, "802.1x", None, None, None, True))
                 sys.exit(0)
            if json_output:
-                Json.output_object(interface, "802.1x", mac_db, None, None, None, False)
+                Json.output_object(interface, "802.1x", None, None, None, False)
         
         # Start active scan
         if "a" in args.t:
