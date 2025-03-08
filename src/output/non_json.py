@@ -69,8 +69,7 @@ class Non_json:
                 mac_address = row['MAC']
                 device_number = row['Device_Number']
                 role = row['Role']
-                
-                ptprinthelper.ptprint(f"Device number {device_number}: ({role} - {get_vendor(mac_address, mac_db)})", "INFO")
+
                 ptprinthelper.ptprint(f"Device number {device_number}: ({role} - {lookup_vendor_from_csv(mac_address)}) [{device_name}]", "INFO")
                 ptprinthelper.ptprint(f"    MAC   {mac_address}")
                 
