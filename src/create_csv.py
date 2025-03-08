@@ -56,6 +56,11 @@ def create_csv(directory):
         fieldnames = ['Destination', 'Nexthop', 'Flag', 'Metric', 'Refcnt', 'Use', 'If']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
+
+    with open(f"{directory}/ipv4_route_table.csv", 'w', newline='') as csvfile:
+        fieldnames = ['Destination', 'Gateway', 'Genmask', 'Flags', 'Metric', 'Ref', 'Use', 'Iface']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
     
     with open(f"{directory}/time_all.csv", 'w', newline='') as csvfile:
         fieldnames = ['time', 'MAC', 'packet']

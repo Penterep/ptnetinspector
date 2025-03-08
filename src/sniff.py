@@ -404,6 +404,7 @@ class Sniff:
 
                 # Getting the routing table for more information related to route
                 Node.get_ipv6_route_metrics_and_addresses()
+                Node.get_ipv4_route_metrics_and_addresses()
             
             # # Finish time
             # finish_time = str(datetime.now())

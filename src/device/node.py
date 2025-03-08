@@ -57,7 +57,7 @@ class Node:
                 'name': local_name
             })
     
-    def save_routing_table(Destination, Nexthop, Flag, Metric, Refcnt, Use, If):
+    def save_ipv6_routing_table(Destination, Nexthop, Flag, Metric, Refcnt, Use, If):
         with open('src/tmp/ipv6_route_table.csv', 'a+', newline='') as csvfile:
             file_writer = csv.writer(csvfile)
             csvfile.seek(0)  # move the file pointer to the beginning of the file
@@ -77,6 +77,27 @@ class Node:
                         'If': If
                     })
 
+    def save_ipv4_routing_table(Destination, Gateway, Genmask, Flags, Metric, Ref, Use, Iface):
+        with open('src/tmp/ipv4_route_table.csv', 'a+', newline='') as csvfile:
+            file_writer = csv.writer(csvfile)
+            csvfile.seek(0)
+            for row in csv.reader(csvfile):
+                if row and row == file_writer:
+                    return
+                else:
+                    fieldnames = ['Destination', 'Gateway', 'Genmask', 'Flags', 'Metric', 'Ref', 'Use', 'Iface']
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writerow({
+                        'Destination': Destination,
+                        'Gateway': Gateway,
+                        'Genmask': Genmask,
+                        'Flags': Flags,
+                        'Metric': Metric,
+                        'Ref': Ref,
+                        'Use': Use,
+                        'Iface': Iface
+                    })
+
     @staticmethod
     def get_ipv6_route_metrics_and_addresses():
         try:
@@ -93,10 +114,31 @@ class Node:
                 # Extract the fields of interest (Destination, Nexthop, Flag, Metric, Refcnt, Use, If)
                 if len(fields) >= 7:
                     Destination, Nexthop, Flag, Metric, Refcnt, Use, If = fields[:7]
-                    Node.save_routing_table(Destination, Nexthop, Flag, Metric, Refcnt, Use, If)
+                    Node.save_ipv6_routing_table(Destination, Nexthop, Flag, Metric, Refcnt, Use, If)
 
         except subprocess.CalledProcessError as e:
             print("Error running 'ip' command:", e)
+            return []
+
+        except Exception as e:
+            print("An error occurred:", e)
+            return []
+
+    @staticmethod
+    def get_ipv4_route_metrics_and_addresses():
+        try:
+            route_output = subprocess.check_output(["route", "-n"]).decode("utf-8")
+            route_lines = route_output.splitlines()[2:]
+
+            for line in route_lines:
+                fields = line.split()
+
+                if len(fields) >= 8:
+                    Destination, Gateway, Genmask, Flags, Metric, Ref, Use, Iface = fields[:8]
+                    Node.save_ipv4_routing_table(Destination, Gateway, Genmask, Flags, Metric, Ref, Use, Iface)
+
+        except subprocess.CalledProcessError as e:
+            print("Error running 'route' command:", e)
             return []
 
         except Exception as e:
