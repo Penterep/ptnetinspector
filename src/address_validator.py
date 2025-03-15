@@ -87,7 +87,7 @@ def write_mappings(mappings: List[AddressMapping], file_path: str = ADDR_MAPPING
 class AddressValidator:
     def __init__(self, interface: str):
         self.interface = interface
-        self.timeout = 1  # seconds
+        self.timeout = 0.5 # seconds
 
     def verify_ipv4_mapping(self, mapping: AddressMapping) -> bool:
         """
