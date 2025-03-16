@@ -26,10 +26,10 @@ args = parse_args()
 create_csv("src/tmp")
 
 # Getting all variables, it returns errors if inserted parameters are wrong
-interface, json_output, del_tmp_para, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (args.interface, args.j, args.n, args.t, args.more, args.less, args.nc, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd)
+interface, json_output, del_tmp_para, type, more_detail, less_detail, check_addresses, ip_mode, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (args.interface, args.j, args.n, args.t, args.more, args.less, args.nc, args.ipv4, args.ipv6, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd)
 
 def ptnet_eap(combine=False):
-    Sniff.run_normal_mode(interface, "802.1x", 3)
+    Sniff.run_normal_mode(interface, "802.1x", ip_mode, 3)
 
     create_vendor_csv()
 
@@ -59,7 +59,7 @@ def ptnet_passive():
         sys.exit(0)
     
     
-    Sniff.run_normal_mode(interface, "p", duration_passive)
+    Sniff.run_normal_mode(interface, "p", ip_mode, duration_passive)
 
 
     if check_addresses:
@@ -109,7 +109,7 @@ def ptnet_active():
         if (not json_output or more_detail) and not less_detail:
             ptprinthelper.ptprint("Adding rules in configuration to perform scanning", "INFO")
     
-    Sniff.run_normal_mode(interface, "a", None)
+    Sniff.run_normal_mode(interface, "a", ip_mode, None)
 
     if check_addresses:
         if (not json_output or more_detail) and not less_detail:
@@ -168,7 +168,7 @@ def ptnet_aggressive():
             ptprinthelper.ptprint("No IP available on interface, so a random IP is generated", "INFO")
     
     # Running scan
-    Sniff.run_aggressive_mode(interface, prefix_len, network, smac, sip, rpref, duration_aggressive, period, chl, mtu, dns)
+    Sniff.run_aggressive_mode(interface, ip_mode, prefix_len, network, smac, sip, rpref, duration_aggressive, period, chl, mtu, dns)
 
     if check_addresses:
         if (not json_output or more_detail) and not less_detail:

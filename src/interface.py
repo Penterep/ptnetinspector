@@ -85,13 +85,7 @@ class Interface:
             subprocess.run(["ip", "addr", "add", f"{ipv6_address}/64", "dev", self.interface], check=True)
         except subprocess.CalledProcessError as e:
             pass
-    
-    
 
-
-
-
-
-
-
-
+def reverse_IPadd(ip_address):
+    # Function to create a reverse pointer record from an IP address
+    return ipaddress.ip_address(ip_address).reverse_pointer

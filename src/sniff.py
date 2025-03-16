@@ -26,13 +26,15 @@ from src.device.llmnr import LLMNR
 from src.device.mdns import mDNS
 from src.device.time import Time
 from src.device.eap import EAP
+from src.send_ipv6 import SendIPv6
 from src.send import Send
 from libs.convert import convert_OnOff, convert_preferenceRA, convert_mldReportv2, convert_timestamp_to_date
 from libs.sort import sort
 
 
 class Sniff:
-    
+
+    @staticmethod
     def type (pkt):
         # Function to classify packet types based on protocols
         if IPv6 in pkt:
@@ -50,7 +52,8 @@ class Sniff:
                 return 1
         else:
             return 4
-      
+
+    @staticmethod
     def scan_EAP(interface, timeout):
         # Function to sniff for EAP packets
         def check_for_eap(pkt):
@@ -70,7 +73,8 @@ class Sniff:
             return True
         else:
             return False
-    
+
+    @staticmethod
     def save_async(packets):
         # Function to save sniffed packets from asynchronous sniffing to a CSV file, no filter for address duplication because of the time
         with open("src/tmp/packets.csv", 'a', newline='') as csvfile:
@@ -116,17 +120,29 @@ class Sniff:
                         'src MAC': packet[Dot11].src,
                         'des MAC': packet[Dot11].dst,
                     })
-      
-    def scan_async(interface):
+
+    @staticmethod
+    def get_filter(ip_mode):
+        if ip_mode.ipv4 and ip_mode.ipv6:
+            return ""
+        elif ip_mode.ipv4:
+            return "not ip6"
+        elif ip_mode.ipv6:
+            return "not ip and not arp"
+
+    @staticmethod
+    def scan_async(interface, ip_mode):
         # Function to start asynchronous sniffing
-        packets = AsyncSniffer(iface=interface)
+        packets = AsyncSniffer(iface=interface, filter=Sniff.get_filter(ip_mode))
         return packets
 
     # Function to sniff packets for a certain time period
-    def scan_time(interface,time):
-        packets = sniff(iface=interface, timeout=time)
+    @staticmethod
+    def scan_time(interface, ip_mode, time):
+        packets = sniff(iface=interface, timeout=time, filter=Sniff.get_filter(ip_mode))
         return packets
 
+    @staticmethod
     def remove_duplicates_from_csv(input_csv):
         # Read the CSV file into a DataFrame
         data = pd.read_csv(input_csv)
@@ -137,6 +153,7 @@ class Sniff:
         # Write the cleaned DataFrame to a new CSV file
         data.to_csv(input_csv, index=False)
 
+    @staticmethod
     def detect_RA_guard_missing(interface, prefix_len, network, duration_aggressive):
         """  
         Check if the attacker becomes the fake router. RA guard is missed.
@@ -185,7 +202,7 @@ class Sniff:
         #     return False
 
     @staticmethod
-    def save_packets (interface, packets):
+    def save_packets (interface, ip_mode, packets):
         # Storing all packets into csv files
         Sniff.save_async(packets)
         src_mac = get_if_hwaddr(interface)
@@ -289,10 +306,15 @@ class Sniff:
                             Node(packet[0].src, packet[0][1].src).save_addresses()
                             LLMNR(packet[0].src, packet[0][1].src).save_LLMNR()
                             for i in range(packet[LLMNRResponse].ancount):
-                                try:                
-                                    if packet[LLMNRResponse].an[i].type == 1 or packet[LLMNRResponse].an[i].type == 28:
-                                        LLMNR(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_LLMNR()
-                                        Node(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_addresses() 
+                                try:
+                                    if ip_mode.ipv4:
+                                        if packet[LLMNRResponse].an[i].type == 1:
+                                            LLMNR(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_LLMNR()
+                                            Node(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_addresses()
+                                    if ip_mode.ipv6:
+                                        if packet[LLMNRResponse].an[i].type == 28:
+                                            LLMNR(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_LLMNR()
+                                            Node(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_addresses()
                                     if packet.an[i].type == 12:
                                         Node.save_local_name(packet[0].src, packet[LLMNRResponse].an[i].rdata.decode())
                                 except:
@@ -303,9 +325,14 @@ class Sniff:
                 Node(packet[0].src, packet[0][1].src).save_addresses()
                 mDNS(packet[0].src, packet[0][1].src).save_mDNS()
                 for i in range(packet[1][DNS].ancount):
-                    if packet.an[i].type == 1 or packet.an[i].type == 28:
-                        Node(packet[0].src, packet[0].an[i].rdata).save_addresses()
-                        mDNS(packet[0].src, packet[0].an[i].rdata).save_mDNS()
+                    if ip_mode.ipv4:
+                        if packet.an[i].type == 1:
+                            Node(packet[0].src, packet[0].an[i].rdata).save_addresses()
+                            mDNS(packet[0].src, packet[0].an[i].rdata).save_mDNS()
+                    if ip_mode.ipv6:
+                        if packet.an[i].type == 28:
+                            Node(packet[0].src, packet[0].an[i].rdata).save_addresses()
+                            mDNS(packet[0].src, packet[0].an[i].rdata).save_mDNS()
                     if packet.an[i].type == 12:
                         Node.save_local_name(packet[0].src, packet.an[i].rdata.decode())
             
@@ -326,9 +353,9 @@ class Sniff:
                 Node(packet[0].src, packet[ARP].psrc).save_addresses()
 
         sort('src/tmp/packets.csv', 'src/tmp/addresses.csv')
-            
 
-    def run_normal_mode(interface, mode, timeout):
+    @staticmethod
+    def run_normal_mode(interface, mode, ip_mode, timeout):
         # Checking the existence of the interface
         exist_interface = Interface(interface).check_interface()
 
@@ -340,14 +367,14 @@ class Sniff:
             
             # Scanning 802.1x security
             if mode == "802.1x":
-                pkts = Sniff.scan_async(interface)
+                pkts = Sniff.scan_async(interface, ip_mode)
                 pkts.start()
 
                 # Send EAPOL-Start packet and wait for any Request messages
                 Send.send_8021x_security(interface)
                 time.sleep(timeout)
                 pkts.stop()
-                Sniff.save_packets(interface, pkts.results)
+                Sniff.save_packets(interface, ip_mode, pkts.results)
 
                 # Finish time
                 finish_time = str(datetime.now())
@@ -355,48 +382,51 @@ class Sniff:
 
             if mode == "p":
                 # Loop until 10 seconds have passed
-                pkts = Sniff.scan_time(interface, timeout)
+                pkts = Sniff.scan_time(interface, ip_mode, timeout)
 
                 # Finish time
                 finish_time = str(datetime.now())
                 Time.save_start_end(finish_time)
-                Sniff.save_packets(interface, pkts)
+                Sniff.save_packets(interface, ip_mode, pkts)
 
             if mode == "a":
-                pkts = Sniff.scan_async(interface)
+                pkts = Sniff.scan_async(interface, ip_mode)
                 pkts.start()
 
                 # Sending normal packets
-                Send.send_MLD_query(interface)
-                Send.send_normal_multicast_ping(interface)
-                Send.send_invalid_multicast_icmpv6(interface)
-                Send.send_invalid_multicast_ping(interface)
-                Send.send_invalid_ipv6_hbh(interface)
-                # Send.send_multicast_ping_router(interface)
-                Send.send_RS(interface)
-                Send.probe_gateways(interface, 0)
+                if ip_mode.ipv6:
+                    SendIPv6.send_MLD_query(interface)
+                    SendIPv6.send_normal_multicast_ping(interface)
+                    SendIPv6.send_invalid_multicast_icmpv6(interface)
+                    SendIPv6.send_invalid_multicast_ping(interface)
+                    SendIPv6.send_invalid_ipv6_hbh(interface)
+                    # Send.send_multicast_ping_router(interface)
+                    SendIPv6.send_RS(interface)
+
+                Send.probe_gateways(interface, ip_mode)
 
                 time.sleep(1.5) # Sleeping to make the tool capture packets
                 pkts.stop()
-                Sniff.save_packets(interface, pkts.results)
+                Sniff.save_packets(interface, ip_mode, pkts.results)
 
                 pkts.start()
                 # Sending LLMNR and mDNS
-                Send.send_llmnr_mdns(interface)
-                Sniff.save_packets(interface, pkts.results)
+                Send.send_llmnr_mdns(interface, ip_mode)
+                Sniff.save_packets(interface, ip_mode, pkts.results)
 
                 time.sleep(1.5)
                 pkts.stop()
-                Sniff.save_packets(interface, pkts.results)
+                Sniff.save_packets(interface, ip_mode, pkts.results)
 
                 # Generating possible addresses and scan again (normal packets and mdns + llmnr in IPv6)
                 pkts.start()
-                Send.send_to_possible_IP(interface)
-                Send.send_to_test_RA_guard(interface)
+                if ip_mode.ipv6:
+                    SendIPv6.send_to_possible_IP(interface)
+                    SendIPv6.send_to_test_RA_guard(interface)
 
                 time.sleep(1)
                 pkts.stop()
-                Sniff.save_packets(interface, pkts.results)
+                Sniff.save_packets(interface, ip_mode, pkts.results)
 
                 # Finish time
                 finish_time = str(datetime.now())
@@ -420,16 +450,15 @@ class Sniff:
 
             sort_csv_role_node(interface, "src/tmp/role_node.csv")
 
-            
-
-    def run_aggressive_mode(interface, prefix_len, network, source_mac, source_ip, rpref, duration, period, chl, mtu, dns):
+    @staticmethod
+    def run_aggressive_mode(interface, ip_mode, prefix_len, network, source_mac, source_ip, rpref, duration, period, chl, mtu, dns):
         
-        p1 = multiprocessing.Process(target=Send.send_RA,
+        p1 = multiprocessing.Process(target=SendIPv6.send_RA,
                                      args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, True, period, duration])
-        p2 = multiprocessing.Process(target=Send.react_to_NS_RS,
+        p2 = multiprocessing.Process(target=SendIPv6.react_to_NS_RS,
                                      args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, duration])
-        p3 = multiprocessing.Process(target=Sniff.run_normal_mode, args=[interface, "a", duration])
-        p4 = multiprocessing.Process(target=Sniff.run_normal_mode, args=[interface, "p", duration])
+        p3 = multiprocessing.Process(target=Sniff.run_normal_mode, args=[interface, "a", ip_mode, duration])
+        p4 = multiprocessing.Process(target=Sniff.run_normal_mode, args=[interface, "p", ip_mode, duration])
 
         p2.start()
         p1.start()
@@ -442,29 +471,3 @@ class Sniff:
         p2.join()
         p3.join()
         p4.join()
-
-
-
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
-                
-
-
-            
-            
-
-
-        
-

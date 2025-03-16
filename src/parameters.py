@@ -9,6 +9,7 @@ from libs.check import check_prefRA, is_non_negative_float, is_valid_MTU, is_val
 from scapy.all import *
 
 from src.output.non_json import Non_json
+from src.send import IPMode
 
 from ptlibs.ptjsonlib import PtJsonLib
 ptjsonlib_object = PtJsonLib()
@@ -32,6 +33,8 @@ def get_help():
             ["-more", "     Shows full details of network scan. Only default data is displayed if not used. If being used together with option j, details output + json output are given."],
             ["-less", "     Shows minimum details of network scan. Default data is displayed if not used. If being used together with option j, minimum details output + json output are given."],
             ["-nc", "     Does not check the found addresses if they are valid or not. Default is checking if not used"],
+            ["-4",     "IPv4 traffic is allowed. Default is both IPv4 and IPv6 traffic when IP version not specified"],
+            ["-6",     "IPv6 traffic is allowed. Default is both IPv4 and IPv6 traffic when IP version not specified"],
             ["-h", "     Shows this help message and exits"]
         ]},
         {"Specific options (for Passive scan)": [
@@ -86,7 +89,7 @@ def enablePrint():
     sys.stdout = sys.__stdout__
 
 
-def parameter_control(interface, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix,
+def parameter_control(interface, json_output, del_tmp, type, more_detail, less_detail, check_addresses, ipv4, ipv6, duration_passive, duration_aggressive, prefix,
                       smac, sip, rpref, period, chl, mtu, dns, nofwd):
     '''
     Checking inserted parameters. If no error, it returns all variables.
@@ -153,6 +156,11 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
             if json_output:
                 print(ptjsonlib_object.end_error("Invalid inserted interface: " + interface + ". Program exits!", ptjsonlib_object))
             sys.exit(1)
+
+    if not ipv4 and not ipv6:
+        ip_mode = IPMode(True, True)
+    else:
+        ip_mode = IPMode(ipv4, ipv6)
 
     # Do not need to check the inserted type and more_detail, because the argparse checks it
     if more_detail and less_detail:
@@ -328,6 +336,10 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
             list_error.append(err)
     
     if type == ["a+"] or ("a+" in type and ("802.1x" in type or "a" in type)):
+        if not ip_mode.ipv6:
+            err = "IPv6 mode is required for aggressive mode. Program exits!"
+            list_error.append(err)
+
         if duration_passive is not None:
             err = "Passive duration is not applied in this mode. Program exits!"
             list_error.append(err)
@@ -501,6 +513,13 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
         Non_json.print_box("Information about inserted parameters")
         ptprinthelper.ptprint("Interface: " + interface, "INFO")
 
+        if ip_mode.ipv4 and ip_mode.ipv6:
+            ptprinthelper.ptprint("IPv4 and IPv6 traffic allowed", "INFO")
+        elif ip_mode.ipv4 and not ip_mode.ipv6:
+            ptprinthelper.ptprint("Only IPv4 traffic allowed", "INFO")
+        elif ip_mode.ipv6 and not ip_mode.ipv4:
+            ptprinthelper.ptprint("Only IPv6 traffic allowed", "INFO")
+
         # Control parameter for json output
         if json_output:
             ptprinthelper.ptprint("Allowing json output", "INFO")
@@ -574,5 +593,5 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
             if nofwd:
                 ptprinthelper.ptprint(f"Packets to remote network will be dropped at the scanner in aggressive mode", "INFO")
 
-    return interface, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd
+    return interface, json_output, del_tmp, type, more_detail, less_detail, check_addresses, ip_mode, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd
 

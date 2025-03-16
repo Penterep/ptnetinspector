@@ -130,6 +130,8 @@ def parse_args():
     parser.add_argument("-more", action="store_true", default=False)
     parser.add_argument("-less", action="store_true", default=False)
     parser.add_argument("-nc", action="store_false", default=True)
+    parser.add_argument("-4", dest="ipv4", action="store_true", default=False)
+    parser.add_argument("-6", dest="ipv6", action="store_true", default=False)
     parser.add_argument("-d", action="store")
     parser.add_argument("-da+", dest="duration_router", action="store")
     parser.add_argument("-prefix", action="store")
