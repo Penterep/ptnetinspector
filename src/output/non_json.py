@@ -108,7 +108,7 @@ class Non_json:
                 
             
     
-    def output_protocol(interface, protocol, file_name, mac_db, less_detail=False):
+    def output_protocol(interface, protocol, file_name, less_detail=False):
         # Printing the timestamp
         delete_middle_content_csv("src/tmp/start_end_mode.csv")
         if protocol == "time":
