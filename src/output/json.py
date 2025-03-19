@@ -86,7 +86,7 @@ class Json:
         ptjsonlib_object.get_result_json()
 
 
-    def output_object(interface, mode, mac_db, prefix_len=None, network=None, duration_aggressive=None, extract_to_json=True):
+    def output_object(interface, mode, prefix_len=None, network=None, duration_aggressive=None, extract_to_json=True):
         
         delete_middle_content_csv("src/tmp/start_end_mode.csv")
         # Generate information to property
