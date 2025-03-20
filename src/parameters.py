@@ -33,8 +33,8 @@ def get_help():
             ["-more", "     Shows full details of network scan. Only default data is displayed if not used. If being used together with option j, details output + json output are given."],
             ["-less", "     Shows minimum details of network scan. Default data is displayed if not used. If being used together with option j, minimum details output + json output are given."],
             ["-nc", "     Does not check the found addresses if they are valid or not. Default is checking if not used"],
-            ["-4",     "IPv4 traffic is allowed. Default is both IPv4 and IPv6 traffic when IP version not specified"],
-            ["-6",     "IPv6 traffic is allowed. Default is both IPv4 and IPv6 traffic when IP version not specified"],
+            ["-4", "     Only IPv4 traffic is allowed. Results are limited only to IPv4 addresses. Cannot be applied for aggressive mode if parameter '-6' not used. Default is both IPv4 and IPv6 traffic when IP version not specified"],
+            ["-6", "     Only IPv6 traffic is allowed. Results are limited only to IPv6 addresses. Default is both IPv4 and IPv6 traffic when IP version not specified"],
             ["-h", "     Shows this help message and exits"]
         ]},
         {"Specific options (for Passive scan)": [
