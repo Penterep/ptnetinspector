@@ -2,6 +2,7 @@ import ipaddress
 import asyncio
 import csv
 import os
+import netifaces
 
 from typing import List
 from dataclasses import dataclass
@@ -14,8 +15,10 @@ from scapy.arch import get_if_hwaddr, get_if_addr
 from scapy.layers.inet6 import ICMPv6ND_NA
 from scapy.utils6 import get_source_addr_from_candidate_set
 from src.interface import Interface
+from src.send import IPMode
 
 ADDR_MAPPING_FILE_PATH = 'src/tmp/addresses.csv'
+NETWORKS_FILE_PATH = 'src/tmp/networks.csv'
 
 @dataclass
 class AddressMapping:
@@ -44,25 +47,85 @@ def read_mappings() -> List[AddressMapping]:
     return mappings
 
 
-def filter_unicast_addresses(mappings: List[AddressMapping]) -> List[AddressMapping]:
+def filter_unicast_addresses(mappings: List[AddressMapping], ip_mode: IPMode) -> List[AddressMapping]:
     """
-    Filter out non-unicast addresses.
+    Filter out non-unicast addresses and addresses that are not in the subnets
+    defined in networks.csv (if available).
 
     Args:
         mappings (List[AddressMapping]): List of mac and ip address mappings.
+        ip_mode (IPMode): IP mode used.
 
     Returns:
-        List[AddressMapping]: List of mac and ip address mappings that are unicast.
+        List[AddressMapping]: List of mac and ip address mappings that are unicast
+        and in the defined subnets (if applicable).
     """
     result = []
+
+    # load subnets from CSV
+    ipv4_subnets = []
+    ipv6_subnets = []
+
+    with open(NETWORKS_FILE_PATH, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)  # skip header
+        for row in reader:
+            if len(row) >= 2:
+                network_prefix, prefix_length = row[0], int(row[1])
+                try:
+                    network = ipaddress.ip_network(f"{network_prefix}/{prefix_length}")
+                    if isinstance(network, ipaddress.IPv4Network):
+                        ipv4_subnets.append(network)
+                    elif isinstance(network, ipaddress.IPv6Network):
+                        ipv6_subnets.append(network)
+                except:
+                    pass
+
+    if not ipv4_subnets and ip_mode.ipv4:
+        ptprinthelper.ptprint("Auto-detection of IPv4 subnets failed (no non-link-local IP address on interface). All unicast IPv4 addresses will be kept.", "WARNING")
+    if not ipv6_subnets and ip_mode.ipv6:
+        ptprinthelper.ptprint(
+            "Auto-detection of IPv6 subnets failed (no non-link-local IP address on interface). All unicast IPv6 addresses will be kept.",
+            "WARNING")
 
     for mapping in mappings:
         try:
             ip = ipaddress.ip_address(mapping.ip)
+
+            # check if it's unicast and not unspecified or loopback
             if (not ip.is_multicast and
                     not ip.is_unspecified and
                     not ip.is_loopback):
-                result.append(mapping)
+
+                # always keep link-local addresses
+                if ip.is_link_local:
+                    result.append(mapping)
+                    continue
+
+                # IPv4 addresses
+                if isinstance(ip, ipaddress.IPv4Address):
+                    # of no IPv4 subnets defined in the file, keep all IPv4 addresses
+                    if not ipv4_subnets:
+                        result.append(mapping)
+                    # otherwise check if the IP is in any of the defined subnets
+                    else:
+                        for subnet in ipv4_subnets:
+                            if ip in subnet:
+                                result.append(mapping)
+                                break
+
+                # IPv6 addresses
+                elif isinstance(ip, ipaddress.IPv6Address):
+                    # if no IPv6 subnets defined in the file, keep all IPv6 addresses
+                    if not ipv6_subnets:
+                        result.append(mapping)
+                    # otherwise check if the IP is in any of the defined subnets
+                    else:
+                        for subnet in ipv6_subnets:
+                            if ip in subnet:
+                                result.append(mapping)
+                                break
+
         except ValueError:
             continue
 
@@ -193,18 +256,19 @@ class AddressValidator:
         return valid_mappings
 
 
-def validate_addresses(interface: str, passive: bool = False) -> None:
+def validate_addresses(interface: str, ip_mode: IPMode, passive: bool = False) -> None:
     """
     Validate MAC-IP mappings editing the addresses CSV.
 
     Args:
         interface (str): Name of the interface to use for validation.
+        ip_mode (IPMode): IP mode used.
         passive (bool): If True, do not send packets. Default is False.
     """
     validator = AddressValidator(interface)
 
     original_mappings = read_mappings()
-    filtered_mapping = filter_unicast_addresses(original_mappings)
+    filtered_mapping = filter_unicast_addresses(original_mappings, ip_mode)
 
     write_mappings(original_mappings, file_path=ADDR_MAPPING_FILE_PATH[:-4] + '_unfiltered.csv')
 
@@ -221,3 +285,74 @@ def delete_tmp_validating_files():
         os.remove(ADDR_MAPPING_FILE_PATH[:-4] + '_unfiltered.csv')
     except FileNotFoundError:
         pass
+
+
+def extract_available_subnets(interface_name: str) -> None:
+    """
+    Extract all available subnets (excluding link-local) from a network interface
+    and save them to a CSV file.
+
+    Args:
+        interface_name (str): Name of the network interface to extract subnets from.
+    """
+    subnets = []
+
+    addresses = netifaces.ifaddresses(interface_name)
+
+    # process IPv4 addresses
+    if netifaces.AF_INET in addresses:
+        for addr_info in addresses[netifaces.AF_INET]:
+            if 'addr' in addr_info and 'netmask' in addr_info:
+                ip = addr_info['addr']
+                netmask = addr_info['netmask']
+
+                # convert IP and netmask to subnet
+                try:
+                    ip_obj = ipaddress.IPv4Address(ip)
+
+                    if not ip_obj.is_link_local:
+                        netmask_obj = ipaddress.IPv4Address(netmask)
+                        prefix_len = bin(int(netmask_obj)).count('1')
+                        network = ipaddress.IPv4Network(f"{ip}/{prefix_len}", strict=False)
+                        subnets.append((str(network.network_address), prefix_len))
+                except:
+                    pass
+
+    # process IPv6 addresses
+    if netifaces.AF_INET6 in addresses:
+        for addr_info in addresses[netifaces.AF_INET6]:
+            if 'addr' in addr_info:
+                ip = addr_info['addr']
+
+                # remove scope ID if present
+                if '%' in ip:
+                    ip = ip.split('%')[0]
+
+                # get prefix length
+                prefix_len = 128
+                if 'prefixlen' in addr_info:
+                    prefix_len = int(addr_info['prefixlen'])
+                elif 'netmask' in addr_info:
+                    netmask = addr_info['netmask']
+                    if '/' in netmask:
+                        prefix_len = int(netmask.split('/')[1])
+                    else:
+                        try:
+                            prefix_len = bin(int(ipaddress.IPv6Address(netmask))).count('1')
+                        except:
+                            pass
+
+                try:
+                    ip_obj = ipaddress.IPv6Address(ip)
+
+                    if not ip_obj.is_link_local:
+                        network = ipaddress.IPv6Network(f"{ip}/{prefix_len}", strict=False)
+                        subnets.append((str(network.network_address), prefix_len))
+                except Exception as e:
+                    pass
+
+    with open(NETWORKS_FILE_PATH, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['network_prefix', 'prefix_length'])
+        for subnet in subnets:
+            writer.writerow(subnet)
