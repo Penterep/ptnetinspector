@@ -1,3 +1,5 @@
+import ipaddress
+
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR, DNSRR
 from scapy.layers.inet import UDP, IP
@@ -175,3 +177,23 @@ class SendIPv4:
 
         except Exception:
             pass
+
+    @staticmethod
+    def probe_ipv4_interesting_addresses(network: ipaddress.IPv4Network, interface: str) -> None:
+        """
+        Probe first and last usable IPv4 addresses in a network.
+
+        Args:
+            network (ipaddress.IPv4Network): The network to probe
+            interface (str): The network interface to use
+        """
+        # skip if network has less than 4 addresses
+        if network.num_addresses >= 4:
+            # first usable address
+            first_addr = network.network_address + 1
+            SendIPv4.send_arp_request(str(first_addr), interface)
+            # last usable address
+            last_addr = network.broadcast_address - 1
+            SendIPv4.send_arp_request(str(last_addr), interface)
+        else:
+            return

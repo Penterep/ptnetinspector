@@ -404,6 +404,7 @@ class Sniff:
                     SendIPv6.send_RS(interface)
 
                 Send.probe_gateways(interface, ip_mode)
+                Send.probe_interesting_network_addresses(interface, ip_mode)
 
                 time.sleep(1.5) # Sleeping to make the tool capture packets
                 pkts.stop()

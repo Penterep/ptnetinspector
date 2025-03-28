@@ -613,6 +613,31 @@ class SendIPv6:
 
                 sendp(pkt, verbose=0, iface=interface)
 
+    @staticmethod
+    def probe_ipv6_interesting_addresses(network: ipaddress.IPv6Network, interface: str) -> None:
+        """
+        Probe ::0 and ::1 addresses in IPv6 network.
+
+        Args:
+            network (ipaddress.IPv4Network): The network to probe
+            interface (str): The network interface to use
+        """
+        try:
+            # ::0
+            first_addr = network.network_address
+            SendIPv6.send_ns(str(first_addr), interface)
+            # ::1
+            last_bits = network.network_address.packed[:-1] + bytes([network.network_address.packed[-1] | 1])
+            second_addr = ipaddress.IPv6Address(last_bits)
+
+            # verify the address is in the network
+            if second_addr in network:
+                SendIPv6.send_ns(str(second_addr), interface)
+            else:
+                return
+        except:
+            return
+
 def generate_more_possible_IP(interface):
     # Generate possible IP and store in a dictionary
     src_mac = get_if_hwaddr(interface)

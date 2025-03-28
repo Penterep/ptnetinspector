@@ -90,6 +90,40 @@ class Send:
                 except socket.error:
                     pass
 
+    @staticmethod
+    def probe_interesting_network_addresses(interface: str, ip_mode: IPMode) -> None:
+        """
+        Read networks from networks.csv and send ARP or NS probes to first and last addresses
+        in each network depending on IP version.
+
+        For IPv4: Sends to first and last usable address in the network
+        For IPv6: Sends to network address with ::0 and ::1
+
+        Args:
+            interface (str): Network interface to use for sending probes
+            ip_mode (IPMode): IP version to probe
+        """
+        networks = []
+
+        with open('src/tmp/networks.csv', 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)  # skip header
+            for row in reader:
+                if len(row) >= 2:
+                    network_prefix, prefix_length = row[0], int(row[1])
+                    try:
+                        network = ipaddress.ip_network(f"{network_prefix}/{prefix_length}", strict=False)
+                        networks.append(network)
+                    except:
+                        pass
+
+        for network in networks:
+            if isinstance(network, ipaddress.IPv4Network) and ip_mode.ipv4:
+                SendIPv4.probe_ipv4_interesting_addresses(network, interface)
+            elif isinstance(network, ipaddress.IPv6Network) and ip_mode.ipv6:
+                SendIPv6.probe_ipv6_interesting_addresses(network, interface)
+
+
 def get_gateway_addresses(interface: str, ip_mode: IPMode) -> List[str]:
     """
     Extract gateway addresses from routing table for the specified interface.
