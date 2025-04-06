@@ -623,9 +623,16 @@ class SendIPv6:
             interface (str): The network interface to use
         """
         try:
+            # fe80::0
+            SendIPv6.send_ns('fe80::0', interface)
+
+            # fe80::1
+            SendIPv6.send_ns('fe80::1', interface)
+
             # ::0
             first_addr = network.network_address
             SendIPv6.send_ns(str(first_addr), interface)
+
             # ::1
             last_bits = network.network_address.packed[:-1] + bytes([network.network_address.packed[-1] | 1])
             second_addr = ipaddress.IPv6Address(last_bits)
