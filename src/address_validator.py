@@ -2,7 +2,6 @@ import ipaddress
 import asyncio
 import csv
 import os
-import netifaces
 
 from typing import List
 from dataclasses import dataclass
@@ -14,11 +13,11 @@ from scapy.all import (
 from scapy.arch import get_if_hwaddr, get_if_addr
 from scapy.layers.inet6 import ICMPv6ND_NA
 from scapy.utils6 import get_source_addr_from_candidate_set
+from src.device.networks import Networks
 from src.interface import Interface
 from src.send import IPMode
 
 ADDR_MAPPING_FILE_PATH = 'src/tmp/addresses.csv'
-NETWORKS_FILE_PATH = 'src/tmp/networks.csv'
 
 @dataclass
 class AddressMapping:
@@ -62,24 +61,7 @@ def filter_unicast_addresses(mappings: List[AddressMapping], ip_mode: IPMode) ->
     """
     result = []
 
-    # load subnets from CSV
-    ipv4_subnets = []
-    ipv6_subnets = []
-
-    with open(NETWORKS_FILE_PATH, 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)  # skip header
-        for row in reader:
-            if len(row) >= 2:
-                network_prefix, prefix_length = row[0], int(row[1])
-                try:
-                    network = ipaddress.ip_network(f"{network_prefix}/{prefix_length}")
-                    if isinstance(network, ipaddress.IPv4Network):
-                        ipv4_subnets.append(network)
-                    elif isinstance(network, ipaddress.IPv6Network):
-                        ipv6_subnets.append(network)
-                except:
-                    pass
+    ipv4_subnets, ipv6_subnets = Networks.load_networks()
 
     if not ipv4_subnets and ip_mode.ipv4:
         ptprinthelper.ptprint("Auto-detection of IPv4 subnets failed (no non-link-local IP address on interface). All unicast IPv4 addresses will be kept.", "WARNING")
@@ -285,74 +267,3 @@ def delete_tmp_validating_files():
         os.remove(ADDR_MAPPING_FILE_PATH[:-4] + '_unfiltered.csv')
     except FileNotFoundError:
         pass
-
-
-def extract_available_subnets(interface_name: str) -> None:
-    """
-    Extract all available subnets (excluding link-local) from a network interface
-    and save them to a CSV file.
-
-    Args:
-        interface_name (str): Name of the network interface to extract subnets from.
-    """
-    subnets = []
-
-    addresses = netifaces.ifaddresses(interface_name)
-
-    # process IPv4 addresses
-    if netifaces.AF_INET in addresses:
-        for addr_info in addresses[netifaces.AF_INET]:
-            if 'addr' in addr_info and 'netmask' in addr_info:
-                ip = addr_info['addr']
-                netmask = addr_info['netmask']
-
-                # convert IP and netmask to subnet
-                try:
-                    ip_obj = ipaddress.IPv4Address(ip)
-
-                    if not ip_obj.is_link_local:
-                        netmask_obj = ipaddress.IPv4Address(netmask)
-                        prefix_len = bin(int(netmask_obj)).count('1')
-                        network = ipaddress.IPv4Network(f"{ip}/{prefix_len}", strict=False)
-                        subnets.append((str(network.network_address), prefix_len))
-                except:
-                    pass
-
-    # process IPv6 addresses
-    if netifaces.AF_INET6 in addresses:
-        for addr_info in addresses[netifaces.AF_INET6]:
-            if 'addr' in addr_info:
-                ip = addr_info['addr']
-
-                # remove scope ID if present
-                if '%' in ip:
-                    ip = ip.split('%')[0]
-
-                # get prefix length
-                prefix_len = 128
-                if 'prefixlen' in addr_info:
-                    prefix_len = int(addr_info['prefixlen'])
-                elif 'netmask' in addr_info:
-                    netmask = addr_info['netmask']
-                    if '/' in netmask:
-                        prefix_len = int(netmask.split('/')[1])
-                    else:
-                        try:
-                            prefix_len = bin(int(ipaddress.IPv6Address(netmask))).count('1')
-                        except:
-                            pass
-
-                try:
-                    ip_obj = ipaddress.IPv6Address(ip)
-
-                    if not ip_obj.is_link_local:
-                        network = ipaddress.IPv6Network(f"{ip}/{prefix_len}", strict=False)
-                        subnets.append((str(network.network_address), prefix_len))
-                except Exception as e:
-                    pass
-
-    with open(NETWORKS_FILE_PATH, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(['network_prefix', 'prefix_length'])
-        for subnet in subnets:
-            writer.writerow(subnet)

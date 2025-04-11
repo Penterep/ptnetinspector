@@ -4,7 +4,8 @@ import warnings
 from libs.check import has_additional_data
 from ptlibs import ptprinthelper
 from libs.set_IP_interface import shutdown_interface_traffic, restore_interface_traffic, check_interface
-from src.address_validator import validate_addresses, delete_tmp_validating_files, extract_available_subnets
+from src.address_validator import validate_addresses, delete_tmp_validating_files
+from src.device.networks import Networks
 from src.output.non_json import Non_json
 from src.output.json import Json
 from src.output.oui import create_vendor_csv
@@ -28,7 +29,7 @@ create_csv("src/tmp")
 # Getting all variables, it returns errors if inserted parameters are wrong
 interface, json_output, del_tmp_para, type, more_detail, less_detail, check_addresses, ip_mode, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (args.interface, args.j, args.n, args.t, args.more, args.less, args.nc, args.ipv4, args.ipv6, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd)
 
-extract_available_subnets(interface)
+Networks.extract_available_subnets(interface)
 
 def ptnet_eap(combine=False):
     Sniff.run_normal_mode(interface, "802.1x", ip_mode, 3)
