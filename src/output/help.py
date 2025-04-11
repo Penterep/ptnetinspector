@@ -170,6 +170,7 @@ def add_rule(mode, nofwd=False):
     if mode == "a":
         subprocess.run(["ip6tables", "-A", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "port-unreachable", "-j", "DROP"], 
                     check=True)
+        subprocess.run(["iptables", "-A", "OUTPUT", "-p", "icmp", "--icmp-type", "port-unreachable", "-j", "DROP"], check=True)
     if mode == "a+":
         # Dropping Redirect from the attacker
         subprocess.run(["ip6tables", "-A", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "redirect", "-j", "DROP"],

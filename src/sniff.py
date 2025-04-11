@@ -17,6 +17,7 @@ from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from src.device.remote_node import Remote_node
 from libs.check import belongs_to_any_prefix, check_ipv6_addresses_generated_from_prefix, is_global_unicast_ipv6, find_requested_addr
 from src.create_csv import sort_csv_role_node, delete_middle_content_csv
+from src.device.wsdiscovery import parse_wsdiscovery, WSDiscovery
 from src.interface import Interface
 from src.device.router import Router
 from src.device.node import Node
@@ -353,6 +354,13 @@ class Sniff:
             if packet is not None and ARP in packet:
                 Node(packet[0].src, packet[ARP].psrc).save_addresses()
 
+            if UDP in packet and (packet[UDP].sport == 3702 or packet[UDP].dport == 3702):
+                if Raw in packet:
+                    found_addresses = parse_wsdiscovery(packet)
+                    for address in found_addresses:
+                        WSDiscovery(packet[0].src, address).save_addresses()
+                        Node(packet[0].src, address).save_addresses()
+
         sort('src/tmp/packets.csv', 'src/tmp/addresses.csv')
 
     @staticmethod
@@ -406,6 +414,8 @@ class Sniff:
 
                 Send.probe_gateways(interface, ip_mode)
                 Send.probe_interesting_network_addresses(interface, ip_mode)
+
+                Send.send_wsdiscovery_probe(interface, ip_mode)
 
                 time.sleep(1.5) # Sleeping to make the tool capture packets
                 pkts.stop()

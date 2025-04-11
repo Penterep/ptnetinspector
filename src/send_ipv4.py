@@ -197,3 +197,39 @@ class SendIPv4:
             SendIPv4.send_arp_request(str(last_addr), interface)
         else:
             return
+
+    @staticmethod
+    def send_wsdiscovery_probe(interface: str) -> None:
+        """
+        Send a WS-Discovery probe to the multicast address.
+
+        Args:
+            interface (str): The network interface to use
+        """
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+
+            for source_ipv4_addr in ipv4_addresses:
+                message_id = str(uuid.uuid4())
+
+                soap_payload = f"""<?xml version="1.0" ?>
+<s:Envelope xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery" xmlns:s="http://www.w3.org/2003/05/soap-envelope">
+\t<s:Header>
+\t\t<a:Action>http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe</a:Action>
+\t\t<a:MessageID>urn:uuid:{message_id}</a:MessageID>
+\t\t<a:To>urn:schemas-xmlsoap-org:ws:2005:04:discovery</a:To>
+\t</s:Header>
+\t<s:Body>
+\t\t<d:Probe/>
+\t</s:Body>
+</s:Envelope>
+"""
+                ether = Ether(src=get_if_hwaddr(interface))
+                ipv4 = IP(src=source_ipv4_addr, dst="239.255.255.250", ttl=1)
+                udp = UDP(sport=random.randint(49152, 65535), dport=3702)
+                payload = Raw(load=soap_payload)
+                wsd_packet = ether / ipv4 / udp / payload
+
+                sendp(wsd_packet, verbose=0, iface=interface)

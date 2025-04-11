@@ -123,6 +123,20 @@ class Send:
             elif isinstance(network, ipaddress.IPv6Network) and ip_mode.ipv6:
                 SendIPv6.probe_ipv6_interesting_addresses(network, interface)
 
+    @staticmethod
+    def send_wsdiscovery_probe(interface: str, ip_mode: IPMode) -> None:
+        """
+        Send WS-Discovery probe to multicast address on the specified interface.
+
+        Args:
+            interface (str): Network interface to use for sending probe
+            ip_mode (IPMode): IP version to probe
+        """
+        if ip_mode.ipv4:
+            SendIPv4.send_wsdiscovery_probe(interface)
+        if ip_mode.ipv6:
+            SendIPv6.send_wsdiscovery_probe(interface)
+
 
 def get_gateway_addresses(interface: str, ip_mode: IPMode) -> List[str]:
     """
