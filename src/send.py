@@ -11,7 +11,7 @@ from src.send_ipv6 import SendIPv6
 
 @dataclass
 class IPMode:
-    def __init__(self, ipv4, ipv6):
+    def __init__(self, ipv4: bool, ipv6: bool) -> None:
         self.ipv4 = ipv4
         self.ipv6 = ipv6
 

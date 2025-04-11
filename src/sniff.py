@@ -1,6 +1,7 @@
 import csv
 import multiprocessing
 import pandas as pd
+
 from scapy.all import *
 from scapy.layers.eap import EAP, EAPOL
 from scapy.layers.inet import IP, UDP
@@ -27,7 +28,7 @@ from src.device.mdns import mDNS
 from src.device.time import Time
 from src.device.eap import EAP
 from src.send_ipv6 import SendIPv6
-from src.send import Send
+from src.send import Send, IPMode
 from libs.convert import convert_OnOff, convert_preferenceRA, convert_mldReportv2, convert_timestamp_to_date
 from libs.sort import sort
 
@@ -122,7 +123,7 @@ class Sniff:
                     })
 
     @staticmethod
-    def get_filter(ip_mode):
+    def get_filter(ip_mode: IPMode) -> str:
         if ip_mode.ipv4 and ip_mode.ipv6:
             return ""
         elif ip_mode.ipv4:
