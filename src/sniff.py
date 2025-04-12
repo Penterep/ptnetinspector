@@ -3,6 +3,8 @@ import multiprocessing
 import pandas as pd
 
 from scapy.all import *
+from scapy.contrib.igmp import IGMP
+from scapy.contrib.igmpv3 import IGMPv3, IGMPv3mr
 from scapy.layers.eap import EAP, EAPOL
 from scapy.layers.inet import IP, UDP
 from scapy.layers.inet6 import IPv6, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, \
@@ -22,15 +24,18 @@ from src.interface import Interface
 from src.device.router import Router
 from src.device.node import Node
 from src.device.dhcp import DHCP as DHCP_ptnet
+from src.device.igmpv1v2 import IGMPv1v2
+from src.device.igmpv3 import IGMPv3 as IGMPv3_ptnet
 from src.device.mldv2 import MLDv2
 from src.device.mldv1 import MLDv1
 from src.device.llmnr import LLMNR
 from src.device.mdns import mDNS
 from src.device.time import Time
 from src.device.eap import EAP
+from src.send_ipv4 import SendIPv4
 from src.send_ipv6 import SendIPv6
 from src.send import Send, IPMode
-from libs.convert import convert_OnOff, convert_preferenceRA, convert_mldReportv2, convert_timestamp_to_date
+from libs.convert import convert_OnOff, convert_preferenceRA, convert_mldv2_igmpv3_rtype, convert_timestamp_to_date
 from libs.sort import sort
 
 
@@ -278,9 +283,9 @@ class Sniff:
             if packet is not None and ICMPv6MLReport2 in packet:            
                 for i in range(packet[0][ICMPv6MLReport2].records_number):
                     MLDv2(packet[0].src, packet[0][1].src, 'Report v2',
-                            convert_mldReportv2(packet[0][ICMPv6MLDMultAddrRec][i].rtype),
-                            packet[0][ICMPv6MLDMultAddrRec][i].dst,
-                            packet[0][ICMPv6MLDMultAddrRec][i].sources).save_MLDv2()
+                          convert_mldv2_igmpv3_rtype(packet[0][ICMPv6MLDMultAddrRec][i].rtype),
+                          packet[0][ICMPv6MLDMultAddrRec][i].dst,
+                          packet[0][ICMPv6MLDMultAddrRec][i].sources).save_MLDv2()
                     if in6_isllsnmaddr(packet[0][ICMPv6MLDMultAddrRec][i].dst):
                         Node(packet[0].src, packet[0][ICMPv6MLDMultAddrRec][i].dst).save_addresses()
 
@@ -293,7 +298,21 @@ class Sniff:
                 MLDv1(packet[0].src, packet[0][1].src, 'Done v1', packet[0].mladdr).save_MLDv1()
                 if in6_isllsnmaddr(packet[0].mladdr):
                     Node(packet[0].src, packet[0].mladdr).save_addresses()
-            
+
+            # IGMP responses
+            if packet is not None and (IGMPv3 in packet and packet[IGMPv3].type == 0x22):
+                for i in range(packet[IGMPv3mr].numgrp):
+                    IGMPv3_ptnet(packet[0].src, packet[IP].src, 'Report v3',
+                           convert_mldv2_igmpv3_rtype(packet[IGMPv3mr].records[i].rtype),
+                           packet[IGMPv3mr].records[i].maddr,
+                           packet[IGMPv3mr].records[i].srcaddrs).save()
+
+            if packet is not None and (IGMP in packet and packet[IGMP].type == 0x16):
+                IGMPv1v2(packet[0].src, packet[IP].src, 'Report v2', packet[IGMP].gaddr).save()
+
+            if packet is not None and (IGMP in packet and packet[IGMP].type == 0x12):
+                IGMPv1v2(packet[0].src, packet[IP].src, 'Report v1', packet[IGMP].gaddr).save()
+
             # Router responses
             if packet is not None and ICMPv6ND_NA in packet:
                 Node(packet[0].src, packet[0][1].src).save_addresses()
@@ -403,6 +422,19 @@ class Sniff:
                 pkts.start()
 
                 # Sending normal packets
+                if ip_mode.ipv4:
+                    SendIPv4.send_igmp_membership_query(3, interface)
+                    SendIPv4.send_igmp_membership_query(3, interface, "224.0.0.1")
+                    time.sleep(1)
+                    SendIPv4.send_igmp_membership_query(2, interface)
+                    SendIPv4.send_igmp_membership_query(2, interface, "224.0.0.1")
+                    time.sleep(1)
+                    SendIPv4.send_igmp_membership_query(1, interface)
+                    SendIPv4.send_igmp_membership_query(1, interface, "224.0.0.1")
+                    SendIPv4.send_local_icmp_ping("224.0.0.1", interface)
+                    SendIPv4.send_local_icmp_ping("255.255.255.255", interface)
+                    SendIPv4.send_subnet_broadcast_ping(interface)
+
                 if ip_mode.ipv6:
                     SendIPv6.send_MLD_query(interface)
                     SendIPv6.send_normal_multicast_ping(interface)

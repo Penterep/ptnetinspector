@@ -86,9 +86,11 @@ def ptnet_passive():
         Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", less_detail)
         Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", less_detail)
         Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", less_detail)
+        Non_json.output_protocol(interface, "IGMPv1/v2", "src/tmp/IGMPv1v2.csv", less_detail)
         
         if more_detail:
             Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+            Non_json.output_protocol(interface, "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
             Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
         
 def ptnet_active():
@@ -134,9 +136,11 @@ def ptnet_active():
         Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", less_detail)
         Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", less_detail)
         Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", less_detail)
-        
+        Non_json.output_protocol(interface, "IGMPv1/v2", "src/tmp/IGMPv1v2.csv", less_detail)
+
         if more_detail:
             Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+            Non_json.output_protocol(interface, "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
             Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
         
 
@@ -195,9 +199,11 @@ def ptnet_aggressive():
         Non_json.output_protocol(interface, "mDNS", "src/tmp/mDNS.csv", less_detail)
         Non_json.output_protocol(interface, "LLMNR", "src/tmp/LLMNR.csv", less_detail)
         Non_json.output_protocol(interface, "MLDv1", "src/tmp/MLDv1.csv", less_detail)
-        
+        Non_json.output_protocol(interface, "IGMPv1/v2", "src/tmp/IGMPv1v2.csv", less_detail)
+
         if more_detail:
             Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+            Non_json.output_protocol(interface, "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
             Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
         
     if json_output:

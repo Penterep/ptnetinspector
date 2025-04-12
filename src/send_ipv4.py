@@ -1,10 +1,13 @@
 import ipaddress
 
 from scapy.all import *
+from scapy.contrib.igmp import IGMP
+from scapy.contrib.igmpv3 import IGMPv3, IGMPv3mq
 from scapy.layers.dns import DNS, DNSQR, DNSRR
-from scapy.layers.inet import UDP, IP
+from scapy.layers.inet import UDP, IP, ICMP
 from scapy.layers.l2 import Ether, ARP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
+from src.device.networks import Networks
 from src.interface import Interface, reverse_IPadd
 from src.device.mdns import mDNS
 from src.device.llmnr import LLMNR
@@ -233,3 +236,74 @@ class SendIPv4:
                 wsd_packet = ether / ipv4 / udp / payload
 
                 sendp(wsd_packet, verbose=0, iface=interface)
+
+    @staticmethod
+    def send_igmp_membership_query(version: int, interface: str, spec_group: str = "0.0.0.0") -> None:
+        """
+        Send an IGMP membership query to the multicast address.
+
+        Args:
+            version (int): The IGMP version (1, 2, or 3)
+            interface (str): The network interface to use
+            spec_group (str): The specific multicast group address to query. Defaults to "0.0.0.0"
+        """
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+
+            for source_ipv4_addr in ipv4_addresses:
+
+                mac = Ether(src=get_if_hwaddr(interface))
+                ipv4_packet = IP(src=source_ipv4_addr, dst="224.0.0.1", ttl=1)
+
+                match version:
+                    case 1:
+                        igmp_query = IGMP(type=0x11, mrcode=0, gaddr=spec_group)
+                    case 2:
+                        igmp_query = IGMP(type=0x11, mrcode=2, gaddr=spec_group)
+                    case 3:
+                        igmp_query = IGMPv3(type=0x11, mrcode=2) / IGMPv3mq(gaddr=spec_group)
+
+                query = mac / ipv4_packet / igmp_query
+
+                sendp(query*2, verbose=0, iface=interface)
+
+    @staticmethod
+    def send_local_icmp_ping(address: str, interface: str) -> None:
+        """
+        Send an ICMP ping to an IPv4 address with TTL 1.
+
+        Args:
+            address (str): The IPv4 address
+            interface (str): The network interface to use
+        """
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+
+            for source_ipv4_addr in ipv4_addresses:
+
+                mac = Ether(src=get_if_hwaddr(interface))
+                ipv4_packet = IP(src=source_ipv4_addr, dst=address, ttl=1)
+                icmp_packet = ICMP()
+
+                ping = mac / ipv4_packet / icmp_packet
+
+                sendp(ping, verbose=0, iface=interface)
+
+    @staticmethod
+    def send_subnet_broadcast_ping(interface: str) -> None:
+        """
+        Send an ICMP ping to the subnet broadcast address.
+
+        Args:
+            address (str): The IPv4 address
+            interface (str): The network interface to use
+        """
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            for network in Networks.get_ipv4_subnets():
+                SendIPv4.send_local_icmp_ping(str(network.broadcast_address), interface)

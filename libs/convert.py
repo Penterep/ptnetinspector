@@ -13,7 +13,7 @@ from scapy.pton_ntop import inet_pton, inet_ntop
 from scapy.utils6 import in6_and, in6_or
 from libs.check import check_prefix, is_valid_ipv6_prefix
 
-def convert_mldReportv2(rtype):
+def convert_mldv2_igmpv3_rtype(rtype):
     if rtype == 1:
         return "MODE_IS_INCLUDE"
     elif rtype == 2:

@@ -34,6 +34,14 @@ def create_csv(directory):
         fieldnames = ['MAC', 'IP', 'protocol', 'rtype', 'mulip', 'sources']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
+    with open(f"{directory}/IGMPv1v2.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'protocol', 'mulip']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/IGMPv3.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'protocol', 'rtype', 'mulip', 'sources']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
     with open(f"{directory}/RA.csv", 'w', newline='') as csvfile:
         fieldnames = ['MAC', 'IP', 'M', 'O', 'H', 'A', 'L', 'Preference', 'Router_lft', 'Reachable_time', 'Retrans_time',
                     'DNS', 'MTU', 'Prefix', 'Valid_lft', 'Preferred_lft']
@@ -245,13 +253,3 @@ def delete_middle_content_csv(filename):
 
     except FileNotFoundError:
         pass
-        
-
-
-
-
-    
-
-
-    
-

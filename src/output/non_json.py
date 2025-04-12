@@ -135,7 +135,7 @@ class Non_json:
             else:
                 ptprinthelper.ptprint("Vulnerable: 802.1x is not active", "VULN", colortext=True)
                 
-        if protocol in ["mDNS", "LLMNR", "MLDv1", "MLDv2", "RA"]:
+        if protocol in ["mDNS", "LLMNR", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3", "RA"]:
             if has_additional_data(file_name) and has_additional_data("src/tmp/role_node.csv"):
                 if protocol == "mDNS":
                     if not less_detail:                
@@ -151,9 +151,13 @@ class Non_json:
                     if not less_detail:
                         Non_json.print_box("MLDv1 scan")
                     ptprinthelper.ptprint("Vulnerable: MLDv1 is active", "VULN", colortext=True)
-                
                 if protocol == "MLDv2" and not less_detail:
                     Non_json.print_box("MLDv2 scan")
+                if protocol == "IGMPv1/v2":
+                    if not less_detail:
+                        Non_json.print_box("IGMPv1/v2 scan")
+                if protocol == "IGMPv3" and not less_detail:
+                    Non_json.print_box("IGMPv3 scan")
                 if protocol == "RA" and not less_detail:
                     Non_json.print_box("Router scan")
                     if is_dhcp_slaac() != []:
@@ -204,13 +208,13 @@ class Non_json:
                                 pass
                         
                         # Getting other information for printing the rest
-                        if protocol == "MLDv1":
+                        if protocol == "MLDv1" or protocol == "IGMPv1/v2":
                             # Filter rows for the specific MAC address
                             filtered_rows = df[df['MAC'] == mac_address]
                             # Create a list of lists containing values
                             other_info_list = filtered_rows[['protocol', 'mulip']].values.tolist()
                         
-                        if protocol == "MLDv2":                   
+                        if protocol == "MLDv2" or protocol == "IGMPv3":
                             # Filter rows for the specific MAC address
                             filtered_rows = df[df['MAC'] == mac_address]
                             # Create a list of lists containing values
@@ -241,11 +245,11 @@ class Non_json:
                                 
                                 ip_previous = ip
 
-                                if protocol == "MLDv1":
+                                if protocol == "MLDv1" or protocol == "IGMPv1/v2":
                                     ptprinthelper.ptprint("    " + other_info_list[i][0] + " with group: " + other_info_list[i][1])
                                     i += 1
                                 
-                                if protocol == "MLDv2":
+                                if protocol == "MLDv2" or protocol == "IGMPv3":
                                     ptprinthelper.ptprint("    " + other_info_list[i][0] + " with group: " +
                                                     other_info_list[i][1] + " and sources: " +
                                                     other_info_list[i][2])
@@ -262,32 +266,3 @@ class Non_json:
                                         ptprinthelper.ptprint(f"    Preferred lifetime: {other_info_list[i][13]}s, Valid lifetime: {other_info_list[i][12]}s")
                                     ptprinthelper.ptprint(f"    MTU: {other_info_list[i][10]}, DNS: {other_info_list[i][9]}")
                                     i += 1
-
-                
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
-
-
-
-
-
-
-        
-
-
-                
-
-    
