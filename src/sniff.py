@@ -422,9 +422,7 @@ class Sniff:
                 Sniff.save_packets(interface, ip_mode, pkts.results)
 
                 pkts.start()
-                # Sending LLMNR and mDNS
                 Send.send_llmnr_mdns(interface, ip_mode)
-                Sniff.save_packets(interface, ip_mode, pkts.results)
 
                 time.sleep(1.5)
                 pkts.stop()
