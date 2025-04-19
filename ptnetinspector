@@ -92,6 +92,7 @@ def ptnet_passive():
             Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
             Non_json.output_protocol(interface, "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
             Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
+            Non_json.output_protocol(interface, "WS-Discovery", "src/tmp/wsdiscovery.csv", less_detail)
         
 def ptnet_active():
     if not json_output or (more_detail or less_detail):
@@ -142,6 +143,7 @@ def ptnet_active():
             Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
             Non_json.output_protocol(interface, "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
             Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
+            Non_json.output_protocol(interface, "WS-Discovery", "src/tmp/wsdiscovery.csv", less_detail)
         
 
 def ptnet_aggressive():
@@ -205,6 +207,7 @@ def ptnet_aggressive():
             Non_json.output_protocol(interface, "MLDv2", "src/tmp/MLDv2.csv", less_detail)
             Non_json.output_protocol(interface, "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
             Non_json.output_protocol(interface, "RA", "src/tmp/RA.csv", less_detail)
+            Non_json.output_protocol(interface, "WS-Discovery", "src/tmp/wsdiscovery.csv", less_detail)
         
     if json_output:
         enablePrint()

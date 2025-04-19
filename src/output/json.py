@@ -128,6 +128,11 @@ class Json:
             else:
                 igmpv1v2_df = None
 
+            if has_additional_data("src/tmp/wsdiscovery.csv"):
+                wsdiscovery_df = pd.read_csv('src/tmp/wsdiscovery.csv')
+            else:
+                wsdiscovery_df = None
+
             # Count the number of devices found based on the number of rows in role_node.csv
             num_devices = len(role_node_df)  # Excluding header row
 
@@ -141,7 +146,7 @@ class Json:
                 role = row['Role']
                 vul = []
 
-                # Check the vulnearbility related to mDNS
+                # Check the vulnerability related to mDNS
                 if mdns_df is not None:
                     mdns_entry = mdns_df[mdns_df['MAC'] == mac_address]
                     if not mdns_entry.empty:
@@ -149,7 +154,7 @@ class Json:
                         if 'IP' in mdns_entry.columns and not mdns_entry['IP'].isnull().all():
                             vul.append("mDNS is active")
                 
-                # Check the vulnearbility related to LLMNR
+                # Check the vulnerability related to LLMNR
                 if llmnr_df is not None:
                     llmnr_entry = llmnr_df[llmnr_df['MAC'] == mac_address]
                     if not llmnr_entry.empty:
@@ -157,7 +162,7 @@ class Json:
                         if 'IP' in llmnr_entry.columns and not llmnr_entry['IP'].isnull().all():
                             vul.append("LLMNR is active")
                 
-                # Check the vulnearbility related to MLDv1
+                # Check the vulnerability related to MLDv1
                 if mldv1_df is not None:
                     mldv1_entry = mldv1_df[mldv1_df['MAC'] == mac_address]
                     if not mldv1_entry.empty:
@@ -165,13 +170,21 @@ class Json:
                         if 'IP' in mldv1_entry.columns and not mldv1_entry['IP'].isnull().all():
                             vul.append("MLDv1 is active")
 
-                # Check the vulnearbility related to MLDv1
+                # Check the vulnerability related to IGMPv1/v2
                 if igmpv1v2_df is not None:
                     igmpv1v2_entry = igmpv1v2_df[igmpv1v2_df['MAC'] == mac_address]
                     if not igmpv1v2_entry.empty:
                         # If the MAC address exists, check if there is an associated IP
                         if 'IP' in igmpv1v2_entry.columns and not igmpv1v2_entry['IP'].isnull().all():
                             vul.append("IGMPv1/v2 is active")
+
+                # Check the vulnerability related to WS-Discovery
+                if wsdiscovery_df is not None:
+                    wsdiscovery_entry = wsdiscovery_df[wsdiscovery_df['MAC'] == mac_address]
+                    if not wsdiscovery_entry.empty:
+                        # If the MAC address exists, check if there is an associated IP
+                        if 'IP' in wsdiscovery_entry.columns and not wsdiscovery_entry['IP'].isnull().all():
+                            vul.append("WS-Discovery is active")
                 
                 node_ele = ptjsonlib_object.create_node_object(node_type=f"Device {device_number}", parent_type="Site", parent=None, properties={"name": f"Device {device_number}", "type": role, "MAC": mac_address, "description": lookup_vendor_from_csv(mac_address), "vulnerabilities": vul})
                 key_node_ele = node_ele["key"]

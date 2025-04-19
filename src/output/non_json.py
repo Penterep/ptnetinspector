@@ -135,7 +135,7 @@ class Non_json:
             else:
                 ptprinthelper.ptprint("Vulnerable: 802.1x is not active", "VULN", colortext=True)
                 
-        if protocol in ["mDNS", "LLMNR", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3", "RA"]:
+        if protocol in ["mDNS", "LLMNR", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3", "RA", "WS-Discovery"]:
             if has_additional_data(file_name) and has_additional_data("src/tmp/role_node.csv"):
                 if protocol == "mDNS":
                     if not less_detail:                
@@ -164,6 +164,10 @@ class Non_json:
                     if is_dhcp_slaac() != []:
                         for item in is_dhcp_slaac():
                             ptprinthelper.ptprint(f"{item} is discovered", "INFO")
+                if protocol == "WS-Discovery":
+                    if not less_detail:
+                        Non_json.print_box("WS-Discovery scan")
+                    ptprinthelper.ptprint("Vulnerable: WS-Discovery is active", "VULN", colortext=True)
             
                 # Read the CSV file
                 sort_csv_based_MAC(interface, file_name)

@@ -374,6 +374,7 @@ class Sniff:
                 Node(packet[0].src, packet[ARP].psrc).save_addresses()
 
             if UDP in packet and (packet[UDP].sport == 3702 or packet[UDP].dport == 3702):
+                WSDiscovery(packet[0].src, packet[0][1].src).save_addresses()
                 if Raw in packet:
                     found_addresses = parse_wsdiscovery(packet)
                     for address in found_addresses:
