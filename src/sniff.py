@@ -422,6 +422,15 @@ class Sniff:
                 pkts.start()
 
                 # Sending normal packets
+                if ip_mode.ipv6:
+                    SendIPv6.send_MLD_query(interface)
+                    SendIPv6.send_normal_multicast_ping(interface)
+                    SendIPv6.send_invalid_multicast_icmpv6(interface)
+                    SendIPv6.send_invalid_multicast_ping(interface)
+                    SendIPv6.send_invalid_ipv6_hbh(interface)
+                    # Send.send_multicast_ping_router(interface)
+                    SendIPv6.send_RS(interface)
+
                 if ip_mode.ipv4:
                     SendIPv4.send_igmp_membership_query(3, interface)
                     SendIPv4.send_igmp_membership_query(3, interface, "224.0.0.1")
@@ -435,15 +444,6 @@ class Sniff:
                     SendIPv4.send_local_icmp_ping("255.255.255.255", interface)
                     SendIPv4.send_subnet_broadcast_ping(interface)
 
-                if ip_mode.ipv6:
-                    SendIPv6.send_MLD_query(interface)
-                    SendIPv6.send_normal_multicast_ping(interface)
-                    SendIPv6.send_invalid_multicast_icmpv6(interface)
-                    SendIPv6.send_invalid_multicast_ping(interface)
-                    SendIPv6.send_invalid_ipv6_hbh(interface)
-                    # Send.send_multicast_ping_router(interface)
-                    SendIPv6.send_RS(interface)
-
                 Send.probe_gateways(interface, ip_mode)
                 Send.probe_interesting_network_addresses(interface, ip_mode)
 
@@ -454,14 +454,16 @@ class Sniff:
                 Sniff.save_packets(interface, ip_mode, pkts.results)
 
                 pkts.start()
+
                 Send.send_llmnr_mdns(interface, ip_mode)
 
                 time.sleep(1.5)
                 pkts.stop()
                 Sniff.save_packets(interface, ip_mode, pkts.results)
 
-                # Generating possible addresses and scan again (normal packets and mdns + llmnr in IPv6)
                 pkts.start()
+
+                # Generating possible addresses and scan again (normal packets and mdns + llmnr in IPv6)
                 if ip_mode.ipv6:
                     SendIPv6.send_to_possible_IP(interface)
                     SendIPv6.send_to_test_RA_guard(interface)
