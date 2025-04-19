@@ -123,6 +123,11 @@ class Json:
             else:
                 mldv1_df = None
 
+            if has_additional_data("src/tmp/IGMPv1v2.csv"):
+                igmpv1v2_df = pd.read_csv('src/tmp/IGMPv1v2.csv')
+            else:
+                igmpv1v2_df = None
+
             # Count the number of devices found based on the number of rows in role_node.csv
             num_devices = len(role_node_df)  # Excluding header row
 
@@ -159,6 +164,14 @@ class Json:
                         # If the MAC address exists, check if there is an associated IP
                         if 'IP' in mldv1_entry.columns and not mldv1_entry['IP'].isnull().all():
                             vul.append("MLDv1 is active")
+
+                # Check the vulnearbility related to MLDv1
+                if igmpv1v2_df is not None:
+                    igmpv1v2_entry = igmpv1v2_df[igmpv1v2_df['MAC'] == mac_address]
+                    if not igmpv1v2_entry.empty:
+                        # If the MAC address exists, check if there is an associated IP
+                        if 'IP' in igmpv1v2_entry.columns and not igmpv1v2_entry['IP'].isnull().all():
+                            vul.append("IGMPv1/v2 is active")
                 
                 node_ele = ptjsonlib_object.create_node_object(node_type=f"Device {device_number}", parent_type="Site", parent=None, properties={"name": f"Device {device_number}", "type": role, "MAC": mac_address, "description": lookup_vendor_from_csv(mac_address), "vulnerabilities": vul})
                 key_node_ele = node_ele["key"]

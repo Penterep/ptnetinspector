@@ -156,6 +156,7 @@ class Non_json:
                 if protocol == "IGMPv1/v2":
                     if not less_detail:
                         Non_json.print_box("IGMPv1/v2 scan")
+                    ptprinthelper.ptprint("Vulnerable: IGMPv1/v2 is active", "VULN", colortext=True)
                 if protocol == "IGMPv3" and not less_detail:
                     Non_json.print_box("IGMPv3 scan")
                 if protocol == "RA" and not less_detail:
