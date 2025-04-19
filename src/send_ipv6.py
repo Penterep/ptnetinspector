@@ -683,6 +683,31 @@ class SendIPv6:
 
                     sendp(wsd_packet, verbose=0, iface=interface)
 
+    @staticmethod
+    def send_dns_sd_probe(interface: str) -> None:
+        """
+        Send a DNS-SD general probe to the multicast address.
+
+        Args:
+            interface (str): The network interface to use
+        """
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            avail_ipv6 = Interface(interface).check_available_ipv6
+            if avail_ipv6:
+                ipv6_addresses = Interface(interface).get_interface_ipv6_ips()
+
+                for source_ipv6_addr in ipv6_addresses:
+                    ether = Ether(src=get_if_hwaddr(interface))
+                    ipv4 = IPv6(src=source_ipv6_addr, dst="ff02::fb", hlim=1)
+                    udp = UDP(sport=random.randint(49152, 65535), dport=5353)
+                    mdns = DNS(rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
+
+                    dns_sd = ether / ipv4 / udp / mdns
+
+                    sendp(dns_sd, verbose=0, iface=interface)
+
 
 def generate_more_possible_IP(interface):
     # Generate possible IP and store in a dictionary

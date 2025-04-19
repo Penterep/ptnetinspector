@@ -449,6 +449,7 @@ class Sniff:
                 Send.probe_interesting_network_addresses(interface, ip_mode)
 
                 Send.send_wsdiscovery_probe(interface, ip_mode)
+                Send.send_dns_sd_probe(interface, ip_mode)
 
                 time.sleep(1.5) # Sleeping to make the tool capture packets
                 pkts.stop()

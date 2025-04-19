@@ -307,3 +307,27 @@ class SendIPv4:
         if exist_interface:
             for network in Networks.get_ipv4_subnets():
                 SendIPv4.send_local_icmp_ping(str(network.broadcast_address), interface)
+
+    @staticmethod
+    def send_dns_sd_probe(interface: str) -> None:
+        """
+        Send a DNS-SD general probe to the multicast address.
+
+        Args:
+            interface (str): The network interface to use
+        """
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+
+            for source_ipv4_addr in ipv4_addresses:
+
+                ether = Ether(src=get_if_hwaddr(interface))
+                ipv4 = IP(src=source_ipv4_addr, dst="224.0.0.251", ttl=1)
+                udp = UDP(sport=random.randint(49152, 65535), dport=5353)
+                mdns =  DNS(rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
+
+                dns_sd = ether / ipv4 / udp / mdns
+
+                sendp(dns_sd, verbose=0, iface=interface)
