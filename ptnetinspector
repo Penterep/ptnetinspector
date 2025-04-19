@@ -11,7 +11,7 @@ from src.output.json import Json
 from src.output.oui import create_vendor_csv
 from src.sniff import Sniff
 from src.interface import Interface
-from src.create_csv import create_csv
+from src.create_csv import create_csv, sort_all_csv
 from src.parameters import parameter_control, enablePrint, blockPrint
 from src.output.help import parse_args, add_rule, remove_rule, del_tmp, check_rule
 from src.parameters import ptjsonlib_object
@@ -73,6 +73,7 @@ def ptnet_passive():
         delete_tmp_validating_files()
 
     create_vendor_csv()
+    sort_all_csv(interface)
 
     if not json_output or (more_detail or less_detail):
         Non_json.output_general()
@@ -125,6 +126,7 @@ def ptnet_active():
         delete_tmp_validating_files()
 
     create_vendor_csv()
+    sort_all_csv(interface)
     
     if not json_output or (more_detail or less_detail):
         Non_json.output_general()
@@ -187,6 +189,7 @@ def ptnet_aggressive():
         delete_tmp_validating_files()
 
     create_vendor_csv()
+    sort_all_csv(interface)
     
     if not json_output or (more_detail or less_detail):
         if Sniff.detect_RA_guard_missing(interface, prefix_len, network, duration_aggressive):

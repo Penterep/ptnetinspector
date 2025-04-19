@@ -170,7 +170,6 @@ class Non_json:
                     ptprinthelper.ptprint("Vulnerable: WS-Discovery is active", "VULN", colortext=True)
             
                 # Read the CSV file
-                sort_csv_based_MAC(interface, file_name)
                 df = pd.read_csv(file_name)
 
                 list_mac_protocol = Non_json.get_unique_mac_addresses(file_name)

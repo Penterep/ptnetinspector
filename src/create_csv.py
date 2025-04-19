@@ -253,3 +253,23 @@ def delete_middle_content_csv(filename):
 
     except FileNotFoundError:
         pass
+
+def sort_all_csv(interface: str) -> None:
+    """
+    Sort all CSV files based on MAC addresses and remove entries with the specified MAC address.
+
+    Args:
+        interface (str): The network interface to get the MAC address from.
+    """
+
+    sort_csv_based_MAC(interface, "src/tmp/dhcp.csv")
+    sort_csv_based_MAC(interface, "src/tmp/eap.csv")
+    sort_csv_based_MAC(interface, "src/tmp/IGMPv1v2.csv")
+    sort_csv_based_MAC(interface, "src/tmp/IGMPv3.csv")
+    sort_csv_based_MAC(interface, "src/tmp/LLMNR.csv")
+    sort_csv_based_MAC(interface, "src/tmp/localname.csv")
+    sort_csv_based_MAC(interface, "src/tmp/mDNS.csv")
+    sort_csv_based_MAC(interface, "src/tmp/MLDv1.csv")
+    sort_csv_based_MAC(interface, "src/tmp/MLDv2.csv")
+    sort_csv_based_MAC(interface, "src/tmp/RA.csv")
+    sort_csv_based_MAC(interface, "src/tmp/wsdiscovery.csv")
