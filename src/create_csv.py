@@ -109,6 +109,11 @@ def create_csv(directory):
         fieldnames = ['MAC', 'IP']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
+
+    with open(f"{directory}/default_gw.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
         
     # with open(f"{directory}/ipv6.csv", 'w', newline='') as csvfile:
     #     fieldnames = ['IP']

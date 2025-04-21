@@ -593,13 +593,15 @@ class SendIPv6:
                         sendp(pkt3, iface=interface, verbose=False)
 
     @staticmethod
-    def send_ns(address: str, interface: str) -> None:
+    def send_ns(address: str, interface: str, wait_for_rsp: bool = False, rsp_timeout: float = 0.1) -> None | SndRcvList:
         """
         Send an ICMPv6 Neighbor Solicitation to an IPv6 address.
 
         Args:
             address (str): The IPv6 address
             interface (str): The network interface to use
+            wait_for_rsp (bool): Whether to wait for a response. Default is False.
+            rsp_timeout (float): Timeout for the response. Default is 0.1 seconds.
         """
         exist_interface = Interface(interface).check_interface()
 
@@ -612,6 +614,9 @@ class SendIPv6:
                 slla = ICMPv6NDOptSrcLLAddr(lladdr=get_if_hwaddr(interface))
 
                 pkt = ether / ipv6 / ns / slla
+
+                if wait_for_rsp:
+                    return srp(pkt, iface=interface, verbose=0, timeout=rsp_timeout)[0]
 
                 sendp(pkt, verbose=0, iface=interface)
 

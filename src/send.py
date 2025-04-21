@@ -3,7 +3,10 @@ import csv
 
 from scapy.all import *
 from scapy.layers.eap import EAPOL
-from scapy.layers.l2 import Ether
+from scapy.layers.inet6 import ICMPv6ND_NA, ICMPv6NDOptDstLLAddr
+from scapy.layers.l2 import Ether, ARP
+
+from src.device.default_gw import DefaultGateway
 from src.interface import Interface
 from libs.check import is_global_unicast_ipv6, is_ipv6_ula, is_valid_ipv6, is_link_local_ipv6
 from src.send_ipv4 import SendIPv4
@@ -82,13 +85,23 @@ class Send:
         for address in gateway_addresses:
             try:
                 socket.inet_pton(socket.AF_INET, address)
-                SendIPv4.send_arp_request(address, interface)
+                ans = SendIPv4.send_arp_request(address, interface, True)
+                for _, packet in ans:
+                    if ARP in packet and packet[ARP].op == 2 and packet[ARP].psrc == address:
+                        DefaultGateway(packet[ARP].hwsrc, address).save_addresses()
+
             except socket.error:
                 try:
                     socket.inet_pton(socket.AF_INET6, address)
-                    SendIPv6.send_ns(address, interface)
-                except socket.error:
+                    ans = SendIPv6.send_ns(address, interface, True)
+                    for _, packet in ans:
+                        if ICMPv6ND_NA in packet and ICMPv6NDOptDstLLAddr in packet:
+                            if packet[ICMPv6ND_NA].tgt == address:
+                                DefaultGateway(packet[ICMPv6NDOptDstLLAddr].lladdr, address).save_addresses()
+                except:
                     pass
+            except:
+                pass
 
     @staticmethod
     def probe_interesting_network_addresses(interface: str, ip_mode: IPMode) -> None:

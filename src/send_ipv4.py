@@ -163,19 +163,24 @@ class SendIPv4:
             return
 
     @staticmethod
-    def send_arp_request(address: str, interface: str) -> None:
+    def send_arp_request(address: str, interface: str, wait_for_rsp: bool = False, rsp_timeout: float = 0.1) -> None | SndRcvList:
         """
         Send an ARP request to an IPv4 address.
 
         Args:
             address (str): The IPv4 address
             interface (str): The network interface to use
+            wait_for_rsp (bool): Whether to wait for a response. Defaults to False.
+            rsp_timeout (float): Timeout for the response. Defaults to 0.1 seconds.
         """
         try:
             arp_request = ARP(pdst=address)
             ether = Ether(dst="ff:ff:ff:ff:ff:ff")
 
             pkt = ether / arp_request
+
+            if wait_for_rsp:
+                return srp(pkt, iface=interface, verbose=0, timeout=rsp_timeout)[0]
 
             sendp(pkt, verbose=0, iface=interface)
 
