@@ -255,7 +255,7 @@ class SendIPv4:
 
             for source_ipv4_addr in ipv4_addresses:
 
-                mac = Ether(src=get_if_hwaddr(interface))
+                mac = Ether(src=get_if_hwaddr(interface), dst="01:00:5e:00:00:01")
                 ipv4_packet = IP(src=source_ipv4_addr, dst="224.0.0.1", ttl=1)
 
                 match version:
@@ -281,12 +281,17 @@ class SendIPv4:
         """
         exist_interface = Interface(interface).check_interface()
 
+        if ipaddress.ip_address(address).is_multicast:
+            mac_dst_addr = "01:00:5e:00:00:01"
+        else:
+            mac_dst_addr = "ff:ff:ff:ff:ff:ff"
+
         if exist_interface:
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
 
             for source_ipv4_addr in ipv4_addresses:
 
-                mac = Ether(src=get_if_hwaddr(interface))
+                mac = Ether(src=get_if_hwaddr(interface), dst=mac_dst_addr)
                 ipv4_packet = IP(src=source_ipv4_addr, dst=address, ttl=1)
                 icmp_packet = ICMP()
 

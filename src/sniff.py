@@ -390,6 +390,7 @@ class Sniff:
             if packet is not None and ARP in packet:
                 Node(packet[0].src, packet[ARP].psrc).save_addresses()
 
+            # WS-Discovery responses
             if UDP in packet and (packet[UDP].sport == 3702 or packet[UDP].dport == 3702):
                 WSDiscovery(packet[0].src, packet[0][1].src).save_addresses()
                 if Raw in packet:
