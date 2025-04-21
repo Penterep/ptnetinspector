@@ -151,6 +151,21 @@ class Send:
         if ip_mode.ipv6:
             SendIPv6.send_dns_sd_probe(interface)
 
+    @staticmethod
+    def send_dhcp_probe(interface: str, ip_mode: IPMode) -> None:
+        """
+        Send DHCP probe on the specified interface. For IPv4, it sends a DHCP discovery packet,
+        and for IPv6, it sends a DHCPv6 solicit packet.
+
+        Args:
+            interface (str): Network interface to use for sending probe
+            ip_mode (IPMode): IP version to probe
+        """
+        if ip_mode.ipv4:
+            SendIPv4.send_dhcp_discover(interface)
+        if ip_mode.ipv6:
+            SendIPv6.send_dhcpv6_solicit(interface)
+
 
 def get_gateway_addresses(interface: str, ip_mode: IPMode) -> List[str]:
     """

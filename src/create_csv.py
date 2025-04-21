@@ -101,7 +101,7 @@ def create_csv(directory):
         writer.writeheader()
     
     with open(f"{directory}/dhcp.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP']
+        fieldnames = ['MAC', 'IP', 'Role']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 

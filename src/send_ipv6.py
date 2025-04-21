@@ -2,6 +2,8 @@ import ipaddress
 import csv
 
 from scapy.all import *
+from scapy.layers.dhcp6 import DUID_LL, DHCP6OptElapsedTime, DHCP6OptIA_NA, DHCP6OptOptReq, DHCP6OptClientId, \
+    DHCP6_Solicit
 from scapy.layers.dns import DNS, DNSQR, DNSRR
 from scapy.layers.inet import UDP
 from scapy.layers.inet6 import IPv6, ICMPv6MLQuery, ICMPv6EchoRequest, IPv6ExtHdrHopByHop, RouterAlert, \
@@ -707,6 +709,41 @@ class SendIPv6:
                     dns_sd = ether / ipv4 / udp / mdns
 
                     sendp(dns_sd, verbose=0, iface=interface)
+
+    @staticmethod
+    def send_dhcpv6_solicit(interface: str) -> None:
+        """
+        Send a DHCPv6 Solicit packet.
+
+        Args:
+            interface (str): Network interface to send packet on
+        """
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            avail_ipv6 = Interface(interface).check_available_ipv6
+            if avail_ipv6:
+                ll_ipv6_addresses = Interface(interface).get_interface_link_local_list()
+
+                for source_ll_ipv6_addr in ll_ipv6_addresses:
+                    # generate random transaction ID
+                    trid = random.randint(0, 0xFFFFFF)
+
+                    # create a DUID based on Link-layer address (DUID-LL)
+                    duid = DUID_LL(lladdr=get_if_hwaddr(interface), type=3)
+
+                    ether = Ether(src=get_if_hwaddr(interface))
+                    ipv6 = IPv6(src=source_ll_ipv6_addr, dst="ff02::1:2")
+                    udp = UDP(sport=546, dport=547)
+
+                    dhcpv6 = DHCP6_Solicit(trid=trid)
+                    client_id_opt = DHCP6OptClientId(duid=duid)
+                    elapsed_time_opt = DHCP6OptElapsedTime(elapsedtime=0)
+                    ia_na_opt = DHCP6OptIA_NA(iaid=random.randint(0, 0xFFFFFFFF), T1=0, T2=0)
+
+                    dhcpv6_solicit = ether / ipv6 / udp / dhcpv6 / client_id_opt / elapsed_time_opt / ia_na_opt
+
+                    sendp(dhcpv6_solicit, iface=interface, verbose=0)
 
 
 def generate_more_possible_IP(interface):

@@ -3,6 +3,7 @@ import ipaddress
 from scapy.all import *
 from scapy.contrib.igmp import IGMP
 from scapy.contrib.igmpv3 import IGMPv3, IGMPv3mq
+from scapy.layers.dhcp import BOOTP, DHCP
 from scapy.layers.dns import DNS, DNSQR, DNSRR
 from scapy.layers.inet import UDP, IP, ICMP
 from scapy.layers.l2 import Ether, ARP
@@ -331,3 +332,32 @@ class SendIPv4:
                 dns_sd = ether / ipv4 / udp / mdns
 
                 sendp(dns_sd, verbose=0, iface=interface)
+
+    @staticmethod
+    def send_dhcp_discover(interface: str) -> None:
+        """
+        Send a DHCPv4 Discovery packet.
+
+        Args:
+            interface (str): Network interface to send packet on
+        """
+        exist_interface = Interface(interface).check_interface()
+
+        if exist_interface:
+            # random transaction ID
+            xid = random.randint(0, 0xFFFFFFFF)
+
+            ether = Ether(src=get_if_hwaddr(interface), dst="ff:ff:ff:ff:ff:ff")
+            ip = IP(src="0.0.0.0", dst="255.255.255.255")
+            udp = UDP(sport=68, dport=67)
+
+            mac_addr = uuid.getnode().to_bytes(6, byteorder='big')
+            bootp = BOOTP(chaddr=mac_addr, xid=xid, flags=0x8000)
+
+            dhcp = DHCP(options=[
+                ("message-type", "discover"),
+                "end"
+            ])
+
+            dhcp_discover = ether / ip / udp / bootp / dhcp
+            sendp(dhcp_discover, iface=interface, verbose=0)

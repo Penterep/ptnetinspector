@@ -250,6 +250,11 @@ def find_requested_addr(data):
             return item[1]
     return None
 
+def extract_mac_from_duid(duid_data):
+    if len(duid_data) >= 6:
+        return ":".join(f"{b:02x}" for b in duid_data[-6:])
+    return None
+
 # Check the status of IP (if it has)
 def get_status_ip(mac, ip):
 
@@ -319,11 +324,11 @@ def is_dhcp_slaac()-> list:
             for row in reader:
                 try:
                     ip_obj = ipaddress.ip_address(row['IP'])
-                    if ip_obj.version == 4:
+                    if ip_obj.version == 4 and row['Role'] == 'server':
                         status = "DHCP server"
                         if status not in lst_result:
                             lst_result.append(status)
-                    if ip_obj.version == 6:
+                    if ip_obj.version == 6 and row['Role'] == 'server':
                         if is_global_unicast_ipv6(row['IP']):
                             status = "DHCPv6 server"
                             if status not in lst_result:

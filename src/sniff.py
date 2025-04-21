@@ -10,14 +10,16 @@ from scapy.layers.inet import IP, UDP
 from scapy.layers.inet6 import IPv6, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, \
     ICMPv6MLReport2, ICMPv6MLDMultAddrRec, ICMPv6MLReport, ICMPv6MLDone, ICMPv6EchoReply, ICMPv6EchoRequest, \
     ICMPv6ND_NA, ICMPv6DestUnreach, ICMPv6ParamProblem, ICMPv6ND_Redirect
-from scapy.layers.dhcp6 import DHCP6OptIAAddress, DHCP6OptIAPrefix, DHCP6_Request, DHCP6_Rebind, DHCP6_Release, DHCP6_Renew, DHCP6_Decline, DHCP6_Confirm
+from scapy.layers.dhcp6 import DHCP6OptIAAddress, DHCP6_Request, DHCP6_Rebind, DHCP6_Release, \
+    DHCP6_Renew, DHCP6_Decline, DHCP6_Confirm, DHCP6_Advertise, DHCP6OptServerId
 from scapy.layers.dhcp import DHCP
 from scapy.layers.dns import DNSRR, DNS
 from scapy.layers.l2 import Ether, Dot3, ARP
 from scapy.layers.dot11 import Dot11
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from src.device.remote_node import Remote_node
-from libs.check import belongs_to_any_prefix, check_ipv6_addresses_generated_from_prefix, is_global_unicast_ipv6, find_requested_addr
+from libs.check import belongs_to_any_prefix, check_ipv6_addresses_generated_from_prefix, is_global_unicast_ipv6, \
+    find_requested_addr, extract_mac_from_duid
 from src.create_csv import sort_csv_role_node, delete_middle_content_csv
 from src.device.wsdiscovery import parse_wsdiscovery, WSDiscovery
 from src.interface import Interface
@@ -360,14 +362,29 @@ class Sniff:
             # DHCPv6 Request, Renew, Release, Decline, Confirm, Rebind (If they include address)
             if packet is not None and (DHCP6_Request in packet or DHCP6_Renew in packet or DHCP6_Release in packet or DHCP6_Decline in packet or DHCP6_Confirm in packet or DHCP6_Rebind in packet):
                 if DHCP6OptIAAddress in packet:
-                    DHCP_ptnet(packet[0].src, packet[0][DHCP6OptIAAddress].addr).save_addresses()
+                    DHCP_ptnet(packet[0].src, packet[0][DHCP6OptIAAddress].addr, "client").save_addresses()
                     Node(packet[0].src, packet[0][DHCP6OptIAAddress].addr).save_addresses()
+
+            # DHCPv6 Advertise
+            if packet is not None and DHCP6_Advertise in packet:
+                if DHCP6OptServerId in packet:
+                    try:
+                        duid_mac = extract_mac_from_duid(bytes(packet[0][DHCP6OptServerId].duid))
+                        if packet[0].src == duid_mac:
+                            DHCP_ptnet(packet[0].src, packet[IPv6].src, "server").save_addresses()
+                            Node(packet[0].src, packet[IPv6].src).save_addresses()
+                    except:
+                        pass
 
             # DHCP Request
             if packet is not None and DHCP in packet:
                 if find_requested_addr(packet[0][DHCP].options):
-                    DHCP_ptnet(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
+                    DHCP_ptnet(packet[0].src, find_requested_addr(packet[0][DHCP].options), "client").save_addresses()
                     Node(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
+                for option in packet[0][DHCP].options:
+                    if isinstance(option, tuple) and option[0] == 'server_id':
+                        DHCP_ptnet(packet[0].src, option[1], "server").save_addresses()
+                        Node(packet[0].src, option[1]).save_addresses()
 
             # ARP responses
             if packet is not None and ARP in packet:
@@ -447,7 +464,7 @@ class Sniff:
 
                 Send.probe_gateways(interface, ip_mode)
                 Send.probe_interesting_network_addresses(interface, ip_mode)
-
+                Send.send_dhcp_probe(interface, ip_mode)
                 Send.send_wsdiscovery_probe(interface, ip_mode)
                 Send.send_dns_sd_probe(interface, ip_mode)
 

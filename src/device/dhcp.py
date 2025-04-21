@@ -3,10 +3,11 @@ import csv
 class DHCP:
     
     all_nodes = []
-    def __init__(self, mac:str, ip:str):
+    def __init__(self, mac:str, ip:str, role:str):
         # Assign to self object
         self.mac = mac
         self.ip = ip
+        self.role = role
         DHCP.all_nodes.append(self)
     
     @classmethod
@@ -19,7 +20,8 @@ class DHCP:
             for node in nodes:
                 DHCP(
                     mac = node.get('MAC'),
-                    ip = node.get('IP')
+                    ip = node.get('IP'),
+                    role = node.get('Role')
                 )
 
     def save_addresses(self):
@@ -28,14 +30,15 @@ class DHCP:
             file_writer = csv.writer(csvfile)
             csvfile.seek(0)  # move the file pointer to the beginning of the file
             for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip:
+                if row and row['MAC'] == self.mac and row['IP'] == self.ip and row['Role'] == self.role:
                     return  # Record already exists in the file 
                    
-            fieldnames = ['MAC', 'IP']
+            fieldnames = ['MAC', 'IP', 'Role']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
                 'IP': self.ip,
-                'MAC': self.mac
+                'MAC': self.mac,
+                'Role': self.role
             })
              
     def __repr__(self):
