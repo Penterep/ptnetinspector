@@ -377,10 +377,15 @@ class Sniff:
                         pass
 
             # DHCP Request
-            if packet is not None and DHCP in packet:
+            if packet is not None and DHCP in packet and packet[DHCP].options[0][1] == 3:
                 if find_requested_addr(packet[0][DHCP].options):
                     DHCP_ptnet(packet[0].src, find_requested_addr(packet[0][DHCP].options), "client").save_addresses()
                     Node(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
+
+            # DHCP Offer
+            if packet is not None and DHCP in packet and packet[DHCP].options[0][1] == 2:
+                DHCP_ptnet(packet[0].src, packet[IP].src, "server").save_addresses()
+                Node(packet[0].src, packet[IP].src).save_addresses()
                 for option in packet[0][DHCP].options:
                     if isinstance(option, tuple) and option[0] == 'server_id':
                         DHCP_ptnet(packet[0].src, option[1], "server").save_addresses()
@@ -469,7 +474,7 @@ class Sniff:
                 Send.send_wsdiscovery_probe(interface, ip_mode)
                 Send.send_dns_sd_probe(interface, ip_mode)
 
-                time.sleep(1.5) # Sleeping to make the tool capture packets
+                time.sleep(2.5) # Sleeping to make the tool capture packets
                 pkts.stop()
                 Sniff.save_packets(interface, ip_mode, pkts.results)
 
