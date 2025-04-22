@@ -210,6 +210,56 @@ def sort_csv_role_node(interface, file_name):
             else:
                 device_roles[mac_address] = "Router"
 
+        df_gateway = pd.read_csv('src/tmp/default_gw.csv')
+
+        for _, row in df_gateway.iterrows():
+            mac_address = row['MAC']
+            ip_addr = row['IP']
+
+            ip_version = ""
+            try:
+                socket.inet_pton(socket.AF_INET, ip_addr)
+                ip_version = "4"
+            except socket.error:
+                try:
+                    socket.inet_pton(socket.AF_INET6, ip_addr)
+                    ip_version = "6"
+                except socket.error:
+                    pass
+
+            if mac_address in device_roles and "Router" not in device_roles[mac_address] and "Preferred router" not in device_roles[mac_address]:
+                device_roles[mac_address] += f";Router;IPv{ip_version} default GW"
+            elif mac_address in device_roles:
+                device_roles[mac_address] += f";IPv{ip_version} default GW"
+            else:
+                device_roles[mac_address] = f"Router;IPv{ip_version} default GW"
+
+        df_gateway = pd.read_csv('src/tmp/dhcp.csv')
+
+        for _, row in df_gateway.iterrows():
+            mac_address = row['MAC']
+            ip_addr = row['IP']
+            role = row['Role']
+
+            if role != "server":
+                continue
+
+            dhcp_version = ""
+            try:
+                socket.inet_pton(socket.AF_INET, ip_addr)
+                dhcp_version = "DHCP"
+            except socket.error:
+                try:
+                    socket.inet_pton(socket.AF_INET6, ip_addr)
+                    dhcp_version = "DHCPv6"
+                except socket.error:
+                    pass
+
+            if mac_address in device_roles:
+                device_roles[mac_address] += f";{dhcp_version} server"
+            else:
+                device_roles[mac_address] = f"{dhcp_version} server"
+
         # Create a new DataFrame to store MAC addresses, Device Numbers, and Roles
         new_df = pd.DataFrame({'MAC': list(device_roles.keys()), 'Role': list(device_roles.values())})
 

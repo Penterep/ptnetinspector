@@ -7,6 +7,48 @@ from libs.convert import in6_getansma, in6_getnsma
 from src.output.oui import lookup_vendor_from_csv
 
 class Non_json:
+    def transform_role_print(role: str) -> str:
+        """
+        Transform the role string into a more readable format.
+
+        Args:
+            role (str): The role string to be transformed
+        """
+        parts = role.split(';')
+
+        if len(parts) == 1:
+            return parts[0]
+
+        result = []
+
+        # router
+        if "Preferred router" in parts:
+            result.append("Preferred router")
+        elif "Router" in parts:
+            result.append("Router")
+
+        # gateways
+        has_ipv4_gw = "IPv4 default GW" in parts
+        has_ipv6_gw = "IPv6 default GW" in parts
+        if has_ipv4_gw and has_ipv6_gw:
+            result.append("IPv4+IPv6 default GW")
+        elif has_ipv4_gw:
+            result.append("IPv4 default GW")
+        elif has_ipv6_gw:
+            result.append("IPv6 default GW")
+
+        # DHCP
+        has_dhcp = "DHCP server" in parts
+        has_dhcpv6 = "DHCPv6 server" in parts
+        if has_dhcp and has_dhcpv6:
+            result.append("DHCP+DHCPv6 server")
+        elif has_dhcp:
+            result.append("DHCP server")
+        elif has_dhcpv6:
+            result.append("DHCPv6 server")
+
+        return " | ".join(result)
+
     def print_box(string):
         box_char = '='
         print(box_char*(len(string)+4))
@@ -70,7 +112,7 @@ class Non_json:
                 device_number = row['Device_Number']
                 role = row['Role']
 
-                ptprinthelper.ptprint(f"Device number {device_number}: ({role} - {lookup_vendor_from_csv(mac_address)})", "INFO")
+                ptprinthelper.ptprint(f"Device number {device_number}: ({Non_json.transform_role_print(role)} - {lookup_vendor_from_csv(mac_address)})", "INFO")
                 ptprinthelper.ptprint(f"    MAC   {mac_address}")
                 
                 # Find IP addresses associated with this MAC address
@@ -192,7 +234,7 @@ class Non_json:
                     
                     # Need to skip the situation of Host when printing router scan, and situation when device in role_node but not in specified file name
                     if (protocol == "RA" and role != "Host") or (protocol != "RA" and mac_address in list_mac_protocol):
-                        ptprinthelper.ptprint(f"Device number {device_number}: ({role} - {lookup_vendor_from_csv(mac_address)})", "INFO")
+                        ptprinthelper.ptprint(f"Device number {device_number}: ({Non_json.transform_role_print(role)} - {lookup_vendor_from_csv(mac_address)})", "INFO")
 
                         if less_detail:
                             continue
