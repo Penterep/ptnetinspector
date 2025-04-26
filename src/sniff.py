@@ -34,7 +34,7 @@ from src.device.llmnr import LLMNR
 from src.device.mdns import mDNS
 from src.device.time import Time
 from src.device.eap import EAP
-from src.send_ipv4 import SendIPv4
+from src.send_ipv4 import SendIPv4, ICMPType
 from src.send_ipv6 import SendIPv6
 from src.send import Send, IPMode
 from libs.convert import convert_OnOff, convert_preferenceRA, convert_mldv2_igmpv3_rtype, convert_timestamp_to_date
@@ -464,9 +464,10 @@ class Sniff:
                     time.sleep(1)
                     SendIPv4.send_igmp_membership_query(1, interface)
                     SendIPv4.send_igmp_membership_query(1, interface, "224.0.0.1")
-                    SendIPv4.send_local_icmp_ping("224.0.0.1", interface)
-                    SendIPv4.send_local_icmp_ping("255.255.255.255", interface)
-                    SendIPv4.send_subnet_broadcast_ping(interface)
+                    for icmp_type in ICMPType:
+                        SendIPv4.send_local_icmp("224.0.0.1", interface, icmp_type)
+                        SendIPv4.send_local_icmp("255.255.255.255", interface, icmp_type)
+                        SendIPv4.send_subnet_broadcast_icmp(interface, icmp_type)
 
                 Send.probe_gateways(interface, ip_mode)
                 Send.probe_interesting_network_addresses(interface, ip_mode)
