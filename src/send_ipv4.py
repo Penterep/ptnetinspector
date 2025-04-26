@@ -14,6 +14,11 @@ from src.device.mdns import mDNS
 from src.device.llmnr import LLMNR
 
 
+class ICMPType(Enum):
+    ECHO_REQUEST = 8
+    ROUTER_SOLICITATION = 10
+    UNASSIGNED_255 = 255
+
 class SendIPv4:
     @staticmethod
     def send_reverse_ipv4_mDNS(ip_address, interface):
@@ -276,13 +281,14 @@ class SendIPv4:
                 sendp(query*2, verbose=0, iface=interface)
 
     @staticmethod
-    def send_local_icmp_ping(address: str, interface: str) -> None:
+    def send_local_icmp(address: str, interface: str, icmp_type: ICMPType = ICMPType.ECHO_REQUEST) -> None:
         """
-        Send an ICMP ping to an IPv4 address with TTL 1.
+        Send an ICMP message to an IPv4 address with TTL 1.
 
         Args:
             address (str): The IPv4 address
             interface (str): The network interface to use
+            icmp_type (ICMPType): The ICMP type. Defaults to ICMPType.ECHO_REQUEST
         """
         exist_interface = Interface(interface).check_interface()
 
@@ -298,26 +304,26 @@ class SendIPv4:
 
                 mac = Ether(src=get_if_hwaddr(interface), dst=mac_dst_addr)
                 ipv4_packet = IP(src=source_ipv4_addr, dst=address, ttl=1)
-                icmp_packet = ICMP()
+                icmp_packet = ICMP(type=icmp_type.value)
 
-                ping = mac / ipv4_packet / icmp_packet
+                icmp_message = mac / ipv4_packet / icmp_packet
 
-                sendp(ping, verbose=0, iface=interface)
+                sendp(icmp_message, verbose=0, iface=interface)
 
     @staticmethod
-    def send_subnet_broadcast_ping(interface: str) -> None:
+    def send_subnet_broadcast_icmp(interface: str, icmp_type: ICMPType = ICMPType.ECHO_REQUEST) -> None:
         """
-        Send an ICMP ping to the subnet broadcast address.
+        Send an ICMP message to the subnet broadcast address.
 
         Args:
-            address (str): The IPv4 address
             interface (str): The network interface to use
+            icmp_type (ICMPType): The ICMP type. Defaults to ICMPType.ECHO_REQUEST
         """
         exist_interface = Interface(interface).check_interface()
 
         if exist_interface:
             for network in Networks.get_ipv4_subnets():
-                SendIPv4.send_local_icmp_ping(str(network.broadcast_address), interface)
+                SendIPv4.send_local_icmp(str(network.broadcast_address), interface, icmp_type)
 
     @staticmethod
     def send_dns_sd_probe(interface: str) -> None:
