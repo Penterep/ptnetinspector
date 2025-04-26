@@ -10,6 +10,19 @@ from src.output.oui import lookup_vendor_from_csv
 from src.parameters import ptjsonlib_object
 
 class Json:
+    @staticmethod
+    def convert_role_to_list(role: str) -> list:
+        """
+        Convert the role string to a list by splitting it at the semicolon.
+
+        Args:
+            role (str): The role string to be converted
+
+        Returns:
+            list: A list of roles
+        """
+        return role.split(";")
+    
     def output_property():
         if has_additional_data("src/tmp/RA.csv"):
             df = pd.read_csv("src/tmp/RA.csv")
@@ -146,6 +159,8 @@ class Json:
                 role = row['Role']
                 vul = []
 
+                roles = Json.convert_role_to_list(role)
+
                 # Check the vulnerability related to mDNS
                 if mdns_df is not None:
                     mdns_entry = mdns_df[mdns_df['MAC'] == mac_address]
@@ -186,12 +201,12 @@ class Json:
                         if 'IP' in wsdiscovery_entry.columns and not wsdiscovery_entry['IP'].isnull().all():
                             vul.append("WS-Discovery is active")
                 
-                node_ele = ptjsonlib_object.create_node_object(node_type=f"Device {device_number}", parent_type="Site", parent=None, properties={"name": f"Device {device_number}", "type": role, "MAC": mac_address, "description": lookup_vendor_from_csv(mac_address), "vulnerabilities": vul})
+                node_ele = ptjsonlib_object.create_node_object(node_type=f"Device {device_number}", parent_type="Site", parent=None, properties={"name": f"Device {device_number}", "type": roles, "MAC": mac_address, "description": lookup_vendor_from_csv(mac_address), "vulnerabilities": vul})
                 key_node_ele = node_ele["key"]
                 ptjsonlib_object.add_node(node_ele)
 
                 # Only applying for the older verison of ptlibs
-                # key = ptjsonlib_object.node_duplicity_check(parent_type="Site", properties={"name": f"Device {device_number}", "type": role, "MAC": mac_address, "vulnerabilities": vul}, known_nodes=[])
+                # key = ptjsonlib_object.node_duplicity_check(parent_type="Site", properties={"name": f"Device {device_number}", "type": roles, "MAC": mac_address, "vulnerabilities": vul}, known_nodes=[])
                 
                 # Find IP addresses associated with this MAC address
                 ip_addresses = addresses_df.loc[addresses_df['MAC'] == mac_address, 'IP'].tolist()
