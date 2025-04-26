@@ -68,7 +68,7 @@ def get_help():
             ["", "   Example: Running passive mode from scanner with interface eth0, json output is allowed with minimum details of scanning"],
             ["", "       => ptnetinspector -t p -i eth0 -less -j"],
             ["Active:",
-            "   The attacker performs testing vulnerabilities with several types of packets (MLD, ICMPv6, LLMNR, mDNS,...)"],
+            "   The attacker performs testing vulnerabilities with several types of packets (MLD, ICMPv6, LLMNR, mDNS, IGMP, ICMP, DHCP, DHCPv6, WS-Discovery...)"],
             ["", "   Example: Running active mode from scanner with interface eth0, with full details of network scan"],
             ["", "       => ptnetinspector -t a -i eth0 -more"],
             ["", "   Example: Running active mode from scanner with interface eth0, json output is allowed with minimum details of scanning"],
