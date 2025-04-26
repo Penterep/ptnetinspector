@@ -522,11 +522,11 @@ def parameter_control(interface, json_output, del_tmp, type, more_detail, less_d
         ptprinthelper.ptprint("Interface: " + interface, "INFO")
 
         if ip_mode.ipv4 and ip_mode.ipv6:
-            ptprinthelper.ptprint("IPv4 and IPv6 traffic allowed", "INFO")
+            ptprinthelper.ptprint("IPv4 and IPv6 mode", "INFO")
         elif ip_mode.ipv4 and not ip_mode.ipv6:
-            ptprinthelper.ptprint("Only IPv4 traffic allowed", "INFO")
+            ptprinthelper.ptprint("IPv4-only mode", "INFO")
         elif ip_mode.ipv6 and not ip_mode.ipv4:
-            ptprinthelper.ptprint("Only IPv6 traffic allowed", "INFO")
+            ptprinthelper.ptprint("IPv6-only mode", "INFO")
 
         # Control parameter for json output
         if json_output:
