@@ -328,3 +328,4 @@ def sort_all_csv(interface: str) -> None:
     sort_csv_based_MAC(interface, "src/tmp/MLDv2.csv")
     sort_csv_based_MAC(interface, "src/tmp/RA.csv")
     sort_csv_based_MAC(interface, "src/tmp/wsdiscovery.csv")
+    sort_csv_based_MAC(interface, "src/tmp/default_gw.csv")
