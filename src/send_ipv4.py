@@ -293,7 +293,10 @@ class SendIPv4:
         exist_interface = Interface(interface).check_interface()
 
         if ipaddress.ip_address(address).is_multicast:
-            mac_dst_addr = "01:00:5e:00:00:01"
+            if icmp_type == ICMPType.ROUTER_SOLICITATION:
+                mac_dst_addr = "33:33:00:00:00:02"
+            else:
+                mac_dst_addr = "01:00:5e:00:00:01"
         else:
             mac_dst_addr = "ff:ff:ff:ff:ff:ff"
 

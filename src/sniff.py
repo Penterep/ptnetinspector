@@ -465,7 +465,10 @@ class Sniff:
                     SendIPv4.send_igmp_membership_query(1, interface)
                     SendIPv4.send_igmp_membership_query(1, interface, "224.0.0.1")
                     for icmp_type in ICMPType:
-                        SendIPv4.send_local_icmp("224.0.0.1", interface, icmp_type)
+                        if icmp_type == ICMPType.ROUTER_SOLICITATION:
+                            SendIPv4.send_local_icmp("224.0.0.2", interface, icmp_type)
+                        else:
+                            SendIPv4.send_local_icmp("224.0.0.1", interface, icmp_type)
                         SendIPv4.send_local_icmp("255.255.255.255", interface, icmp_type)
                         SendIPv4.send_subnet_broadcast_icmp(interface, icmp_type)
 
