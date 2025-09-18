@@ -1,0 +1,4 @@
+MAC,Device_Number,Role
+00:0c:29:77:3b:af,1,Host
+00:50:56:c0:00:02,2,Host
+ca:01:07:3b:00:08,3,Preferred router;IPv4 default GW;IPv6 default GW;DHCP server

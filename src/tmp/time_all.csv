@@ -1,0 +1,1402 @@
+time,MAC,packet
+2025-09-18 12:23:49.570771,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.571031,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.571236,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.573048,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.573159,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.573216,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.573252,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.573319,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.573388,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.583306,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.583306,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.583436,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.583867,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.583924,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.593453,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.593498,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.593576,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.594237,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.604302,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.604350,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.604716,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.604833,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.604905,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.614821,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.614822,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.614879,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.614999,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.615143,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.615324,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.625265,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.625592,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.625666,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.625903,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.625983,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.635872,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.635872,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.635996,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.636049,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'mobile.events.data.microsoft.com.'
+2025-09-18 12:23:49.647742,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:49.647813,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:52.207905,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:23:52.209141,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:23:52.211614,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:23:52.212696,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:23:52.351560,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery
+2025-09-18 12:23:52.352160,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.352161,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.352291,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.352377,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.354975,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.355010,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery
+2025-09-18 12:23:52.355584,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.355584,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.355584,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.355584,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.356168,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.358238,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.359290,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.360249,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.361289,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.362311,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.363274,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.364273,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.365278,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.408082,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x6f seq: 0x0)
+2025-09-18 12:23:52.419009,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x6f seq: 0x0)
+2025-09-18 12:23:52.460086,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x6f seq: 0x0)
+2025-09-18 12:23:52.472758,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x6f seq: 0x0)
+2025-09-18 12:23:52.495473,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > ff02::1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:23:52.503686,ca:01:07:3b:00:08,Ether / 2001:a:b:c::1 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:23:52.539812,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:23:52.546211,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:23:52.547400,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.548386,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.549542,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:23:52.580455,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:23:52.588544,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:23:52.637277,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:23:52.642648,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:23:52.684375,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrHopByHop / ICMPv6 Echo Request (id: 0x1bc seq: 0x0)
+2025-09-18 12:23:52.727388,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrHopByHop / ICMPv6 Echo Request (id: 0x1bc seq: 0x0)
+2025-09-18 12:23:52.767573,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:23:52.776850,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptSrcLLAddr / ICMPv6NDOptMTU / ICMPv6 Neighbor Discovery Option - Prefix Information 2001:a:b:c::/64 On-link 1 Autonomous Address 1 Router Address 0
+2025-09-18 12:23:52.786959,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:23:52.811811,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:23:52.814097,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:23:52.851491,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:23:52.852521,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:23:53.138922,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:23:53.476815,00:50:56:c0:00:02,Ether / IP / UDP / BOOTP / DHCP Discover
+2025-09-18 12:23:53.891948,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:23:53.897751,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:23:53.947666,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:23:53.951709,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:23:54.292006,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.252 Version 2 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:23:54.294821,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.251 Version 2 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:23:54.295747,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 239.255.255.250 Version 2 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:23:54.325400,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.252 Version 2 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:23:54.325595,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.251 Version 2 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:23:54.325766,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 239.255.255.250 Version 2 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:23:54.992316,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:23:54.994679,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:23:55.043785,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:23:55.046339,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:23:55.096086,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.1 echo-request 0 / Raw
+2025-09-18 12:23:55.136147,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 echo-request 0 / Raw
+2025-09-18 12:23:55.141504,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 echo-reply 0 / Raw / Padding
+2025-09-18 12:23:55.192179,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 echo-request 0 / Raw
+2025-09-18 12:23:55.203048,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 echo-reply 0 / Raw / Padding
+2025-09-18 12:23:55.240247,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.2 router-solicitation 0 / Raw
+2025-09-18 12:23:55.289037,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 router-solicitation 0 / Raw
+2025-09-18 12:23:55.332110,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 router-solicitation 0 / Raw
+2025-09-18 12:23:55.380227,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.1 255 0 / Raw
+2025-09-18 12:23:55.419986,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 255 0 / Raw
+2025-09-18 12:23:55.475581,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 255 0 / Raw
+2025-09-18 12:23:55.519715,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.1 says 192.168.0.3
+2025-09-18 12:23:55.529616,ca:01:07:3b:00:08,Ether / ARP is at ca:01:07:3b:00:08 says 192.168.0.1 / Padding
+2025-09-18 12:23:55.599815,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:23:55.601285,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:23:55.663965,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.1 says 192.168.0.3
+2025-09-18 12:23:55.675431,ca:01:07:3b:00:08,Ether / ARP is at ca:01:07:3b:00:08 says 192.168.0.1 / Padding
+2025-09-18 12:23:55.707929,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.254 says 192.168.0.3
+2025-09-18 12:23:55.761157,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:23:55.812307,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:23:55.851866,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:23:55.900314,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:23:55.905406,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:23:55.948521,00:0c:29:c2:dc:18,Ether / IP / UDP / BOOTP / DHCP Discover
+2025-09-18 12:23:55.961588,ca:01:07:3b:00:08,Ether / IP / UDP / BOOTP / DHCP Offer
+2025-09-18 12:23:56.014093,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:dhcpv6_client > ff02::1:2:dhcpv6_server / DHCP6_Solicit / DHCP6OptClientId / DHCP6OptElapsedTime / DHCP6OptIA_NA
+2025-09-18 12:23:56.056064,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:51882 > 239.255.255.250:3702 / Raw
+2025-09-18 12:23:56.104097,00:0c:29:c2:dc:18,Ether / IPv6 / UDP 2001:a:b:c:2f3b:681d:45b5:b57b:49549 > ff02::c:3702 / Raw
+2025-09-18 12:23:56.152890,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:63718 > ff02::c:3702 / Raw
+2025-09-18 12:23:56.200361,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:23:56.248186,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:23:56.288476,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:23:56.290529,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:23:58.215287,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:63718 / Raw
+2025-09-18 12:23:58.294379,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:23:58.307836,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:63718 / Raw
+2025-09-18 12:23:58.494270,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:63718 / Raw
+2025-09-18 12:23:59.092392,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.b.6.8.9.9.d.e.7.3.2.e.4.c.c.2.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:23:59.254537,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.b.6.8.9.9.d.e.7.3.2.e.4.c.c.2.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:23:59.695243,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.b.6.8.9.9.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:23:59.781849,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.781929,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.783798,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.783908,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.783951,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.794932,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.794933,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.794933,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.796362,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.796420,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.805260,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.805260,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.805765,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.805811,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.815623,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.815679,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.816019,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:23:59.816139,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:23:59.825841,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.825841,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.826036,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:23:59.826137,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:23:59.836543,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.836543,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.837117,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:23:59.837170,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:23:59.846563,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.846563,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.846683,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:23:59.846762,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:23:59.857293,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.857824,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.857976,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.858219,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.868249,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.868249,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.868333,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.868391,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.871585,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.b.6.8.9.9.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:23:59.878624,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:23:59.878624,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.878679,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Neighbor Discovery - Neighbor Advertisement (tgt: 2001:a:b:c:2f3b:681d:45b5:b57b)
+2025-09-18 12:23:59.878725,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.879155,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.879205,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.888795,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:23:59.888839,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Neighbor Discovery - Neighbor Advertisement (tgt: fe80::2cc4:e237:ed99:86bb)
+2025-09-18 12:23:59.888875,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.888900,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.888935,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.888967,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.898922,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.898922,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.899168,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:23:59.899195,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:23:59.909400,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.909477,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.909569,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:23:59.909638,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:23:59.919735,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.919735,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.920349,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:23:59.920414,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:23:59.929818,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.929819,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.929973,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:23:59.930033,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:23:59.940075,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.940075,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.940358,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.940430,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.950594,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.950595,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.951020,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.951067,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:23:59.961065,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.961066,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.961410,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.961464,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.971246,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.971246,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.971354,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.971389,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:23:59.982079,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:23:59.982079,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:00.296367,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:00.312222,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.7.5.b.5.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:00.483631,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.7.5.b.5.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:00.920301,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:01.089805,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:01.539247,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:01.708351,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:02.171957,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '1.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:02.321882,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:02.344082,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'1.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:02.779548,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:02.830889,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:02.830889,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:02.831031,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Neighbor Discovery - Neighbor Advertisement (tgt: fe80::2cc4:e237:ed99:86bb)
+2025-09-18 12:24:02.838143,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:02.840971,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:02.962597,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:03.401096,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:5355 > 224.0.0.252:5355 / LLMNRQuery who has '1.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:03.831102,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:03.980307,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'1.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:04.416300,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:04.589922,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:04.626970,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:05.044516,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:05.221630,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:05.663428,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '2.1.e.b.1.2.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:05.812831,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'2.1.e.b.1.2.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:06.264340,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:5355 > 224.0.0.252:5355 / LLMNRQuery who has '4.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:06.493273,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:06.844845,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'4.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:07.292489,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:07.452847,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'7.1.3.5.b.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:07.858852,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:07.860643,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:07.865341,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:07.908096,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:07.909115,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:5355 / LLMNRResponse '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.' is at 'b'PC-SE5126-PhVi.''
+2025-09-18 12:24:08.079984,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:08.082833,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans 169.254.92.128
+2025-09-18 12:24:08.083984,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:08.086062,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:08.090194,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:08.091911,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:08.139966,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:08.141244,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:08.141755,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:08.142791,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at 'fe80::cbea:9338:c8bb:5317'
+2025-09-18 12:24:08.144014,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:08.144506,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:08.155614,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:09.890865,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:09.929403,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:09.941552,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:09.964569,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:09.973115,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.015595,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.063590,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:10.111331,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.151232,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.161391,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:10.200805,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:10.214265,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.257526,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.269164,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.314877,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.320207,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.363500,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:10.372631,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.399671,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.403466,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.422058,00:50:56:c0:00:02,Ether / IP / UDP / BOOTP / DHCP Discover
+2025-09-18 12:24:10.447162,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.495430,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:10.535510,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.571789,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.579994,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.632285,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:10.642938,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.687229,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:10.694499,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:10.832071,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:11.018031,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:11.397060,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:11.464431,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:11.640062,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:11.682149,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:12.107973,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:12.266107,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:12.624610,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:12.667750,00:0c:29:c2:dc:18,Ether / 3090:24ff:bdac:d2a0:3796:976b:b9b7:13aa > ff02::1:ff3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:12.711884,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:12.763643,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:12.811681,00:0c:29:c2:dc:18,Ether / 3090:24ff:bdac:d2a0:3796:976b:b9b7:13aa > ff02::1:ff00:1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:12.847286,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:12.896234,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:12.944365,00:0c:29:c2:dc:18,Ether / 3090:24ff:bdac:d2a0:3796:976b:b9b7:13aa > ff02::1:ffd2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:12.992383,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:13.036198,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:13.042883,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:13.072604,00:0c:29:c2:dc:18,Ether / 3090:24ff:bdac:d2a0:3796:976b:b9b7:13aa > ff02::1:ff21:be12 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:13.108547,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:13.155103,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:13.204429,00:0c:29:c2:dc:18,Ether / 3090:24ff:bdac:d2a0:3796:976b:b9b7:13aa > ff02::1:ffbb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:13.252593,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:13.264591,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:15.756963,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.756963,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.756963,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.756963,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.758451,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.759593,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.760556,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.761399,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.761848,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery2
+2025-09-18 12:24:15.762205,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.762205,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.762205,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.762280,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.762347,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.763974,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.764755,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.765585,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.766572,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.767405,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.768383,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.769203,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.770008,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.771135,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:15.771929,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.772808,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.773626,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.775828,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:15.775872,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.780549,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.803424,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.847278,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.853490,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.912258,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery
+2025-09-18 12:24:15.913425,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.913550,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.913836,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.914760,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.920278,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.921779,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.923352,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.924513,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery
+2025-09-18 12:24:15.924867,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.925365,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.925500,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.925500,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.925513,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.926535,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.927647,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.928628,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.929727,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.930709,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.931550,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.932303,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.933156,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.933897,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.934711,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.935430,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.936289,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.963410,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x6f seq: 0x0)
+2025-09-18 12:24:15.968039,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x6f seq: 0x0)
+2025-09-18 12:24:15.986798,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:24:16.016207,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x6f seq: 0x0)
+2025-09-18 12:24:16.020774,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x6f seq: 0x0)
+2025-09-18 12:24:16.048658,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > ff02::1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:16.051941,ca:01:07:3b:00:08,Ether / 2001:a:b:c::1 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:16.097288,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:16.103527,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:16.133777,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:24:16.145989,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:24:16.179765,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:24:16.186411,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:24:16.211732,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrHopByHop / ICMPv6 Echo Request (id: 0x1bc seq: 0x0)
+2025-09-18 12:24:16.251717,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrHopByHop / ICMPv6 Echo Request (id: 0x1bc seq: 0x0)
+2025-09-18 12:24:16.295582,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:16.302685,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptSrcLLAddr / ICMPv6NDOptMTU / ICMPv6 Neighbor Discovery Option - Prefix Information 2001:a:b:c::/64 On-link 1 Autonomous Address 1 Router Address 0
+2025-09-18 12:24:16.315650,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:16.319007,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:24:16.322874,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:16.339401,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:24:16.340367,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:24:16.347265,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:16.379741,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:24:16.380816,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:24:17.171147,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:24:17.435351,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:24:17.436414,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:24:17.479447,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:24:17.480455,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:24:17.800702,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:17.801563,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:17.802529,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:17.811835,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:17.830229,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:17.830229,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:17.830229,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:18.263206,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:18.292031,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:18.527645,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:24:18.529429,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:24:18.575924,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:24:18.577532,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:24:18.632312,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.1 echo-request 0 / Raw
+2025-09-18 12:24:18.691688,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 echo-request 0 / Raw
+2025-09-18 12:24:18.699218,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 echo-reply 0 / Raw / Padding
+2025-09-18 12:24:18.739337,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 echo-request 0 / Raw
+2025-09-18 12:24:18.751048,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 echo-reply 0 / Raw / Padding
+2025-09-18 12:24:18.783463,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.2 router-solicitation 0 / Raw
+2025-09-18 12:24:18.823347,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 router-solicitation 0 / Raw
+2025-09-18 12:24:18.871873,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 router-solicitation 0 / Raw
+2025-09-18 12:24:18.920902,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.1 255 0 / Raw
+2025-09-18 12:24:18.956544,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 255 0 / Raw
+2025-09-18 12:24:18.996971,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 255 0 / Raw
+2025-09-18 12:24:19.040070,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.1 says 192.168.0.3
+2025-09-18 12:24:19.043822,ca:01:07:3b:00:08,Ether / ARP is at ca:01:07:3b:00:08 says 192.168.0.1 / Padding
+2025-09-18 12:24:19.096367,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.104700,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:19.111527,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.147438,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.1 says 192.168.0.3
+2025-09-18 12:24:19.156636,ca:01:07:3b:00:08,Ether / ARP is at ca:01:07:3b:00:08 says 192.168.0.1 / Padding
+2025-09-18 12:24:19.187641,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.254 says 192.168.0.3
+2025-09-18 12:24:19.228830,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.255898,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.280047,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.307542,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.335316,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.363733,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.383627,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.388356,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:19.423838,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.434518,00:0c:29:c2:dc:18,Ether / IP / UDP / BOOTP / DHCP Discover
+2025-09-18 12:24:19.439351,ca:01:07:3b:00:08,Ether / IP / UDP / BOOTP / DHCP Offer
+2025-09-18 12:24:19.492338,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:dhcpv6_client > ff02::1:2:dhcpv6_server / DHCP6_Solicit / DHCP6OptClientId / DHCP6OptElapsedTime / DHCP6OptIA_NA
+2025-09-18 12:24:19.533294,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:59726 > 239.255.255.250:3702 / Raw
+2025-09-18 12:24:19.579180,00:0c:29:c2:dc:18,Ether / IPv6 / UDP 2001:a:b:c:2f3b:681d:45b5:b57b:50042 > ff02::c:3702 / Raw
+2025-09-18 12:24:19.623458,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:62378 > ff02::c:3702 / Raw
+2025-09-18 12:24:19.682000,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:24:19.732584,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:24:19.784412,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:24:20.113677,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:62378 / Raw
+2025-09-18 12:24:20.283334,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:62378 / Raw
+2025-09-18 12:24:20.314466,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:20.314532,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:20.323722,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:20.339388,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:20.497836,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.498080,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.544042,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.544161,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.622581,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.622581,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:62378 / Raw
+2025-09-18 12:24:20.622719,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.700191,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.700353,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.761626,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.761693,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.788768,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:20.808834,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.808965,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.917413,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.917594,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.023345,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.023394,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.039065,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.039124,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.085199,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:62378 / Raw
+2025-09-18 12:24:21.223892,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.224002,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.271356,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:21.316651,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:21.316872,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:21.329339,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:21.440180,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.440315,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.533667,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.533871,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.609727,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.609789,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.788465,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:21.841184,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.841266,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.004128,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:22.036121,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:22.659293,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.659350,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.688226,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.b.6.8.9.9.d.e.7.3.2.e.4.c.c.2.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:22.705353,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.705401,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.856911,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.b.6.8.9.9.d.e.7.3.2.e.4.c.c.2.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:23.199956,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:23.200108,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:23.211235,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:23.220129,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:23.232927,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:23.304399,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '0.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:23.323450,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:23.323561,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:23.323658,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:23.472470,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'0.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:23.827340,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:23.830962,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:23.851777,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:23.936242,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.b.6.8.9.9.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:24.107049,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.b.6.8.9.9.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:24.290837,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:24.293746,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:24.293816,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:24.299498,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:24.380677,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:24.572782,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:24.574824,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:5355 / LLMNRResponse '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.' is at 'b'PC-SE5126-PhVi.''
+2025-09-18 12:24:24.745554,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:24.748645,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans 169.254.92.128
+2025-09-18 12:24:24.749658,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:24.750909,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:24.753149,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:24.754545,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:24.783533,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:24.784429,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:24.784947,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:24.785769,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at 'fe80::cbea:9338:c8bb:5317'
+2025-09-18 12:24:24.786113,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:24.786900,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:24.911040,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:24.911180,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:24.928348,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.7.5.b.5.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:25.093894,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.7.5.b.5.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:25.533524,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.a.3.1.7.b.9.b.b.6.7.9.6.9.7.3.0.a.2.d.c.a.d.b.f.f.4.2.0.9.0.3.ip6.arpa.'
+2025-09-18 12:24:25.701099,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.a.3.1.7.b.9.b.b.6.7.9.6.9.7.3.0.a.2.d.c.a.d.b.f.f.4.2.0.9.0.3.ip6.arpa.'
+2025-09-18 12:24:26.155531,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:26.322341,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:26.755924,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:26.916068,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:27.131592,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:27.131693,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:27.136074,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:27.159620,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:27.250337,00:0c:29:77:3b:af,Ether / ARP who has 192.168.0.1 says 192.168.0.4 / Padding
+2025-09-18 12:24:27.302076,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:27.331532,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:27.331669,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:27.363338,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '1.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:27.416328,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:27.524881,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'1.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:27.824733,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:27.972578,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:28.132629,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:28.276988,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:28.312709,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:28.553766,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:5355 > 224.0.0.252:5355 / LLMNRQuery who has '1.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:29.120832,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'1.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:29.585314,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:29.690033,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:29.720351,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:29.760819,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:30.032170,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.032448,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.042003,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.042331,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.042642,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.042988,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.052033,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.052033,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.052914,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.053040,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.062571,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.062571,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.062730,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.062775,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.072781,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.072781,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.073218,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.073329,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.082991,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.083051,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.083079,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.083161,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.093335,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.093372,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.093719,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.093794,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.104007,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.104007,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.104193,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.104352,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.113988,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.113988,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.114922,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.115087,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.124734,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.124734,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.124889,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.124935,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.135068,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.135068,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.135596,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.135680,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.145345,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.145345,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.145458,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.145489,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.156144,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.156144,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.156688,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.156744,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.166218,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.166290,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.166368,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.166420,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.177802,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.177802,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.178950,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.179150,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.187870,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.187921,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.187969,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.188063,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.198475,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.198622,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.199081,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.199174,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.208638,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.208731,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.208800,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.208858,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.219229,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.219230,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.219838,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.219896,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.229300,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.229300,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.229429,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.229484,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.239628,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.239628,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.310511,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:30.315247,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:30.475646,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:30.499720,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:30.948892,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '2.1.e.b.1.2.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:31.122440,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'2.1.e.b.1.2.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:31.567777,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:5355 > 224.0.0.252:5355 / LLMNRQuery who has '4.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:32.083152,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:32.083364,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:32.087559,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:32.089450,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:32.103395,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:32.108352,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:32.131956,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'4.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:32.139349,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:32.588005,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:32.766730,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'7.1.3.5.b.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:33.208906,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:33.210441,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:5355 / LLMNRResponse '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.' is at 'b'PC-SE5126-PhVi.''
+2025-09-18 12:24:33.399720,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:33.400741,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans 169.254.92.128
+2025-09-18 12:24:33.402261,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:33.402995,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:33.404237,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:33.404817,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:33.443843,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:33.444496,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:33.445644,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:33.446566,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:33.447023,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at 'fe80::cbea:9338:c8bb:5317'
+2025-09-18 12:24:33.447024,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:33.479276,00:50:56:c0:00:02,Ether / IP / UDP / NBTDatagram / SMB_Header / Tran b'\\MAILSLOT\\BROWSE' HostAnnouncement for b'PC-SE5126-PHVI'
+2025-09-18 12:24:33.519633,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:33.719953,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:33.760777,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:34.521503,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:34.521619,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:34.532245,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:34.551807,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:34.564960,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.264049,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.273741,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:35.299898,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:35.302544,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.313894,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.340032,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:35.340183,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:35.356533,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.366037,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.396004,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.407641,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.418921,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:35.439924,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > fe80::c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.447616,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:35.449338,ca:01:07:3b:00:08,Ether / 2001:a:b:c::1 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.487726,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.491784,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.527654,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.567631,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.603423,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.639578,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.688484,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > fe80::535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.724667,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.775779,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.786317,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:35.808320,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:35.820275,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.825428,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.868022,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.877486,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.899693,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.900452,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.909946,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.940203,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > fe80::cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.951272,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.976526,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.982825,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.011835,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.015065,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.044199,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.048238,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.088255,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.091290,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.147732,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.154114,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.180386,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > fe80::c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.216174,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.229160,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.263931,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.312116,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.338867,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:36.351706,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.360080,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:36.383123,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.425270,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > fe80::535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.460221,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.507592,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.514445,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.552235,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:36.552551,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.599581,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.604122,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.631463,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.633237,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.640378,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:36.663620,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:36.680138,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > fe80::cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.691192,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.716473,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.852167,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:36.853050,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:36.871759,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:37.003429,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:37.439169,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:37.607713,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:37.795901,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:37.811479,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:38.060022,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:38.205647,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:38.312910,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:38.355817,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:38.635933,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:38.659179,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:38.659284,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:38.825177,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:39.268746,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:39.294048,00:0c:29:77:3b:af,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:77:3b:af
+2025-09-18 12:24:39.305530,00:0c:29:77:3b:af,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:77:3b:af
+2025-09-18 12:24:39.305797,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:39.331454,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:39.367611,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:39.458351,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:39.472508,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:39.584646,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:39.912312,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:39.913457,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:5355 / LLMNRResponse '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.' is at 'b'PC-SE5126-PhVi.''
+2025-09-18 12:24:39.921585,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:39.955778,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:40.082489,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:40.085196,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans 169.254.92.128
+2025-09-18 12:24:40.086671,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:40.087641,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:40.088908,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:40.089318,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:40.128583,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.152203,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:40.152982,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:40.155784,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:40.156606,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at 'fe80::cbea:9338:c8bb:5317'
+2025-09-18 12:24:40.159427,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:40.160619,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:40.207627,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.251755,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ff3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.292662,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.344172,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.380201,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ff00:1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.433803,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.488027,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.536995,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ffd2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.584630,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.632744,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.671884,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ff21:be12 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.719668,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.759224,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.800239,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ffbb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.848929,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:41.344308,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54546 > 2001:67c:1223:3::93e5:ff6a:https S
+2025-09-18 12:24:41.344395,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54546 > 2001:67c:1223:3::93e5:ff6a:https S
+2025-09-18 12:24:15.232052,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.234154,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:15.234202,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.237966,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.239561,00:0c:29:77:3b:af,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:77:3b:af
+2025-09-18 12:24:15.239656,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.246756,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:15.246817,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.248544,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.252431,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:15.267896,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.269487,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.319860,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.351241,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.352924,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.510822,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:15.510880,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.519679,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.531633,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.540757,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.756289,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery2
+2025-09-18 12:24:15.756963,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.756963,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.756963,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.756963,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.758451,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.759593,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.760556,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.761399,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.761848,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery2
+2025-09-18 12:24:15.762205,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.762205,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.762205,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.762280,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.762347,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.763974,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.764755,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.765585,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.766572,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.767405,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.768383,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.769203,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.770008,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.771135,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:15.771929,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.772808,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.773626,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.775828,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:15.775872,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.780549,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.803424,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.847278,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:15.853490,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:15.912258,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery
+2025-09-18 12:24:15.913425,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.913550,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.913836,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.914760,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.920278,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.921779,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.923352,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.924513,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLQuery
+2025-09-18 12:24:15.924867,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.925365,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:ffbb:5317 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.925500,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.925500,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.925513,00:50:56:c0:00:02,Ether / fe80::cbea:9338:c8bb:5317 > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.926535,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.927647,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.928628,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.929727,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ffd2:b0ca (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.930709,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.931550,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::c (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.932303,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::2 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.933156,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:ff21:be12 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.933897,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff00:1 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.934711,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::1:3 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.935430,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > ff02::1:ff3b:8 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.936289,00:0c:29:77:3b:af,Ether / fe80::535:7b17:55d2:b0ca > ff02::fb (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport
+2025-09-18 12:24:15.963410,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x6f seq: 0x0)
+2025-09-18 12:24:15.968039,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x6f seq: 0x0)
+2025-09-18 12:24:15.986798,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:24:16.016207,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x6f seq: 0x0)
+2025-09-18 12:24:16.020774,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x6f seq: 0x0)
+2025-09-18 12:24:16.048658,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > ff02::1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:16.051941,ca:01:07:3b:00:08,Ether / 2001:a:b:c::1 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:16.097288,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:16.103527,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:16.133777,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:24:16.145989,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:24:16.179765,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:24:16.186411,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x14d seq: 0x0)
+2025-09-18 12:24:16.211732,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrHopByHop / ICMPv6 Echo Request (id: 0x1bc seq: 0x0)
+2025-09-18 12:24:16.251717,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrHopByHop / ICMPv6 Echo Request (id: 0x1bc seq: 0x0)
+2025-09-18 12:24:16.295582,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:16.302685,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptSrcLLAddr / ICMPv6NDOptMTU / ICMPv6 Neighbor Discovery Option - Prefix Information 2001:a:b:c::/64 On-link 1 Autonomous Address 1 Router Address 0
+2025-09-18 12:24:16.315650,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:16.319007,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:24:16.322874,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:16.339401,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:24:16.340367,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:24:16.347265,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:16.379741,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:24:16.380816,00:0c:29:c2:dc:18,Ether / IP / IGMPv3: 192.168.0.3 > 224.0.0.1 Membership Query / IGMPv3mq
+2025-09-18 12:24:17.171147,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > ff02::16 (0) / IPv6ExtHdrHopByHop / ICMPv6MLReport2
+2025-09-18 12:24:17.435351,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:24:17.436414,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:24:17.479447,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:24:17.480455,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:24:17.800702,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:17.801563,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:17.802529,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:17.811835,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:17.830229,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:17.830229,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:17.830229,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:18.263206,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:18.292031,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:18.527645,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:24:18.529429,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 0.0.0.0
+2025-09-18 12:24:18.575924,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:24:18.577532,00:0c:29:c2:dc:18,Ether / IP / IGMP: 192.168.0.3 > 224.0.0.1 Group Membership Query 224.0.0.1
+2025-09-18 12:24:18.632312,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.1 echo-request 0 / Raw
+2025-09-18 12:24:18.691688,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 echo-request 0 / Raw
+2025-09-18 12:24:18.699218,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 echo-reply 0 / Raw / Padding
+2025-09-18 12:24:18.739337,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 echo-request 0 / Raw
+2025-09-18 12:24:18.751048,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 echo-reply 0 / Raw / Padding
+2025-09-18 12:24:18.783463,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.2 router-solicitation 0 / Raw
+2025-09-18 12:24:18.823347,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 router-solicitation 0 / Raw
+2025-09-18 12:24:18.871873,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 router-solicitation 0 / Raw
+2025-09-18 12:24:18.920902,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 224.0.0.1 255 0 / Raw
+2025-09-18 12:24:18.956544,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 255.255.255.255 255 0 / Raw
+2025-09-18 12:24:18.996971,00:0c:29:c2:dc:18,Ether / IP / ICMP 192.168.0.3 > 192.168.0.255 255 0 / Raw
+2025-09-18 12:24:19.040070,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.1 says 192.168.0.3
+2025-09-18 12:24:19.043822,ca:01:07:3b:00:08,Ether / ARP is at ca:01:07:3b:00:08 says 192.168.0.1 / Padding
+2025-09-18 12:24:19.096367,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.104700,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:19.111527,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.147438,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.1 says 192.168.0.3
+2025-09-18 12:24:19.156636,ca:01:07:3b:00:08,Ether / ARP is at ca:01:07:3b:00:08 says 192.168.0.1 / Padding
+2025-09-18 12:24:19.187641,00:0c:29:c2:dc:18,Ether / ARP who has 192.168.0.254 says 192.168.0.3
+2025-09-18 12:24:19.228830,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.255898,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.280047,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.307542,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.335316,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.363733,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.383627,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.388356,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:19.423838,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:19.434518,00:0c:29:c2:dc:18,Ether / IP / UDP / BOOTP / DHCP Discover
+2025-09-18 12:24:19.439351,ca:01:07:3b:00:08,Ether / IP / UDP / BOOTP / DHCP Offer
+2025-09-18 12:24:19.492338,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:dhcpv6_client > ff02::1:2:dhcpv6_server / DHCP6_Solicit / DHCP6OptClientId / DHCP6OptElapsedTime / DHCP6OptIA_NA
+2025-09-18 12:24:19.533294,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:59726 > 239.255.255.250:3702 / Raw
+2025-09-18 12:24:19.579180,00:0c:29:c2:dc:18,Ether / IPv6 / UDP 2001:a:b:c:2f3b:681d:45b5:b57b:50042 > ff02::c:3702 / Raw
+2025-09-18 12:24:19.623458,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:62378 > ff02::c:3702 / Raw
+2025-09-18 12:24:19.682000,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:24:19.732584,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:24:19.784412,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'_services._dns-sd._udp.local.'
+2025-09-18 12:24:20.113677,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:62378 / Raw
+2025-09-18 12:24:20.283334,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:62378 / Raw
+2025-09-18 12:24:20.314466,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:20.314532,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:20.323722,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:20.339388,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:20.497836,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.498080,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.544042,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.544161,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.622581,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.622581,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:62378 / Raw
+2025-09-18 12:24:20.622719,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.700191,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.700353,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.761626,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.761693,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.788768,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:20.808834,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.808965,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.917413,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:20.917594,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.023345,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.023394,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.039065,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.039124,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.085199,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:3702 > fe80::2cc4:e237:ed99:86bb:62378 / Raw
+2025-09-18 12:24:21.223892,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.224002,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.271356,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:21.316651,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:21.316872,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:21.329339,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:21.440180,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.440315,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.533667,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.533871,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:49860 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.609727,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.609789,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.788465,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:21.841184,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:21.841266,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.004128,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:22.036121,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:22.659293,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.659350,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.688226,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.b.6.8.9.9.d.e.7.3.2.e.4.c.c.2.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:22.705353,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.705401,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:22.856911,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.b.6.8.9.9.d.e.7.3.2.e.4.c.c.2.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:23.199956,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:23.200108,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:23.211235,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:23.220129,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:23.232927,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:23.304399,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '0.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:23.323450,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:23.323561,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:23.323658,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 239.255.255.250 Version 1 - Membership Report 239.255.255.250 / Padding
+2025-09-18 12:24:23.472470,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'0.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:23.827340,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:23.830962,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:23.851777,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:23.936242,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.b.6.8.9.9.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:24.107049,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.b.6.8.9.9.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:24.290837,00:0c:29:77:3b:af,Ether / IP / IGMP: 192.168.0.4 > 224.0.0.251 Version 1 - Membership Report 224.0.0.251 / Padding
+2025-09-18 12:24:24.293746,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:24.293816,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:24.299498,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:24.380677,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:24.572782,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:24.574824,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:5355 / LLMNRResponse '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.' is at 'b'PC-SE5126-PhVi.''
+2025-09-18 12:24:24.745554,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:24.748645,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans 169.254.92.128
+2025-09-18 12:24:24.749658,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:24.750909,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:24.753149,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:24.754545,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:24.783533,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:24.784429,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:24.784947,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:24.785769,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at 'fe80::cbea:9338:c8bb:5317'
+2025-09-18 12:24:24.786113,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:24.786900,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:24.911040,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:24.911180,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:24.928348,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'b.7.5.b.5.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:25.093894,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'b.7.5.b.5.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:25.533524,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.a.3.1.7.b.9.b.b.6.7.9.6.9.7.3.0.a.2.d.c.a.d.b.f.f.4.2.0.9.0.3.ip6.arpa.'
+2025-09-18 12:24:25.701099,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.a.3.1.7.b.9.b.b.6.7.9.6.9.7.3.0.a.2.d.c.a.d.b.f.f.4.2.0.9.0.3.ip6.arpa.'
+2025-09-18 12:24:26.155531,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:26.322341,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:26.755924,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:26.916068,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:27.131592,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:27.131693,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:51045 > 2603:1026:302:3c::2:https / Raw
+2025-09-18 12:24:27.136074,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:27.159620,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:27.250337,00:0c:29:77:3b:af,Ether / ARP who has 192.168.0.1 says 192.168.0.4 / Padding
+2025-09-18 12:24:27.302076,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:27.331532,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:27.331669,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:27.363338,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '1.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:27.416328,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:27.524881,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'1.0.0.0.0.0.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:27.824733,00:50:56:c0:00:02,Ether / IP / IGMP: 169.254.92.128 > 224.0.0.252 Version 1 - Membership Report 224.0.0.252 / Padding
+2025-09-18 12:24:27.972578,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:28.132629,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:28.276988,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:28.312709,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:28.553766,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:5355 > 224.0.0.252:5355 / LLMNRQuery who has '1.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:29.120832,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'1.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:29.585314,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:29.690033,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:29.720351,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:29.760819,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:30.032170,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.032448,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.042003,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.042331,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.042642,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.042988,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.052033,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.052033,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.052914,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.053040,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.062571,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.062571,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.062730,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.062775,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.072781,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.072781,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.073218,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.073329,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.082991,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.083051,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.083079,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.083161,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.093335,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.093372,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.093719,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.093794,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.104007,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.104007,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.104193,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.104352,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.113988,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.113988,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.114922,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.115087,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.124734,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.124734,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.124889,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.124935,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.135068,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.135068,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.135596,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.135680,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.145345,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.145345,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.145458,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.145489,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.156144,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.156144,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.156688,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.156744,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.166218,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.166290,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.166368,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.166420,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.debian.pool.ntp.org.'
+2025-09-18 12:24:30.177802,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.177802,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.178950,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.179150,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.187870,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.187921,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.187969,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.188063,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'1.debian.pool.ntp.org.'
+2025-09-18 12:24:30.198475,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.198622,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.199081,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.199174,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.208638,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.208731,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.208800,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.208858,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'2.debian.pool.ntp.org.'
+2025-09-18 12:24:30.219229,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.219230,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.219838,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.219896,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.229300,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.229300,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.229429,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.229484,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'3.debian.pool.ntp.org.'
+2025-09-18 12:24:30.239628,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.239628,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:30.310511,00:50:56:c0:00:02,Ether / IP / UDP 169.254.92.128:64463 > 239.255.255.250:1900 / Raw
+2025-09-18 12:24:30.315247,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:30.475646,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:30.499720,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:30.948892,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '2.1.e.b.1.2.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:31.122440,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'2.1.e.b.1.2.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:31.567777,00:0c:29:c2:dc:18,Ether / IP / UDP 192.168.0.3:5355 > 224.0.0.252:5355 / LLMNRQuery who has '4.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:32.083152,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:32.083364,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:32.087559,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:32.089450,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:32.103395,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:32.108352,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:32.131956,00:0c:29:c2:dc:18,Ether / IP / UDP / mDNS Qry b'4.0.168.192.in-addr.arpa.'
+2025-09-18 12:24:32.139349,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:32.588005,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:32.766730,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'7.1.3.5.b.b.f.f.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.f.f.ip6.arpa.'
+2025-09-18 12:24:33.208906,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:33.210441,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:5355 / LLMNRResponse '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.' is at 'b'PC-SE5126-PhVi.''
+2025-09-18 12:24:33.399720,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:33.400741,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans 169.254.92.128
+2025-09-18 12:24:33.402261,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:33.402995,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:33.404237,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:33.404817,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:33.443843,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:33.444496,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:33.445644,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:33.446566,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:33.447023,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at 'fe80::cbea:9338:c8bb:5317'
+2025-09-18 12:24:33.447024,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:33.479276,00:50:56:c0:00:02,Ether / IP / UDP / NBTDatagram / SMB_Header / Tran b'\\MAILSLOT\\BROWSE' HostAnnouncement for b'PC-SE5126-PHVI'
+2025-09-18 12:24:33.519633,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:33.719953,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:33.760777,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:34.521503,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:50:56:c0:00:02
+2025-09-18 12:24:34.521619,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:34.532245,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:34.551807,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:34.564960,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.264049,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.273741,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:35.299898,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:35.302544,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.313894,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.340032,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:35.340183,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54539 > 2001:67c:1223:3::93e5:ff69:https S
+2025-09-18 12:24:35.356533,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.366037,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.396004,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.407641,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.418921,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:35.439924,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > fe80::c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.447616,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:35.449338,ca:01:07:3b:00:08,Ether / 2001:a:b:c::1 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.487726,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.491784,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.527654,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.567631,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.603423,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.639578,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.688484,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > fe80::535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.724667,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.775779,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.786317,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:35.808320,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:35.820275,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > 2001:a:b:c:cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.825428,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.868022,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.877486,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.899693,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.900452,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.909946,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.940203,00:0c:29:c2:dc:18,Ether / 2001:a:b:c:2f3b:681d:45b5:b57b > fe80::cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:35.951272,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:35.976526,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:35.982825,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > 2001:a:b:c:2f3b:681d:45b5:b57b (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.011835,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.015065,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.044199,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.048238,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.088255,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.091290,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.147732,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.154114,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.180386,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > fe80::c801:7ff:fe3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.216174,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.229160,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ParamProblem / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.263931,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.312116,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.338867,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:36.351706,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.360080,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:36.383123,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.425270,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > fe80::535:7b17:55d2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.460221,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.507592,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.514445,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.552235,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:36.552551,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > 2001:a:b:c:cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.599581,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.604122,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.631463,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.633237,00:50:56:c0:00:02,Ether / IPv6 / ICMPv6 Echo Reply (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.640378,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:36.663620,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:36.680138,00:0c:29:c2:dc:18,Ether / fe80::2cc4:e237:ed99:86bb > fe80::cbea:9338:c8bb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:36.691192,ca:01:07:3b:00:08,Ether / fe80::c801:7ff:fe3b:8 > fe80::2cc4:e237:ed99:86bb (58) / ICMPv6ND_Redirect / ICMPv6NDOptRedirectedHdr
+2025-09-18 12:24:36.716473,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:36.852167,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:36.853050,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:36.871759,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:37.003429,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:37.439169,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:37.607713,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:37.795901,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:37.811479,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:38.060022,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:38.205647,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:38.312910,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:38.355817,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:38.635933,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:38.659179,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:38.659284,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has 'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:38.825177,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'a.c.0.b.2.d.5.5.7.1.b.7.5.3.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:39.268746,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:39.294048,00:0c:29:77:3b:af,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:77:3b:af
+2025-09-18 12:24:39.305530,00:0c:29:77:3b:af,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:77:3b:af
+2025-09-18 12:24:39.305797,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:39.331454,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:39.367611,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:39.458351,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:39.472508,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:39.584646,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:39.912312,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:5355 > ff02::1:3:5355 / LLMNRQuery who has '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:39.913457,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:5355 / LLMNRResponse '7.1.3.5.b.b.8.c.8.3.3.9.a.e.b.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.' is at 'b'PC-SE5126-PhVi.''
+2025-09-18 12:24:39.921585,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:39.955778,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:40.082489,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:40.085196,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans 169.254.92.128
+2025-09-18 12:24:40.086671,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:40.087641,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:40.088908,00:0c:29:c2:dc:18,Ether / IPv6 / UDP / mDNS Qry b'PC-SE5126-PhVi.local.'
+2025-09-18 12:24:40.089318,00:50:56:c0:00:02,Ether / IPv6 / UDP / mDNS Ans fe80::cbea:9338:c8bb:5317
+2025-09-18 12:24:40.128583,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6DestUnreach / IPerror6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.152203,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:40.152982,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:40.155784,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:40.156606,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at 'fe80::cbea:9338:c8bb:5317'
+2025-09-18 12:24:40.159427,00:0c:29:c2:dc:18,Ether / IPv6 / UDP fe80::2cc4:e237:ed99:86bb:53550 > ff02::1:3:5355 / LLMNRQuery who has 'PC-SE5126-PhVi.'
+2025-09-18 12:24:40.160619,00:50:56:c0:00:02,Ether / IPv6 / UDP fe80::cbea:9338:c8bb:5317:5355 > fe80::2cc4:e237:ed99:86bb:53550 / LLMNRResponse 'PC-SE5126-PhVi.' is at '169.254.92.128'
+2025-09-18 12:24:40.207627,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.251755,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ff3b:8 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.292662,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.344172,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.380201,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ff00:1 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.433803,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.488027,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.536995,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ffd2:b0ca (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.584630,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.632744,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.671884,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ff21:be12 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.719668,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.759224,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:40.800239,00:0c:29:c2:dc:18,Ether / 3ebe:8f8e:be6c:13da:a1ee:e4be:ba17:ae73 > ff02::1:ffbb:5317 (60) / IPv6ExtHdrDestOpt / Raw
+2025-09-18 12:24:40.848929,00:0c:29:c2:dc:18,Ether / IPv6 / IPv6ExtHdrDestOpt / ICMPv6 Echo Request (id: 0x0 seq: 0x0)
+2025-09-18 12:24:41.344308,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54546 > 2001:67c:1223:3::93e5:ff6a:https S
+2025-09-18 12:24:41.344395,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54546 > 2001:67c:1223:3::93e5:ff6a:https S
+2025-09-18 12:24:42.067909,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:42.075597,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.075650,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:42.085817,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.085900,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:42.097217,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.097298,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:42.107893,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.108079,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:42.118898,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.119093,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'8.0.0.0.b.3.e.f.f.f.7.0.1.0.8.c.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:42.129172,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.130031,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:42.139186,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.139441,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:42.149017,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.149216,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'b.7.5.b.5.b.5.4.d.1.8.6.b.3.f.2.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:42.159504,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.159638,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'b.7.5.b.5.b.5.4.d.1.8.6.b.3.f.2.c.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa.'
+2025-09-18 12:24:42.169982,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.170235,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:42.180571,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.180696,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:42.191604,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.192091,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'b.b.6.8.9.9.d.e.7.3.2.e.4.c.c.2.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:42.201307,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.201437,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'b.b.6.8.9.9.d.e.7.3.2.e.4.c.c.2.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.'
+2025-09-18 12:24:42.212170,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.212482,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.ip6.arpa.'
+2025-09-18 12:24:42.222783,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.222965,00:0c:29:c2:dc:18,Ether / IP / UDP / DNS Qry b'0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.ip6.arpa.'
+2025-09-18 12:24:42.233595,ca:01:07:3b:00:08,Ether / IP / ICMP 192.168.0.1 > 192.168.0.3 dest-unreach port-unreachable / IPerror / UDPerror
+2025-09-18 12:24:42.345084,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54546 > 2001:67c:1223:3::93e5:ff6a:https S
+2025-09-18 12:24:42.345241,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54546 > 2001:67c:1223:3::93e5:ff6a:https S
+2025-09-18 12:24:42.360746,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:42.384437,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:42.423651,00:50:56:c0:00:02,Ether / IP / UDP / BOOTP / DHCP Discover
+2025-09-18 12:24:42.623881,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_RA / ICMPv6NDOptPrefixInfo / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:44.255507,ca:01:07:3b:00:08,Ether / IPv6 / ICMPv6ND_NS / ICMPv6 Neighbor Discovery Option - Source Link-Layer Address ca:01:07:3b:00:08
+2025-09-18 12:24:44.295943,00:0c:29:c2:dc:18,Ether / IPv6 / ICMPv6ND_NA / ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address 00:0c:29:c2:dc:18
+2025-09-18 12:24:44.348832,00:50:56:c0:00:02,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54546 > 2001:67c:1223:3::93e5:ff6a:https S
+2025-09-18 12:24:44.348927,00:0c:29:c2:dc:18,Ether / IPv6 / TCP fe80::cbea:9338:c8bb:5317:54546 > 2001:67c:1223:3::93e5:ff6a:https S

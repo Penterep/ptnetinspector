@@ -1,0 +1,426 @@
+#!/usr/bin/env python3
+import sys
+import warnings
+from libs.check import has_additional_data
+from ptlibs import ptprinthelper
+from libs.set_IP_interface import shutdown_interface_traffic, restore_interface_traffic, check_interface
+from src.address_validator import validate_addresses, delete_tmp_validating_files
+from src.device.networks import Networks
+from src.device.vulnerability import Vulnerability
+from src.output.non_json import Non_json
+from src.output.json import Json
+from src.output.oui import create_vendor_csv
+from src.sniff import Sniff
+from src.interface import Interface
+from src.create_csv import create_csv, sort_all_csv
+from src.parameters import parameter_control, enablePrint, blockPrint
+from src.output.help import parse_args, add_rule, remove_rule, del_tmp, check_rule
+from src.parameters import ptjsonlib_object
+
+# Suppress FutureWarning messages
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings("ignore")
+
+# Running the tool and inserted parameters
+args = parse_args()
+
+# Creating csv files
+create_csv("src/tmp")
+
+# Getting all variables, it returns errors if inserted parameters are wrong
+interface, json_output, del_tmp_para, type, more_detail, less_detail, check_addresses, ip_mode, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control (
+    args.interface, args.j, args.n, args.t, args.more, args.less, args.nc, args.ipv4, args.ipv6, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd
+)
+
+Networks.extract_available_subnets(interface)
+Vulnerability_object = Vulnerability(interface, prefix_len, network, smac, rpref, dns)
+
+def ptnet_eap(combine=False):
+    """
+    Run 802.1x (EAP) scan and handle output.
+    """
+    Sniff.run_normal_mode(interface, "802.1x", ip_mode, 3)
+    create_vendor_csv()
+    Vulnerability_object.handle_vulnerabilities("802.1x", ip_mode)
+
+    # Output
+    if not json_output or (more_detail or less_detail):      
+        Non_json.output_protocol(interface, "802.1x", "802.1x", "src/tmp/eap.csv")
+        if more_detail:
+            ptprinthelper.ptprint("802.1x scan ended \n", "INFO")
+    if json_output:
+        if not combine:
+            enablePrint()
+
+def ptnet_passive():
+    """
+    Run passive scan and handle output.
+    """
+    if not json_output or (more_detail or less_detail):
+        Non_json.print_box("Passive scan running")
+
+    if_status = check_interface(interface)
+    if if_status == "Interface down":
+        status = restore_interface_traffic(interface) 
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint(f"Interface {interface} is currently off. No incoming or outcoming traffic on this interface","ERROR")  
+        if json_output:
+            enablePrint()
+            print(ptjsonlib_object.end_error(f"Interface {interface} is currently off. No incoming or outcoming traffic on this interface", ptjsonlib_object))
+        sys.exit(0)
+
+    Sniff.run_normal_mode(interface, "p", ip_mode, duration_passive)
+
+    if check_addresses:
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
+        validate_addresses(interface, ip_mode, True)
+    else:
+        delete_tmp_validating_files()
+
+    create_vendor_csv()
+    sort_all_csv(interface)
+    Vulnerability_object.handle_vulnerabilities("p", ip_mode)
+
+    # Output
+    if not json_output or (more_detail or less_detail):
+        Non_json.output_general("p")
+        Non_json.read_vulnerability_table("p", ip_mode)
+        if more_detail:
+            Non_json.output_protocol(interface, "p", "time", "src/tmp/time_incoming.csv", less_detail)
+            if check_addresses:
+                Non_json.print_box("Unfiltered found addresses")
+                Non_json.output_general("p", 'src/tmp/addresses_unfiltered.csv')
+        Non_json.output_protocol(interface, "p", "MDNS", "src/tmp/MDNS.csv", less_detail)
+        Non_json.output_protocol(interface, "p", "LLMNR", "src/tmp/LLMNR.csv", less_detail)
+        Non_json.output_protocol(interface, "p", "MLDv1", "src/tmp/MLDv1.csv", less_detail)
+        Non_json.output_protocol(interface, "p", "IGMPv1/v2", "src/tmp/IGMPv1v2.csv", less_detail)
+        Non_json.output_protocol(interface, "p", "WS-Discovery", "src/tmp/wsdiscovery.csv", less_detail)
+        Non_json.output_protocol(interface, "p", "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+        Non_json.output_protocol(interface, "p", "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
+        if more_detail:      
+            Non_json.output_protocol(interface, "p", "RA", "src/tmp/RA.csv", less_detail)
+
+def ptnet_active():
+    """
+    Run active scan and handle output.
+    """
+    if not json_output or (more_detail or less_detail):
+        Non_json.print_box("Active scan running")
+
+    if_status = check_interface(interface)
+    if if_status == "Interface down":
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint(f"Interface {interface} is currently off. No incoming or outcoming traffic on this interface","ERROR")
+        if json_output:
+            enablePrint()
+            print(ptjsonlib_object.end_error(f"Interface {interface} is currently off. No incoming or outcoming traffic on this interface", ptjsonlib_object))
+        sys.exit(0)
+
+    if not check_rule("a"):
+        add_rule("a")
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Adding rules in configuration to perform scanning", "INFO")
+
+    Sniff.run_normal_mode(interface, "a", ip_mode, None)
+
+    if check_addresses:
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
+        validate_addresses(interface, ip_mode)
+    else:
+        delete_tmp_validating_files()
+
+    create_vendor_csv()
+    sort_all_csv(interface)
+    Vulnerability_object.handle_vulnerabilities("a", ip_mode)
+
+    # Output
+    if not json_output or (more_detail or less_detail):
+        Non_json.output_general("a")
+        Non_json.read_vulnerability_table("a", ip_mode)
+        if more_detail:
+            Non_json.output_protocol(interface, "a", "time", "src/tmp/time_incoming.csv", less_detail)
+            if check_addresses:
+                Non_json.print_box("Unfiltered found addresses")
+                Non_json.output_general("a", 'src/tmp/addresses_unfiltered.csv')
+        Non_json.output_protocol(interface, "a", "MDNS", "src/tmp/MDNS.csv", less_detail)
+        Non_json.output_protocol(interface, "a", "LLMNR", "src/tmp/LLMNR.csv", less_detail)
+        Non_json.output_protocol(interface, "a", "MLDv1", "src/tmp/MLDv1.csv", less_detail)
+        Non_json.output_protocol(interface, "a", "IGMPv1/v2", "src/tmp/IGMPv1v2.csv", less_detail)
+        Non_json.output_protocol(interface, "a", "WS-Discovery", "src/tmp/wsdiscovery.csv", less_detail)
+        Non_json.output_protocol(interface, "a", "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+        Non_json.output_protocol(interface, "a", "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
+        if more_detail:          
+            Non_json.output_protocol(interface, "a", "RA", "src/tmp/RA.csv", less_detail)
+
+def ptnet_aggressive():
+    """
+    Run aggressive scan and handle output.
+    """
+    if not json_output or (more_detail or less_detail):
+        Non_json.print_box("Aggressive scan running")
+
+    if_status = check_interface(interface)
+    if if_status == "Interface down":
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint(f"Interface {interface} is currently off. No incoming or outcoming traffic on this interface","ERROR")
+        if json_output:
+            enablePrint()
+            print(ptjsonlib_object.end_error(f"Interface {interface} is currently off. No incoming or outcoming traffic on this interface", ptjsonlib_object))
+        sys.exit(0)
+
+    if not check_rule("a"):
+        add_rule("a")
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Adding rules in configuration to perform scanning", "INFO")   
+    if not check_rule("a+", nofwd):
+        add_rule("a+", nofwd)
+
+    if not Interface(interface).check_available_ipv6():
+        generated_ip = Interface.generate_ipv6_address("fe80::")
+        Interface(interface).set_ipv6_address(generated_ip)
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("No IP available on interface, so a random IP is generated", "INFO")
+
+    Sniff.run_aggressive_mode(interface, ip_mode, prefix_len, network, smac, sip, rpref, duration_aggressive, period, chl, mtu, dns)
+
+    if check_addresses:
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Checking found addresses if they are responsive and valid", "INFO")
+        validate_addresses(interface, ip_mode)
+    else:
+        delete_tmp_validating_files()
+
+    create_vendor_csv()
+    sort_all_csv(interface)
+    Vulnerability_object.handle_vulnerabilities("a+", ip_mode)
+
+    # Output
+    if not json_output or (more_detail or less_detail):
+        Non_json.output_general("a+")
+        Non_json.read_vulnerability_table("a+", ip_mode)
+        if more_detail:
+            Non_json.output_protocol(interface, "a+", "time", "src/tmp/time_incoming.csv", less_detail)
+            if check_addresses:
+                Non_json.print_box("Unfiltered found addresses")
+                Non_json.output_general("a+", 'src/tmp/addresses_unfiltered.csv')
+        Non_json.output_protocol(interface, "a+", "MDNS", "src/tmp/MDNS.csv", less_detail)
+        Non_json.output_protocol(interface, "a+", "LLMNR", "src/tmp/LLMNR.csv", less_detail)
+        Non_json.output_protocol(interface, "a+", "MLDv1", "src/tmp/MLDv1.csv", less_detail)
+        Non_json.output_protocol(interface, "a+", "IGMPv1/v2", "src/tmp/IGMPv1v2.csv", less_detail)
+        Non_json.output_protocol(interface, "a+", "WS-Discovery", "src/tmp/wsdiscovery.csv", less_detail)
+        if more_detail:
+            Non_json.output_protocol(interface, "a+", "MLDv2", "src/tmp/MLDv2.csv", less_detail)
+            Non_json.output_protocol(interface, "a+", "IGMPv3", "src/tmp/IGMPv3.csv", less_detail)
+            Non_json.output_protocol(interface, "a+", "RA", "src/tmp/RA.csv", less_detail)
+
+    if json_output:
+        enablePrint()
+        if more_detail:
+            Non_json.print_box("Json output")
+        print(Json.output_object(True))
+
+    if check_rule("a"):
+        remove_rule(True, "a")
+        if (not json_output or more_detail) and not less_detail:
+            ptprinthelper.ptprint("Removing rules in configuration after scanning", "INFO")
+    if check_rule("a+", nofwd):
+        remove_rule(True, "a+")
+    if (not json_output or more_detail) and not less_detail:
+        ptprinthelper.ptprint("Aggressive scan ended \n", "INFO")
+
+# Main execution logic
+def main():
+    """
+    Main execution logic for scan types.
+    """
+    if args.t == ["802.1x"]:
+        ptnet_eap()
+        if json_output:
+            if more_detail:
+                Non_json.print_box("Json output")
+            print(Json.output_object(True))
+        if del_tmp_para == True:
+            del_tmp()
+        sys.exit()
+
+    if args.t == ["p"] or ("802.1x" in args.t and "p" in args.t and len(args.t) == 2):   
+        try:
+            if "802.1x" in args.t:
+                ptnet_eap(combine=True)
+                if json_output:
+                    Json.output_object(False)
+            status = shutdown_interface_traffic(interface)
+            if (not json_output or more_detail) and not less_detail:
+                ptprinthelper.ptprint(status, "INFO")
+            ptnet_passive()
+            if json_output:
+                if more_detail:
+                    Non_json.print_box("Json output")
+                enablePrint()
+                print(Json.output_object(True))
+            status = restore_interface_traffic(interface)
+            if (not json_output or more_detail) and not less_detail:
+                ptprinthelper.ptprint("The interface is restored", "INFO")
+                ptprinthelper.ptprint("Passive scan ended \n", "INFO")
+            if del_tmp_para == True:
+                del_tmp()
+            sys.exit()
+        except KeyboardInterrupt:
+            status = restore_interface_traffic(interface) 
+            if del_tmp_para == True:
+                del_tmp()
+            sys.exit()
+        except Exception:
+            status = restore_interface_traffic(interface)
+            if del_tmp_para == True:
+                del_tmp() 
+            if not json_output or more_detail:
+                ptprinthelper.ptprint(f"An error occurred during runtime","ERROR")
+            if json_output:
+                enablePrint()
+                print(ptjsonlib_object.end_error(f"An error occurred during runtime", ptjsonlib_object))
+            else:
+                sys.exit()
+
+    if args.t == ["a"] or ("802.1x" in args.t and "a" in args.t and len(args.t) == 2):
+        try:
+            status = restore_interface_traffic(interface) 
+            if "802.1x" in args.t:
+                ptnet_eap(combine=True)
+                if has_additional_data("src/tmp/eap.csv"):
+                    ptprinthelper.ptprint("802.1x is detected, so active scan will be cancelled", "WARNING")                    
+                    if json_output:
+                        Non_json.print_box("Json output")
+                        print(Json.output_object(True))
+                    sys.exit(0)
+                if json_output:
+                    Json.output_object(False)
+            ptnet_active()
+            if json_output:
+                enablePrint()
+                if more_detail:
+                    Non_json.print_box("Json output")
+                print(Json.output_object(True))
+            if check_rule("a"):
+                remove_rule(True, "a")
+                if (not json_output or more_detail) and not less_detail:
+                    ptprinthelper.ptprint("Removing rules in configuration after scanning", "INFO")
+            if (not json_output or more_detail) and not less_detail:
+                ptprinthelper.ptprint("Active scan ended \n", "INFO")
+            if del_tmp_para == True:
+                del_tmp()
+            sys.exit()
+        except KeyboardInterrupt:
+            if check_rule("a"):
+                remove_rule(True, "a")
+                if (not json_output or more_detail) and not less_detail:
+                    ptprinthelper.ptprint("Removing rules in configuration after scanning", "INFO")
+            if del_tmp_para == True:
+                del_tmp()
+            sys.exit()
+        except Exception:
+            if check_rule("a"):
+                remove_rule(True, "a")
+            if del_tmp_para == True:
+                del_tmp()
+            if not json_output or more_detail:
+                ptprinthelper.ptprint(f"An error occurred during runtime","ERROR")
+            if json_output:
+                enablePrint()
+                print(ptjsonlib_object.end_error(f"An error occurred during runtime", ptjsonlib_object))
+            else:
+                sys.exit()
+
+    if args.t == ["a+"] or ("802.1x" in args.t and "a+" in args.t and len(args.t) == 2):
+        try:
+            status = restore_interface_traffic(interface) 
+            if "802.1x" in args.t:
+                ptnet_eap(combine=True)
+                if has_additional_data("src/tmp/eap.csv"):
+                    ptprinthelper.ptprint("802.1x is detected, so aggressive scan will be cancelled", "WARNING")
+                    if json_output:
+                        Non_json.print_box("Json output")
+                        print(Json.output_object(True))
+                    sys.exit(0)
+                if json_output:
+                    Json.output_object(False)
+            ptnet_aggressive()
+            if del_tmp_para == True:
+                del_tmp()   
+            sys.exit()
+        except KeyboardInterrupt:
+            if check_rule("a"):
+                remove_rule(True, "a")
+                if (not json_output or more_detail) and not less_detail:
+                    ptprinthelper.ptprint("Removing rules in configuration after scanning", "INFO") 
+            if check_rule("a+", nofwd):
+                remove_rule(True, "a+")
+            if del_tmp_para == True:
+                del_tmp()     
+            sys.exit()
+        except Exception:
+            if check_rule("a"):
+                remove_rule(True, "a")
+                if (not json_output or more_detail) and not less_detail:
+                    ptprinthelper.ptprint("Removing rules in configuration after scanning", "INFO")
+            if check_rule("a+", nofwd):
+                remove_rule(True, "a+")
+            if del_tmp_para == True:
+                del_tmp()
+            if not json_output or more_detail:
+                ptprinthelper.ptprint(f"An error occurred during runtime","ERROR")
+            if json_output:
+                enablePrint()
+                print(ptjsonlib_object.end_error(f"An error occurred during runtime", ptjsonlib_object))
+            else:
+                sys.exit()
+
+    if args.t == ["a+"] or ("a" in args.t and "a+" in args.t and len(args.t) == 2) or ("802.1x" in args.t and "a" in args.t and "a+" in args.t and len(args.t) == 3):
+        try:
+            if "802.1x" in args.t:
+                ptnet_eap(combine=True)
+                if has_additional_data("src/tmp/eap.csv"):
+                    ptprinthelper.ptprint("802.1x is detected, so aggressive scan will be cancelled", "WARNING")
+                    if json_output:
+                        Non_json.print_box("Json output")
+                        print(Json.output_object(True))
+                    sys.exit(0)
+                if json_output:
+                    Json.output_object(False)
+            if "a" in args.t:
+                ptnet_active()
+            ptnet_aggressive()
+            if del_tmp_para == True:
+                del_tmp()
+            sys.exit()
+        except KeyboardInterrupt:
+            if check_rule("a"):
+                remove_rule(True, "a")
+                if (not json_output or more_detail) and not less_detail:
+                    ptprinthelper.ptprint("Removing rules in configuration after scanning", "INFO")
+            if check_rule("a+", nofwd):
+                remove_rule(True, "a+")
+            if del_tmp_para == True:
+                del_tmp()     
+            sys.exit()
+        except Exception:
+            if check_rule("a"):
+                remove_rule(True, "a")
+                if (not json_output or more_detail) and not less_detail:
+                    ptprinthelper.ptprint("Removing rules in configuration after scanning", "INFO")
+            if check_rule("a+", nofwd):
+                remove_rule(True, "a+")
+            if del_tmp_para == True:
+                del_tmp()
+            if not json_output or more_detail:
+                ptprinthelper.ptprint(f"An error occurred during runtime","ERROR")
+            if json_output:
+                enablePrint()
+                print(ptjsonlib_object.end_error(f"An error occurred during runtime", ptjsonlib_object))
+            else:
+                sys.exit()
+
+if __name__ == "__main__":
+    main()

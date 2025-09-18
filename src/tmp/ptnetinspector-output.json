@@ -1,0 +1,219 @@
+{
+    "satid": "",
+    "guid": "",
+    "status": "finished",
+    "message": "",
+    "results": {
+        "nodes": [
+            {
+                "type": "Device 1",
+                "key": "2c9a89c8-c12e-4f5b-b5cb-2d6963f3ec9a",
+                "parent": null,
+                "parentType": "Site",
+                "properties": {
+                    "name": "Device 1",
+                    "type": [
+                        "Host"
+                    ],
+                    "MAC": "00:0c:29:77:3b:af",
+                    "description": "VMware, Inc."
+                },
+                "vulnerabilities": [
+                    "PTV-NET-IDENT-ACTIVE-MLDNVERDEV: Device responds to illegitimate MLDv1 queries even though MLDv2 is supported",
+                    "PTV-NET-IDENT-ACTIVE-MLDV1DEV: Device responds to illegitimate MLDv1 queries",
+                    "PTV-NET-IDENT-ACTIVE-MLDV2DEV: Device responds to illegitimate MLDv2 queries",
+                    "PTV-NET-NET-MISCONF-FAKERADEV: Device does not ignore the illegitimate RA packets"
+                ]
+            },
+            {
+                "type": "Address",
+                "key": "fc7aa304-9061-42da-85dd-4c2abe9b7491",
+                "parent": "2c9a89c8-c12e-4f5b-b5cb-2d6963f3ec9a",
+                "parentType": "Device 1",
+                "properties": {
+                    "IP": "192.168.0.4",
+                    "protocol": "IPv4",
+                    "description": "normal address"
+                },
+                "vulnerabilities": []
+            },
+            {
+                "type": "Address",
+                "key": "efb58acf-9fb1-41c3-88fd-5863248cb804",
+                "parent": "2c9a89c8-c12e-4f5b-b5cb-2d6963f3ec9a",
+                "parentType": "Device 1",
+                "properties": {
+                    "IP": "fe80::535:7b17:55d2:b0ca",
+                    "protocol": "IPv6",
+                    "description": "normal address"
+                },
+                "vulnerabilities": []
+            },
+            {
+                "type": "Device 2",
+                "key": "3f546d0a-ab38-49f4-8c93-9d9015260bb9",
+                "parent": null,
+                "parentType": "Site",
+                "properties": {
+                    "name": "Device 2",
+                    "type": [
+                        "Host"
+                    ],
+                    "MAC": "00:50:56:c0:00:02",
+                    "description": "VMware, Inc."
+                },
+                "vulnerabilities": [
+                    "PTV-NET-IDENT-ACTIVE-MLDNVERDEV2: Device only responds to illegitimate MLDv1 queries even though MLDv2 queries are sent, possibly downgraded",
+                    "PTV-NET-IDENT-ACTIVE-MLDV1DEV: Device responds to illegitimate MLDv1 queries",
+                    "PTV-NET-NET-MISCONF-FAKERADEV: Device does not ignore the illegitimate RA packets",
+                    "PTV-NET-IDENT-LLMNR-PTRDEV: Device responds to LLMNR packets",
+                    "PTV-NET-IDENT-MDNS-PTRDEV: Device responds to MDNS packets"
+                ]
+            },
+            {
+                "type": "Address",
+                "key": "3615c61c-8714-4574-8cf9-af3775fdb605",
+                "parent": "3f546d0a-ab38-49f4-8c93-9d9015260bb9",
+                "parentType": "Device 2",
+                "properties": {
+                    "IP": "169.254.92.128",
+                    "protocol": "IPv4",
+                    "description": "normal address"
+                },
+                "vulnerabilities": []
+            },
+            {
+                "type": "Address",
+                "key": "f9ed6b28-aab9-4c6a-bbb7-a77f80bcfdfe",
+                "parent": "3f546d0a-ab38-49f4-8c93-9d9015260bb9",
+                "parentType": "Device 2",
+                "properties": {
+                    "IP": "fe80::cbea:9338:c8bb:5317",
+                    "protocol": "IPv6",
+                    "description": "normal address"
+                },
+                "vulnerabilities": []
+            },
+            {
+                "type": "Device 3",
+                "key": "3a755b60-b762-4031-9684-4d9a1c61b68b",
+                "parent": null,
+                "parentType": "Site",
+                "properties": {
+                    "name": "Device 3",
+                    "type": [
+                        "Preferred router",
+                        "IPv4 default GW",
+                        "IPv6 default GW",
+                        "DHCP server"
+                    ],
+                    "MAC": "ca:01:07:3b:00:08",
+                    "description": "Unknown Vendor"
+                },
+                "vulnerabilities": [
+                    "PTV-NET-IDENT-ICMP-BRCASTECHODEV: Device responds to standard broadcast ICMP Echo Request",
+                    "PTV-NET-IDENT-ACTIVE-MLDNVERDEV: Device responds to illegitimate MLDv1 queries even though MLDv2 is supported",
+                    "PTV-NET-IDENT-ACTIVE-MLDV1DEV: Device responds to illegitimate MLDv1 queries",
+                    "PTV-NET-IDENT-ACTIVE-MLDV2DEV: Device responds to illegitimate MLDv2 queries",
+                    "PTV-NET-IDENT-ICMP6-INVECHODODEV: Device responds to invalid Destination Option ICMPv6 Echo Request with Parameter problem message",
+                    "PTV-NET-IDENT-ICMP6-INVPACKETDEV: Device responds to invalid ICMPv6 packets with Parameter problem / Redirect Message / Destination unreachable message",
+                    "PTV-NET-IDENT-ICMP6-INVPACKETDEV: Device responds to invalid ICMPv6 packets with Parameter problem / Redirect Message message",
+                    "PTV-NET-IDENT-ICMP6-MULTIECHODEV: Device responds to standard multicast ICMPv6 Echo Request with Echo Reply message",
+                    "PTV-NET-IDENT-PREDICT-GLOBIP: Devices uses predictable IPv6 address",
+                    "PTV-NET-MITM-ICMP6REDIRDEV: Device communication can be redirected using ICMPv6 Redirect",
+                    "PTV-NET-NET-MISCONF-FAKERADEV: Device does not ignore the illegitimate RA packets"
+                ]
+            },
+            {
+                "type": "Address",
+                "key": "88a7f741-865f-47af-91d0-d955d0dd8e01",
+                "parent": "3a755b60-b762-4031-9684-4d9a1c61b68b",
+                "parentType": "Device 3",
+                "properties": {
+                    "IP": "192.168.0.1",
+                    "protocol": "IPv4",
+                    "description": "normal address"
+                },
+                "vulnerabilities": []
+            },
+            {
+                "type": "Address",
+                "key": "701d4237-fb53-48ee-8fca-606d348b7edf",
+                "parent": "3a755b60-b762-4031-9684-4d9a1c61b68b",
+                "parentType": "Device 3",
+                "properties": {
+                    "IP": "2001:a:b:c::1",
+                    "protocol": "IPv6",
+                    "description": "normal address"
+                },
+                "vulnerabilities": []
+            },
+            {
+                "type": "Address",
+                "key": "9e37ebe2-97ba-48f5-9db9-d312fc93650d",
+                "parent": "3a755b60-b762-4031-9684-4d9a1c61b68b",
+                "parentType": "Device 3",
+                "properties": {
+                    "IP": "fe80::c801:7ff:fe3b:8",
+                    "protocol": "IPv6",
+                    "description": "normal address"
+                },
+                "vulnerabilities": []
+            }
+        ],
+        "properties": {
+            "IPv6 prefix": "2001:a:b:c::/64",
+            "Address configuration method discovered": "SLAAC"
+        },
+        "vulnerabilities": [
+            {
+                "vulnCode": "PTV-NET-NET-MISCONF-8021X",
+                "description": "Network does not have 802.1x deployed"
+            },
+            {
+                "vulnCode": "PTV-NET-IDENT-ACTIVE-MLDV1",
+                "description": "Network allows the delivery of illegitimate MLDv1 queries"
+            },
+            {
+                "vulnCode": "PTV-NET-IDENT-ACTIVE-MLDV2",
+                "description": "Network allows the delivery of illegitimate MLDv2 queries"
+            },
+            {
+                "vulnCode": "PTV-NET-IDENT-ICMP-BRCASTECHO",
+                "description": "Network allows the delivery of standard broadcast ICMP Echo Request"
+            },
+            {
+                "vulnCode": "PTV-NET-IDENT-ICMP6-INVECHODO",
+                "description": "Network allows the delivery of invalid Destination Option ICMPv6 Echo Request"
+            },
+            {
+                "vulnCode": "PTV-NET-IDENT-ICMP6-INVPACKET",
+                "description": "Network allows the delivery of invalid ICMPv6 packets"
+            },
+            {
+                "vulnCode": "PTV-NET-IDENT-ICMP6-MULTIECHO",
+                "description": "Network allows the delivery of standard multicast ICMPv6 Echo Request"
+            },
+            {
+                "vulnCode": "PTV-NET-IDENT-LLMNR-PTR",
+                "description": "Network allows the delivery of LLMNR packets"
+            },
+            {
+                "vulnCode": "PTV-NET-IDENT-MDNS-PTR",
+                "description": "Network allows the delivery of MDNS packets"
+            },
+            {
+                "vulnCode": "PTV-NET-MISCONF-RAGUARD",
+                "description": "Network does not have RA guard configured"
+            },
+            {
+                "vulnCode": "PTV-NET-MITM-ICMP6REDIR",
+                "description": "Network does not block ICMPv6 Redirect messages"
+            },
+            {
+                "vulnCode": "PTV-NET-NET-MISCONF-FAKERA",
+                "description": "Network allows the delivery of illegitimate RA packets"
+            }
+        ]
+    }
+}

@@ -1,0 +1,2 @@
+MAC,IP,M,O,H,A,L,Preference,Router_lft,Reachable_time,Retrans_time,DNS,MTU,Prefix,Valid_lft,Preferred_lft
+ca:01:07:3b:00:08,fe80::c801:7ff:fe3b:8,No,No,No,Yes,Yes,Medium,1800,0,0,[],1500,2001:a:b:c::/64,2592000,604800

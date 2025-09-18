@@ -1,0 +1,9 @@
+MAC,IP,protocol,rtype,mulip,sources
+00:0c:29:77:3b:af,fe80::535:7b17:55d2:b0ca,Report v2,MODE_IS_EXCLUDE,ff02::1:ffd2:b0ca,[]
+00:0c:29:77:3b:af,fe80::535:7b17:55d2:b0ca,Report v2,MODE_IS_EXCLUDE,ff02::c,[]
+00:0c:29:77:3b:af,fe80::535:7b17:55d2:b0ca,Report v2,MODE_IS_EXCLUDE,ff02::1:ff21:be12,[]
+00:0c:29:77:3b:af,fe80::535:7b17:55d2:b0ca,Report v2,MODE_IS_EXCLUDE,ff02::1:3,[]
+00:0c:29:77:3b:af,fe80::535:7b17:55d2:b0ca,Report v2,MODE_IS_EXCLUDE,ff02::fb,[]
+ca:01:07:3b:00:08,fe80::c801:7ff:fe3b:8,Report v2,MODE_IS_EXCLUDE,ff02::2,[]
+ca:01:07:3b:00:08,fe80::c801:7ff:fe3b:8,Report v2,MODE_IS_EXCLUDE,ff02::1:ff00:1,[]
+ca:01:07:3b:00:08,fe80::c801:7ff:fe3b:8,Report v2,MODE_IS_EXCLUDE,ff02::1:ff3b:8,[]
