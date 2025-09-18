@@ -132,7 +132,7 @@ Test vulnerabilities with packets such as MLD, ICMPv6, LLMNR, and mDNS.
 ### Aggressive Mode
 Perform active scans while emulating a fake router. Configure additional parameters.
 ```
-./ptnetinspector -t a+ -i eth0 -j -da+ 35 -prefix 2001::1/64 -smac 00:01:02:03:04:05 -sip fe80::1 -period 5
+./ptnetinspector -t a+ -i eth0 -j -da+ 35 -prefix 2001:1::/64 -smac 00:01:02:03:04:05 -sip fe80::1 -period 5
 ```
 
 ### Combination of Modes
