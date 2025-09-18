@@ -83,7 +83,7 @@ def get_help() -> list:
             ["Aggressive:",
              "   More than active scanning, the attacker does several tests as a fake router"],
             ["", "   Example: Running aggressive mode from scanner with interface eth0, json output is allowed. Other information such as prefix, MAC, IPv6... are set as shown below"],
-            ["", "       => ptnetinspector -t a+ -i eth0 -j -da+ 35 -prefix 2001::1/64 -smac 00:01:02:03:04:05 -sip fe80::1 -period 5"],
+            ["", "       => ptnetinspector -t a+ -i eth0 -j -da+ 35 -prefix 2001::/64 -smac 00:01:02:03:04:05 -sip fe80::1 -period 5"],
             ["", "   Example: Running aggressive mode from scanner with interface eth0, json output is allowed with minimum details about scanning. Prefix is set to 2001:a:b:1::/64"],
             ["", "       => ptnetinspector -t a+ -i eth0 -less -j -da+ 5 -prefix 2001:a:b:1::/64"],
             ["Combination:",
