@@ -31,3 +31,4 @@ Version 0.1.5
     + Improve the output of terminal (better look)
     + Update the function so the tool can detect all IPv6 addresses when targets use the policy (prefer temporary address)
     + Fix possible bugs with wrong inputs, and running situations
+    + Add the vulnerabilities for IPv4 (codes, description)
