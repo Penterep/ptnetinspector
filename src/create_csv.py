@@ -272,10 +272,10 @@ def sort_all_csv(interface: str) -> None:
     sort_csv_based_MAC(interface, "src/tmp/wsdiscovery.csv")
     sort_csv_based_MAC(interface, "src/tmp/default_gw.csv")
 
-def sort_and_deduplicate_csv(filepath: str) -> None:
+def sort_and_deduplicate_vul_csv(filepath: str) -> None:
     """
-    Sorts a CSV file based on the first column (ID, assumed numeric), then by Code, then Description.
-    Removes duplicate rows.
+    Sorts the CSV vulnerability file based on the first column (ID, assumed numeric), then by Code, then Description.
+    Removes duplicate rows. When rows are identical except for Label, keeps the one with Label=1.
 
     Args:
         filepath (str): Path to the CSV file.
@@ -286,17 +286,44 @@ def sort_and_deduplicate_csv(filepath: str) -> None:
     with open(filepath, newline='') as f:
         reader = csv.reader(f)
         header = next(reader)
-        rows = set(tuple(row) for row in reader)
+        rows = list(reader)
+    
+    # Create a dictionary to track rows by their key (all columns except Label)
+    row_dict = {}
+    for row in rows:
+        if not row:
+            continue
+        # Key is all columns except the last one (Label)
+        key = tuple(row[:-1])
+        label = row[-1]
+        
+        # If key exists, keep the row with Label='1'
+        if key in row_dict:
+            existing_label = row_dict[key][-1]
+            # Keep Label='1' if either current or existing has it
+            if label == '1' or existing_label != '1':
+                row_dict[key] = row
+        else:
+            row_dict[key] = row
+    
+    # Get unique rows from dictionary
+    unique_rows = list(row_dict.values())
+    
+    # Separate numeric and network rows
     numeric_rows = []
     network_rows = []
-    for row in rows:
+    for row in unique_rows:
         if row and row[0].isdigit():
             numeric_rows.append(row)
         else:
             network_rows.append(row)
+    
+    # Sort rows
     numeric_rows.sort(key=lambda r: (int(r[0]), r[3], r[4], r[5]))
     network_rows.sort(key=lambda r: (r[4], r[5]))
     sorted_rows = numeric_rows + network_rows
+    
+    # Write back to file
     with open(filepath, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)

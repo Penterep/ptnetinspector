@@ -141,6 +141,7 @@ class Non_json:
 
         GREEN = '\033[92m'
         RED = '\033[91m'
+        WHITE = '\033[97m'
         END = '\033[0m'
 
         def build_table_data(vulnerabilities_dict, sorted_ids):
@@ -153,8 +154,10 @@ class Non_json:
                     if node_id in vulnerabilities_dict[code]:
                         if vulnerabilities_dict[code][node_id] == 1 and (mode not in ['802.1x']):
                             symbol = f"{RED}X{END}"
-                        elif vulnerabilities_dict[code][node_id] == 0 and (mode not in ['802.1x', 'p']):
+                        elif vulnerabilities_dict[code][node_id] == 0 and (mode not in ['802.1x']):
                             symbol = f"{GREEN}✓{END}"
+                        elif vulnerabilities_dict[code][node_id] == 2 and (mode not in ['802.1x']):
+                            symbol = f"{WHITE}N/A{END}"
                     row.append(symbol)
                 table_data.append(row)
             return table_data, sorted_codes
@@ -204,6 +207,8 @@ class Non_json:
                                 symbol = f"{RED}X{END}"
                             elif vulnerabilities_net_ipv4[code][net_id] == 0 and (mode not in ['802.1x', 'p']):
                                 symbol = f"{GREEN}✓{END}"
+                            elif vulnerabilities_net_ipv4[code][net_id] == 2:
+                                symbol = f"{WHITE}N/A{END}"
                         row.append(symbol)
                     table_data_net_ipv4.append(row)
                 headers_net_ipv4 = ['Vulnerability'] + [f'{id}' for id in net_ids_ipv4]
@@ -234,6 +239,8 @@ class Non_json:
                                 symbol = f"{RED}X{END}"
                             elif vulnerabilities_net_ipv6[code][net_id] == 0 and (mode not in ['802.1x', 'p']):
                                 symbol = f"{GREEN}✓{END}"
+                            elif vulnerabilities_net_ipv6[code][net_id] == 2:
+                                symbol = f"{WHITE}N/A{END}"
                         row.append(symbol)
                     table_data_net_ipv6.append(row)
                 headers_net_ipv6 = ['Vulnerability'] + [f'{id}' for id in net_ids_ipv6]

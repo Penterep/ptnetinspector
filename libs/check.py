@@ -146,7 +146,7 @@ def is_global_unicast_ipv6(ipv6_address: str) -> bool:
     """
     try:
         addr = ipaddress.IPv6Address(ipv6_address)
-        return addr.is_global
+        return addr.is_global and not addr.is_multicast
     except ipaddress.AddressValueError:
         return False
 

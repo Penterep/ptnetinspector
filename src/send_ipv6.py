@@ -673,7 +673,7 @@ class SendIPv6:
                     ether = Ether(src=get_if_hwaddr(interface))
                     ipv4 = IPv6(src=source_ipv6_addr, dst="ff02::fb", hlim=1)
                     udp = UDP(sport=random.randint(49152, 65535), dport=5353)
-                    mdns = DNS(rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
+                    mdns = DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
                     dns_sd = ether / ipv4 / udp / mdns
                     sendp(dns_sd, verbose=0, iface=interface)
 

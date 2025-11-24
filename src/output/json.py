@@ -102,9 +102,12 @@ class Json:
         if not extract_to_json:
             return ptjsonlib_object.get_result_json()
 
-        if has_additional_data(f"{file_path}addresses.csv") and has_additional_data(f"{file_path}role_node.csv"):
+        if (has_additional_data(f"{file_path}addresses.csv") or has_additional_data(f"{file_path}addresses_unfiltered.csv")) and has_additional_data(f"{file_path}role_node.csv"):
             role_node_df = pd.read_csv(f"{file_path}role_node.csv")
-            addresses_df = pd.read_csv(f"{file_path}addresses.csv")
+            if has_additional_data(f"{file_path}addresses.csv"):
+                addresses_df = pd.read_csv(f"{file_path}addresses.csv")
+            else:
+                addresses_df = pd.read_csv(f"{file_path}addresses_unfiltered.csv")
             all_ip = addresses_df['IP'].to_list()
 
             for index, row in role_node_df.iterrows():
