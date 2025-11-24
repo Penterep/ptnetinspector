@@ -348,7 +348,7 @@ class SendIPv4:
                 ether = Ether(src=get_if_hwaddr(interface))
                 ipv4 = IP(src=source_ipv4_addr, dst="224.0.0.251", ttl=1)
                 udp = UDP(sport=random.randint(49152, 65535), dport=5353)
-                mdns =  DNS(rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
+                mdns =  DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
 
                 dns_sd = ether / ipv4 / udp / mdns
 
