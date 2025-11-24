@@ -27,8 +27,8 @@ Version 0.1.4
 Version 0.1.5
 -------------
 - Separating vulnerabilities tables for the case of IP version mode (-4 or -6)
-- TODO in the next version (note for the student): 
-    + Improve the output of terminal (better look)
-    + Update the function so the tool can detect all IPv6 addresses when targets use the policy (prefer temporary address)
-    + Fix possible bugs with wrong inputs, and running situations
-    + Add the vulnerabilities for IPv4 (codes, description)
+
+Version 0.1.6
+-------------
+- Adding more vulnerabilities related to DNS-SD, WS-Discovery, IPv6 addresses
+- Fixing N/A output of vulnerabilities
