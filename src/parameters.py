@@ -15,7 +15,7 @@ from src.send import IPMode
 from ptlibs.ptjsonlib import PtJsonLib
 ptjsonlib_object = PtJsonLib()
 
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 SCRIPTNAME = "ptnetinspector"
 
 def get_help() -> list:
