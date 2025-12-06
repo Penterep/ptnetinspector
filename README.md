@@ -58,6 +58,20 @@ With the virtual environment activated, install the required dependencies:
 ```bash  
 python3 -m pip install -r requirements.txt  
 ```  
+ 
+#### 4. **Install the package**
+
+After installing the dependencies, install the package itself so you can run the `ptnetinspector` command.
+It's recommended to install in editable/development mode if you plan to modify the code:
+
+```bash
+# inside your activated virtual environment
+pip install -e .
+# or for a regular install:
+pip install .
+```
+
+Installing with `-e` (editable) lets you edit the source in-place and run the installed command without reinstalling.
 
 ### Important Notes  
 For future use, you don’t need to reinstall the dependencies. Simply activate the created virtual environment before running the application:  
