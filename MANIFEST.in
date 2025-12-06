@@ -1,0 +1,6 @@
+# Include data files
+recursive-include ptnetinspector/data *
+
+# Include documentation
+include README.md
+include LICENSE
