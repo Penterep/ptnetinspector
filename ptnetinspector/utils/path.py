@@ -1,20 +1,20 @@
 import os
 from pathlib import Path
-
+from ptlibs.app_dirs import AppDirs
 
 def get_output_dir(base_path: str | None = None) -> Path:
     """
     Get the output directory path for ptnetinspector.
     Creates the directory if it doesn't exist.
-    
+
     Args:
-        base_path (str | None): Custom base path. Defaults to /tmp/ptnetinspector/output/
-    
+        base_path (str | None): Custom base path. Defaults to AppDirs("ptnetinspector").get_data_dir()
+
     Returns:
         Path: Path to the output directory
     """
     if base_path is None:
-        output_dir = Path('/tmp') / 'ptnetinspector' / 'output'
+        output_dir = Path(AppDirs("ptnetinspector").get_data_dir())
     else:
         output_dir = Path(base_path)
     output_dir.mkdir(parents=True, exist_ok=True)
