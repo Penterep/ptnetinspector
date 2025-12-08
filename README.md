@@ -31,7 +31,7 @@ This application requires **Python3**. Make sure it is installed, along with the
 sudo apt install python3 python3-venv -y  
 ```  
 
-### Steps to Install Dependencies, Sudo is prefered to use at first  
+### Steps to Install Dependencies, sudo should be used  
 
 #### 1. **Create a Virtual Environment (if not already created)**  
 You can create a virtual environment with any name you prefer. Replace `<env_name>` with your chosen name in the following command:  
@@ -53,13 +53,7 @@ For instance, if the name is `myenv`, use:
 source myenv/bin/activate
 ```
 
-#### 3. **Install Requirements**  
-With the virtual environment activated, install the required dependencies:  
-```bash  
-pip install -r requirements.txt  
-```  
- 
-#### 4. **Install the package**
+#### 3. **Install the package**
 
 After installing the dependencies, install the package itself so you can run the `ptnetinspector` command.
 It's recommended to install in editable/development mode if you plan to modify the code:
