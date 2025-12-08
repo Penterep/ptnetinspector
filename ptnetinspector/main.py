@@ -212,7 +212,7 @@ def ptnet_aggressive():
         enablePrint()
         if more_detail:
             Non_json.print_box("Json output")
-        print(Json.output_object(True))
+        print(Json.output_object(True, "a+"))
 
     cleanup_iptables("a")
     cleanup_iptables("a+")
@@ -226,7 +226,7 @@ def check_eap_detected():
         ptprinthelper.ptprint("802.1x is detected, so scan will be cancelled", "WARNING")
         if json_output:
             Non_json.print_box("Json output")
-            print(Json.output_object(True))
+            print(Json.output_object(True, "802.1x"))
         sys.exit(0)
 
 
@@ -249,7 +249,7 @@ def execute_scan(scan_types):
         if len(scan_types) > 1:
             check_eap_detected()
             if json_output:
-                Json.output_object(False)
+                Json.output_object(False, "802.1x")
 
     if has_passive:
         Interface_object.shutdown_traffic()
@@ -274,14 +274,16 @@ def execute_scan(scan_types):
         enablePrint()
         if more_detail:
             Non_json.print_box("Json output")
-        print(Json.output_object(True))
+        if has_active:
+            print(Json.output_object(True, "a"))
+        elif has_passive:
+            print(Json.output_object(True, "p"))
 
     cleanup_and_exit()
 
 
 def main():
     """Main execution logic for scan types.""" 
-    # execute_scan(args.t)
     try:
         execute_scan(args.t)
     except KeyboardInterrupt:
