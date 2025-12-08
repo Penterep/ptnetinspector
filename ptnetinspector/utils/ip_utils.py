@@ -121,15 +121,11 @@ def check_prefRA(pref_flag: str) -> bool:
 # ============================================================================
 
 def is_global_unicast_ipv6(ipv6_address: str) -> bool:
-    """Check if IPv6 address is global unicast (not link-local, multicast, or loopback)."""
+    """Check if IPv6 address is global unicast."""
     try:
         addr = ipaddress.IPv6Address(ipv6_address)
-        # Unicast: not multicast, not link-local, not loopback
-        return (not addr.is_multicast and 
-                not addr.is_link_local and 
-                not addr.is_loopback and
-                addr.version == 6)
-    except (ipaddress.AddressValueError, ValueError):
+        return addr.is_global and not addr.is_multicast
+    except ipaddress.AddressValueError:
         return False
 
 def is_link_local_ipv6(address: str) -> bool:
