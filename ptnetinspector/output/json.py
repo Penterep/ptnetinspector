@@ -30,7 +30,11 @@ class Json:
             if vuln_row.get('Label', 0) == 1:
                 code = vuln_row.get('Code', '')
                 desc = vuln_row.get('Description', '')
-                vulns.append(f"{code}: {desc}")
+                ipver = vuln_row.get('IPver', '')
+                if ipver != '' and vuln_row.get('ID', '') != 'Network':
+                    vulns.append(f"{code} for IPv{int(ipver)}: {desc}")
+                else:
+                    vulns.append(f"{code}: {desc}")
         return vulns
 
     @staticmethod
