@@ -442,7 +442,7 @@ def generate_random_global_ipv6(exclude_addresses: list[str]) -> str:
         first_part = random.randint(0x2000, 0x3FFF)
         remaining_parts = [f"{random.randint(0, 0xFFFF):04x}" for _ in range(7)]
         rand_ipv6 = ipaddress.IPv6Address(f"{first_part:04x}:" + ":".join(remaining_parts))
-        if rand_ipv6.is_global and rand_ipv6 not in exclude_addresses:
+        if is_global_unicast_ipv6(rand_ipv6) and rand_ipv6 not in exclude_addresses:
             return str(rand_ipv6)
 
 def generate_ipv6_address(prefix: str) -> str:
