@@ -398,7 +398,7 @@ class Non_json:
                     vuln_df = pd.read_csv(vulnerability_file)
                     if protocol in ["MDNS", "LLMNR"]:
                         network_vulns = vuln_df[(vuln_df['ID'] == "Network") & (vuln_df['Code'].str.contains(protocol, case=False, na=False))]
-                    elif protocol in ["MLDv1", "MLDv2"]:
+                    elif protocol in ["MLDv1", "MLDv2", "WS-Discovery", "IGMPv1/v2", "IGMPv3"]:
                         network_vulns = vuln_df[(vuln_df['ID'] == "Network") & (vuln_df['Description'].str.contains(protocol, case=False, na=False))]
                     else:
                         network_vulns = pd.DataFrame()
@@ -410,10 +410,6 @@ class Non_json:
                             ptprinthelper.ptprint(f"{code}: {desc}", "VULN", colortext=True)
                 except Exception:
                     pass
-                if protocol == "IGMPv1/v2":
-                    ptprinthelper.ptprint("Vulnerable: IGMPv1/v2 is active", "VULN", colortext=True)
-                if protocol == "WS-Discovery":
-                    ptprinthelper.ptprint("Vulnerable: WS-Discovery is active", "VULN", colortext=True)
                 if protocol == "RA" and is_dhcp_slaac() != []:
                     for item in is_dhcp_slaac():
                         ptprinthelper.ptprint(f"{item} is discovered", "INFO")
