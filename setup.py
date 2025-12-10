@@ -39,7 +39,7 @@ setup(
     },
     packages=find_packages(exclude=['test', 'test.*', 'myenv', 'myenv.*', 'doc', 'doc.*']),
     package_data={
-        'ptnetinspector': ['data/manuf'],
+        'ptnetinspector': ['data/manuf', 'data/vuln_catalog.csv'],
     },
     include_package_data=True,
     entry_points={

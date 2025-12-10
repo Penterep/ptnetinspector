@@ -1,0 +1,52 @@
+ID,Mode,IPver,Code,Description
+Network,"a,a+",6,PTV-NET-IDENT-ACTIVE-MLDV1,Network allows the delivery of illegitimate MLDv1 queries
+Node,"a,a+",6,PTV-NET-IDENT-ACTIVE-MLDV1DEV,Device responds to illegitimate MLDv1 queries
+Network,"a,a+",6,PTV-NET-IDENT-ACTIVE-MLDV2,Network allows the delivery of illegitimate MLDv2 queries
+Node,"a,a+",6,PTV-NET-IDENT-ACTIVE-MLDV2DEV,Device responds to illegitimate MLDv2 queries
+Node,"a,a+",4,PTV-NET-IDENT-DNS-SD,Network allows devices discovery with IPv4 DNS Service Discovery
+Network,"a,a+",4,PTV-NET-IDENT-DNS-SDDEV,Device responds to IPv4 DNS Service Discovery packets
+Network,"a,a+",6,PTV-NET-IDENT-DNS-SD6,Network allows devices discovery with IPv6 DNS Service Discovery
+Network,"a,a+",6,PTV-NET-IDENT-DNS-SD6DEV,Device responds to IPv6 DNS Service Discovery packets
+Network,"a,a+",6,PTV-NET-IDENT-ICMP6-INVECHODO,Network allows the delivery of invalid Destionation Option ICMPv6 Echo Request
+Node,"a,a+",6,PTV-NET-IDENT-ICMP6-INVECHODODEV,Device responds to invalid Destionation Option ICMPv6 Echo Request
+Network,"a,a+",6,PTV-NET-IDENT-ICMP6-INVECHOHBH,Network allows the delivery of invalid Hop-by-Hop ICMPv6 Echo Request
+Node,"a,a+",6,PTV-NET-IDENT-ICMP6-INVECHOHBHDEV,Device responds to invalid Hop-by-Hop ICMPv6 Echo Request
+Network,"a,a+",6,PTV-NET-IDENT-ICMP6-INVPACKET,Network allows the delivery of invalid ICMPv6 packets
+Node,"a,a+",6,PTV-NET-IDENT-ICMP6-INVPACKETDEV,Device responds to invalid ICMPv6 packets
+Network,"a,a+",6,PTV-NET-IDENT-ICMP6-MULTIECHO,Network allows the delivery of standard multicast ICMPv6 Echo Request
+Node,"a,a+",6,PTV-NET-IDENT-ICMP6-MULTIECHODEV,Device responds to standard multicast ICMPv6 Echo Request
+Network,a+,6,PTV-NET-IDENT-ICMP6-OUTRANGE,Network allows valid or invalid ICMPv6 packets to be delivered from sources outside the scanned local network range
+Node,a+,6,PTV-NET-IDENT-ICMP6-OUTRANGEDEV,Device responds to valid or invalid ICMPv6 packets from sources outside the scanned local network range
+Network,"a,a+",4,PTV-NET-IDENT-ICMP-BRCASTECHO,Network allows the delivery of standard broadcast ICMP Echo Request
+Node,"a,a+",4,PTV-NET-IDENT-ICMP-BRCASTECHODEV,Device responds to standard broadcast ICMP Echo Request
+Network,"a,a+",4,PTV-NET-IDENT-ICMP-INVPACKET,Network allows the delivery of invalid ICMP packets
+Node,"a,a+",4,PTV-NET-IDENT-ICMP-INVPACKETDEV,Device responds to invalid ICMP packets
+Network,"a,a+",4,PTV-NET-IDENT-ICMP-MULTIECHO,Network allows the delivery of standard multicast ICMP Echo Request
+Node,"a,a+",4,PTV-NET-IDENT-ICMP-MULTIECHODEV,Device responds to standard multicast ICMP Echo Request
+Network,"a,a+",4,PTV-NET-IDENT-LLMNR-PTR,Network allows the delivery of IPv4 LLMNR packets
+Node,"a,a+",4,PTV-NET-IDENT-LLMNR-PTRDEV,Device responds to IPv4 LLMNR packets
+Network,"a,a+",6,PTV-NET-IDENT-LLMNR-PTR6,Network allows the delivery of IPv6 LLMNR packets
+Node,"a,a+",6,PTV-NET-IDENT-LLMNR-PTR6DEV,Device responds to IPv6 LLMNR packets
+Network,"a,a+",4,PTV-NET-IDENT-MDNS-PTR,Network allows the delivery of MDNS packets
+Node,"a,a+",4,PTV-NET-IDENT-MDNS-PTRDEV,Device responds to MDNS packets
+Network,"a,a+",6,PTV-NET-IDENT-MDNS-PTR6,Network allows the delivery of IPv6 MDNS packets
+Node,"a,a+",6,PTV-NET-IDENT-MDNS-PTR6DEV,Device responds to IPv6 MDNS packets
+Node,"p,a,a+",6,PTV-NET-IDENT-PREDICT-GLOBIP,Devices uses predictable IPv6 global address
+Node,"p,a,a+",6,PTV-NET-IDENT-PREDICT-LINKLOCALIP,Devices uses predictable IPv6 link-local address
+Network,"a,a+",4,PTV-NET-IDENT-WS,Network allows devices discovery with IPv4 WS-Discovery
+Node,"a,a+",4,PTV-NET-IDENT-WSDEV,Device responds to IPv4 WS-Discovery packets
+Network,"a,a+",6,PTV-NET-IDENT-WS6,Network allows devices discovery with IPv6 WS-Discovery
+Node,"a,a+",6,PTV-NET-IDENT-WS6DEV,Device responds to IPv6 WS-Discovery packets
+Network,a+,6,PTV-NET-MISCONF-RAGUARD,Network does not have RA guard configured
+Network,a+,6,PTV-NET-MITM-FAKERADNS,Network allows a client to be forced to use a fraudulent DNS server through a spoofed RA message
+Network,"a,a+",6,PTV-NET-MITM-ICMP6REDIR,Network does not block ICMPv6 Redirect messages
+Node,"a,a+",6,PTV-NET-MITM-ICMP6REDIRDEV,Device communication can be redirected using ICMPv6 Redirect
+Network,"a,a+",4,PTV-NET-MITM-ICMPREDIR,Network does not block ICMP Redirect messages
+Node,"a,a+",4,PTV-NET-MITM-ICMPREDIRDEV,Device communication can be redirected using ICMP Redirect
+Network,802.1x,,PTV-NET-NET-MISCONF-8021X,Network does not have 802.1x deployed
+Network,a+,6,PTV-NET-NET-MISCONF-FAKERA,Network allows the delivery of illegitimate RA packets
+Node,a+,6,PTV-NET-NET-MISCONF-FAKERADEV,Device does not ignore the illegitimate RA packets
+Network,"a,a+",6,PTV-NET-NET-MISCONF-MLD1GLIP,Network allows the delivery of MLDv1 messages from a global address
+Node,"a,a+",6,PTV-NET-NET-MISCONF-MLD1GLIPDEV,Device responds to MLDv1 messages from a global address
+Network,"a,a+",6,PTV-NET-NET-MISCONF-MLD2GLIP,Network allows the delivery of MLDv2 messages from a global address
+Node,"a,a+",6,PTV-NET-NET-MISCONF-MLD2GLIPDEV,Device responds to MLDv2 messages from a global address

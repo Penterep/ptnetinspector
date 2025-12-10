@@ -85,7 +85,8 @@ class Non_json:
     def read_vulnerability_table(
         mode: str,
         ipver: IPMode,
-        csv_file_path: str = None
+        csv_file_path: str = None,
+        target_codes: set[str] | None = None,
     ):
         """
         Read vulnerability CSV file and create formatted tables for IPv4 and IPv6,
@@ -98,6 +99,8 @@ class Non_json:
         """
         if csv_file_path is None:
             csv_file_path = get_csv_path("vulnerability.csv")
+
+        target_codes_set = {code.upper() for code in target_codes} if target_codes else None
         
         vulnerabilities_ipv4 = {}
         vulnerabilities_ipv6 = {}
@@ -112,6 +115,8 @@ class Non_json:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 if mode in row['Mode']:
+                    if target_codes_set and row.get('Code', '').strip().upper() not in target_codes_set:
+                        continue
                     ipver_value = row.get('IPver', '').strip()
                     # IPv4
                     if ipver.ipv4 and ipver_value in ['4', 'both']:
@@ -252,19 +257,21 @@ class Non_json:
                 print_network_stats(vulnerabilities_net_ipv6, net_ids_ipv6, sorted_codes_net_ipv6, "6")
 
     @staticmethod
-    def output_general(mode: str, addresses_file_name: str = None):
+    def output_general(mode: str, addresses_file_name: str = None, target_codes: set[str] | None = None):
         """
         Output general device and network information, including vulnerabilities.
 
         Args:
             mode (str): Scan mode.
             addresses_file_name (str): Path to addresses CSV file.
+            target_codes (set[str] | None): Optional filter for vulnerability codes.
         """
         if addresses_file_name is None:
             addresses_file_name = get_csv_path("addresses.csv")
         
         role_node_file = get_csv_path("role_node.csv")
         vulnerability_file = get_csv_path("vulnerability.csv")
+        target_codes_set = {code.upper() for code in target_codes} if target_codes else None
         
         if has_additional_data(addresses_file_name) and has_additional_data(role_node_file):
             role_node_df = pd.read_csv(role_node_file)
@@ -274,11 +281,13 @@ class Non_json:
                 net_vulns = vuln_df[vuln_df['ID'] == "Network"]
                 for _, vuln_row in net_vulns.iterrows():
                     code = vuln_row.get('Code', '')
+                    if target_codes_set and code.strip().upper() not in target_codes_set:
+                        continue
                     desc = vuln_row.get('Description', '')
                     ipver = vuln_row.get('IPver', '')
                     label = vuln_row.get('Label', '')
                     if label == 1 and (mode in vuln_row['Mode']):
-                        ptprinthelper.ptprint(f"{code} for IPv{int(ipver)}: {desc}", "VULN", colortext=True)
+                        ptprinthelper.ptprint(f"{code}: {desc}", "VULN", colortext=True)
             except Exception:
                 pass
             num_devices = len(role_node_df)
@@ -326,7 +335,7 @@ class Non_json:
                     ipver = vuln_row.get('IPver', '')
                     label = vuln_row.get('Label', '')
                     if label == 1 and (mode in vuln_row.get('Mode', '')):
-                        ptprinthelper.ptprint(f"    {code} for IPv{int(ipver)}: {desc}", "VULN", colortext=True)
+                        ptprinthelper.ptprint(f"    {code}: {desc}", "VULN", colortext=True)
 
     @staticmethod
     def output_protocol(
@@ -410,7 +419,7 @@ class Non_json:
                         ipver = vuln_row.get('IPver', '')
                         label = vuln_row.get('Label', '')
                         if label == 1 and (mode in vuln_row['Mode']):
-                            ptprinthelper.ptprint(f"{code} for IPv{int(ipver)}: {desc}", "VULN", colortext=True)
+                            ptprinthelper.ptprint(f"{code}: {desc}", "VULN", colortext=True)
                 except Exception:
                     pass
                 if protocol == "RA" and is_dhcp_slaac() != []:
@@ -495,6 +504,6 @@ class Non_json:
                                 ipver = vuln_row.get('IPver', '')
                                 label = vuln_row.get('Label', '')
                                 if label == 1 and (mode in vuln_row['Mode']):
-                                    ptprinthelper.ptprint(f"    {code} for IPv{int(ipver)}: {desc}", "VULN", colortext=True)
+                                    ptprinthelper.ptprint(f"    {code}: {desc}", "VULN", colortext=True)
                         except Exception:
                             pass

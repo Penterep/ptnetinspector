@@ -32,3 +32,12 @@ Version 0.1.6
 -------------
 - Adding more vulnerabilities related to DNS-SD, WS-Discovery, IPv6 addresses
 - Fixing N/A output of vulnerabilities
+
+Version 0.1.7
+-------------
+- Added target vulnerability filtering (-ts) with strict mode/IP validation and fuzzy suggestions
+- Added vulnerability catalog data file and packaging
+- Deduplicated vulnerability outputs (keep longest description per code)
+- Differentiated iptables setup messages for active vs aggressive scans
+- Ensured JSON output prints for 802.1x-only runs
+- Updated README for PyPI install and -ts usage

@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import sys
+import difflib
 
 import netifaces
 import pandas as pd
@@ -26,6 +27,7 @@ from ptnetinspector.utils.ip_utils import (
     is_valid_MTU,
 )
 from ptnetinspector.utils.path import get_tmp_path
+from ptnetinspector.utils.vuln_catalog import load_vuln_catalog
 from ptnetinspector._version import __version__
 
 ptjsonlib_object = PtJsonLib()
@@ -94,6 +96,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-dns", dest="dns", action="store", nargs="+", help="the IPv6 address of DNS server (separated by space if more than 1 address is inserted).")
     parser.add_argument("-mtu", action="store", help="the MTU of RA in aggressive mode.")
     parser.add_argument("-nofwd", action="store_true", default=False)
+    parser.add_argument("-ts", dest="target_codes", nargs="+", help="filter vulnerabilities by code (space-separated)")
 
     # Print help message if no arguments provided or "-h" is used
     if len(sys.argv) == 1 or "-h" in sys.argv:
@@ -126,71 +129,70 @@ def get_help() -> list:
     description: Provides usage, options, and examples for ptnetinspector.
     """
     return [
-        {"description": ["Scanner for IPv6 networks"]},
-        {"usage": ["ptnetinspector -t 802.1x/a/a+/p -i eth0 -j -less"]},
-        {"General options (applied to all)": [
-            ["-t", "     Type of scan (first mandatory argument, user can choose more than 1 option):"],
-            [" => 802.1x", "", "       Network test for 802.1x protocol"],
-            [" => a", "", "       Active mode for scanning of network"],
-            [" => a+", "", "       Aggressive mode for scanning of network"],
-            [" => p", "", "       Passive mode for scanning of network"],
-            ["-i", "     Interface (second mandatory argument)"],
-            ["-j", "     Output in JSON format. If being used without option more, only json output is printed (+ errors if there are errors)."],
-            ["-n", "     Does not delete .csv files in tmp folder"],
-            ["-more", "     Shows full details of network scan. Only default data is displayed if not used. If being used together with option j, details output + json output are given."],
-            ["-less", "     Shows minimum details of network scan. Default data is displayed if not used. If being used together with option j, minimum details output + json output are given."],
-            ["-nc", "     Does not check the found addresses if they are valid or not. Default is checking if not used by filtering addresses from unknown subnets or non-unicast addresses and probing them using neighbour discovery"],
-            ["-4", "     Only IPv4 traffic is allowed. Results are limited only to IPv4 addresses. Cannot be applied for aggressive mode if parameter '-6' not used. Default is both IPv4 and IPv6 traffic when IP version not specified"],
-            ["-6", "     Only IPv6 traffic is allowed. Results are limited only to IPv6 addresses. Default is both IPv4 and IPv6 traffic when IP version not specified"],
-            ["-h", "     Shows this help message and exits"]
+        {"description": [
+            "Network reconnaissance scanner for local IPv6 and IPv4 networks"
         ]},
-        {"Specific options (for Passive scan)": [
-            ["-d", "             The duration of passive scan (in second, float number allowed). Default value: 30 seconds"]
+        {"usage": ["ptnetinspector -t <mode> -i <interface> [options]"]},
+        {"options": [
+            ["-t              ", "Type of scan (mandatory, multiple choices allowed):"],
+            ["                ", "   802.1x    Test for 802.1x protocol"],
+            ["                ", "   p         Passive mode - sniff incoming packets"],
+            ["                ", "   a         Active mode - test vulnerabilities with various packets"],
+            ["                ", "   a+        Aggressive mode - perform tests as fake router"],
+            ["-i              ", "Interface (mandatory)"],
+            ["-j              ", "Output in JSON format"],
+            ["-n              ", "Do not delete .csv files in tmp folder"],
+            ["-more           ", "Show full details of network scan"],
+            ["-less           ", "Show minimum details of network scan"],
+            ["-nc             ", "Do not check if found addresses are valid"],
+            ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
+            ["-6              ", "Only IPv6 traffic"],
+            ["-ts             ", "Filter vulnerabilities by code (space-separated, e.g., -ts PTV-NET-IDENT-MDNS-PTR PTV-NET-IDENT-LLMNR-PTR)"],
+            ["-h              ", "Show this help message and exit"]
         ]},
-        {"Specific options (for Aggressive scan)": [
-            ["-da+", "        The duration of aggressive scan (in second, float number allowed). Default value: 30 seconds"],
-            ["-prefix", "        The prefix advertised by scanner in aggressive mode. Default value: fe80::/64"],
-            ["-smac", "        The scanner's MAC in aggressive mode. Default value: Scanner's MAC taken from interface determined by -i argument"],
-            ["-sip", "        The scanner's IPv6 in aggressive mode. Default value: Scanner's IP taken from interface determined by -i argument. Link-local address is preferred the most"],
-            ["-rpref", "        The router preference flag (Reserved, Low, Medium, High) in aggressive mode. Default value: High"],
-            ["-period",
-             "        The RA sending rate (1 packet per [-period] second, float number allowed). Default value: Aggressive duration /10"],
-            ["-chl", "        The current hop limit in RA message. Default value: 0"],
-            ["-mtu", "        The MTU broadcasting on the link. This option is not included if not used"],
-            ["-dns", "        The IPv6 address of DNS server. If user wants more than one address, just write addresses separated by spaces. This option is not included if not used"],
-            ["-nofwd", "        Does not allow the scanner to forward packets through him in aggressive mode. Allowing to forward (MiTM) if not used"]
-
+        {"passive scan options (mode p)": [
+            ["-d       <seconds>     ", "Duration of passive scan (float allowed, default: 30)"]
         ]},
-        {"Examples for all modes": [
-            ["802.1x:",
-             "   The attacker first sends EAPOL-Start and wait for any responses"],
-            ["", "   Example: Running 802.1x mode from scanner with interface eth0, json output is allowed"],
-            ["", "       => ptnetinspector -t 802.1x -i eth0 -j"],
-            ["", "   Example: Running 802.1x mode from scanner with interface eth0, json output is allowed with minimum details of scanning"],
-            ["", "       => ptnetinspector -t 802.1x -i eth0 -less -j"],
-            ["Passive:",
-             "   The attacker deactivates outgoing traffic from assigned interface, disables IP and sniffs incoming packets"],
-            ["", "   Example: Running passive mode from scanner with interface eth0, with minimum details of scanning"],
-            ["", "       => ptnetinspector -t p -i eth0 -less"],
-            ["", "   Example: Running passive mode from scanner with interface eth0, json output is allowed with minimum details of scanning"],
-            ["", "       => ptnetinspector -t p -i eth0 -less -j"],
-            ["Active:",
-            "   The attacker performs testing vulnerabilities with several types of packets (MLD, ICMPv6, LLMNR, mDNS, IGMP, ICMP, DHCP, DHCPv6, WS-Discovery...)"],
-            ["", "   Example: Running active mode from scanner with interface eth0, with full details of network scan"],
-            ["", "       => ptnetinspector -t a -i eth0 -more"],
-            ["", "   Example: Running active mode from scanner with interface eth0, json output is allowed with minimum details of scanning"],
-            ["", "       => ptnetinspector -t a -i eth0 -less -j"],
-            ["Aggressive:",
-             "   More than active scanning, the attacker does several tests as a fake router"],
-            ["", "   Example: Running aggressive mode from scanner with interface eth0, json output is allowed. Other information such as prefix, MAC, IPv6... are set as shown below"],
-            ["", "       => ptnetinspector -t a+ -i eth0 -j -da+ 35 -prefix 2001::/64 -smac 00:01:02:03:04:05 -sip fe80::1 -period 5"],
-            ["", "   Example: Running aggressive mode from scanner with interface eth0, json output is allowed with minimum details about scanning. Prefix is set to 2001:a:b:1::/64"],
-            ["", "       => ptnetinspector -t a+ -i eth0 -less -j -da+ 5 -prefix 2001:a:b:1::/64"],
-            ["Combination:",
-            "   Several modes can be combined to make a more complex scan (802.1x and passive in this example)"],
-            ["",
-             "   Example: Running 802.1x and passive mode from scanner with interface eth0, json output is allowed. Passive duration is set to 10s"],
-            ["","       => ptnetinspector -t 802.1x p -i eth0 -j -d 10"]
+        {"active scan options (mode a)": [
+            ["-smac    <mac_address> ", "Source MAC address (default: from interface)"]
+        ]},
+        {"aggressive scan options (mode a+)": [
+            ["-da+     <seconds>     ", "Duration of aggressive scan (float allowed, default: 30)"],
+            ["-prefix  <ipv6/prefix> ", "IPv6 prefix to advertise (default: fe80::/64)"],
+            ["-smac    <mac_address> ", "Source MAC address (default: from interface)"],
+            ["-sip     <ipv6>        ", "Source IPv6 address (default: link-local from interface)"],
+            ["-rpref   <preference>  ", "Router preference: Reserved/Low/Medium/High (default: High)"],
+            ["-period  <seconds>     ", "RA sending rate (float allowed, default: duration/10)"],
+            ["-chl     <hop_limit>   ", "Current hop limit in RA message (default: 0)"],
+            ["-mtu     <mtu>         ", "MTU to broadcast on the link"],
+            ["-dns     <ipv6> ...    ", "DNS server IPv6 address(es), space-separated if multiple"],
+            ["-nofwd                 ", "Do not forward packets (disable MiTM)"]
+        ]},
+        {"examples": [
+            ["802.1x mode:"],
+            ["   Send EAPOL-Start and wait for responses"],
+            ["      ptnetinspector -t 802.1x -i eth0 -j"],
+            ["      ptnetinspector -t 802.1x -i eth0 -less -j"],
+            [""],
+            ["Passive mode:"],
+            ["   Deactivate outgoing traffic and sniff incoming packets"],
+            ["      ptnetinspector -t p -i eth0 -less"],
+            ["      ptnetinspector -t p -i eth0 -d 60 -j"],
+            [""],
+            ["Active mode:"],
+            ["   Test vulnerabilities such as IPv4/IPv6, MLD/IGMP, ICMPv6/ICMP, LLMNR, mDNS, DHCPv6/DHCP, WS-Discovery"],
+            ["      ptnetinspector -t a -i eth0 -more"],
+            ["      ptnetinspector -t a -i eth0 -less -j"],
+            [""],
+            ["Aggressive mode:"],
+            ["   Perform active tests plus fake router attacks"],
+            ["      ptnetinspector -t a+ -i eth0 -j -da+ 35 -prefix 2001::/64 -smac 00:01:02:03:04:05 -sip fe80::1 -period 5"],
+            ["      ptnetinspector -t a+ -i eth0 -less -j -prefix 2001:a:b:1::/64"],
+            [""],
+            ["Combined modes:"],
+            ["   Run multiple scan modes in sequence"],
+            ["      ptnetinspector -t 802.1x p -i eth0 -j -d 10"],
+            ["      ptnetinspector -t 802.1x a a+ -i eth0 -more"]
         ]}
     ]
 
@@ -301,6 +303,103 @@ def _validate_detail_flags(more_detail, less_detail, json_output) -> None:
         if json_output:
             print(ptjsonlib_object.end_error(err, ptjsonlib_object))
         sys.exit(1)
+
+
+def _normalize_target_codes(target_codes: list[str] | None) -> list[str] | None:
+    """Normalize user-provided target codes to uppercase and de-duplicate."""
+    if not target_codes:
+        return None
+    cleaned: list[str] = []
+    for code in target_codes:
+        code_clean = code.strip().upper()
+        if code_clean:
+            cleaned.append(code_clean)
+    if not cleaned:
+        return None
+    # Preserve order while removing duplicates
+    seen = set()
+    unique_codes = []
+    for code in cleaned:
+        if code not in seen:
+            seen.add(code)
+            unique_codes.append(code)
+    return unique_codes
+
+
+def _validate_target_codes(target_codes, scan_types, ip_mode, list_error, list_warning):
+    """Validate target vulnerability codes strictly against catalog, mode, and IP version."""
+    normalized = _normalize_target_codes(target_codes)
+    if normalized is None:
+        return None
+
+    try:
+        catalog = load_vuln_catalog()
+    except FileNotFoundError:
+        list_error.append("Vulnerability catalog not found; unable to apply -ts filter. Program exits!")
+        return None
+    except Exception:
+        list_error.append("Unable to load vulnerability catalog; unable to apply -ts filter. Program exits!")
+        return None
+
+    # Check unknown codes and suggest closest matches
+    missing = []
+    for code in normalized:
+        if code not in catalog:
+            suggestions = difflib.get_close_matches(code, catalog.keys(), n=3, cutoff=0.55)
+            suggestion_text = f". Nearest correct option(s): {', '.join(suggestions)}" if suggestions else ""
+            missing.append(f"{code}{suggestion_text}")
+    if missing:
+        list_error.append(f"Unknown target vulnerability code(s): {', '.join(missing)}. Program exits!")
+
+    # If any unknown, skip further checks to avoid key errors
+    if missing:
+        return None
+
+    validated: set[str] = set()
+    for code in normalized:
+        entry = catalog[code]
+        # Mode compatibility (must intersect)
+        mode_field = entry.get("Mode", "")
+        if mode_field:
+            supported_modes = [m.strip() for m in mode_field.split(',') if m.strip()]
+            if scan_types and not any(m in scan_types for m in supported_modes):
+                list_error.append(
+                    f"Target code {code} is not valid for selected scan mode(s): {', '.join(scan_types)}. Allowed: {', '.join(supported_modes)}"
+                )
+
+        # IP version compatibility
+        ipver = entry.get("IPver", "").strip().lower()
+        if ipver == "4" and not ip_mode.ipv4:
+            list_error.append(f"Target code {code} requires IPv4 but IPv4 scanning is disabled")
+        if ipver == "6" and not ip_mode.ipv6:
+            list_error.append(f"Target code {code} requires IPv6 but IPv6 scanning is disabled")
+
+        validated.add(code)
+
+    # If any errors collected, abort (caller will exit)
+    if list_error:
+        return None
+
+    # Ensure at least one vulnerability exists for each selected scan type
+    if scan_types and validated:
+        for scan_type in scan_types:
+            has_vuln_for_mode = False
+            for code in validated:
+                entry = catalog[code]
+                mode_field = entry.get("Mode", "")
+                if mode_field:
+                    supported_modes = [m.strip() for m in mode_field.split(',') if m.strip()]
+                    if scan_type in supported_modes:
+                        has_vuln_for_mode = True
+                        break
+            if not has_vuln_for_mode:
+                list_error.append(f"No target vulnerability codes are valid for scan mode '{scan_type}'. At least one code must be valid for each selected scan mode. Program exits!")
+    
+    # Check again after per-mode validation
+    if list_error:
+        return None
+
+    return validated
 
 
 def _validate_passive_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning) -> float:
@@ -542,7 +641,7 @@ def _print_warnings(list_warning, json_output, more_detail, less_detail) -> None
                 ptprinthelper.ptprint(info, "WARNING")
 
 
-def _print_parameter_info(interface, ip_mode, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd) -> None:
+def _print_parameter_info(interface, ip_mode, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, target_codes) -> None:
     """Print information about inserted parameters."""
     if not less_detail:
         Non_json.print_box("Information about inserted parameters")
@@ -599,6 +698,8 @@ def _print_parameter_info(interface, ip_mode, json_output, del_tmp, type, more_d
                 ptprinthelper.ptprint(f"Packets to remote network will be forwarded through the scanner in aggressive mode", "INFO")
             if nofwd:
                 ptprinthelper.ptprint(f"Packets to remote network will be dropped at the scanner in aggressive mode", "INFO")
+        if target_codes:
+            ptprinthelper.ptprint(f"Target vulnerability codes: {sorted(target_codes)}", "INFO")
 
 
 # ============================================================================
@@ -625,7 +726,8 @@ def parameter_control(
     chl,
     mtu,
     dns,
-    nofwd
+    nofwd,
+    target_codes,
 ) -> tuple:
     """
     Checks and validates inserted parameters. Returns all variables if no error, otherwise prints errors and exits.
@@ -646,11 +748,13 @@ def parameter_control(
 
     # Setup IP mode
     if not ipv4 and not ipv6:
-        ip_mode = IPMode(True, True)
+        ip_mode = IPMode(False, True)
     else:
         ip_mode = IPMode(ipv4, ipv6)
 
     _validate_detail_flags(more_detail, less_detail, json_output)
+
+    validated_target_codes = _validate_target_codes(target_codes, type, ip_mode, list_error, list_warning)
 
     # Validate mode-specific parameters
     prefix_len = None
@@ -684,10 +788,10 @@ def parameter_control(
     if period is not None:
         period = float(period)
 
-    _print_parameter_info(interface, ip_mode, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd)
+    _print_parameter_info(interface, ip_mode, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, validated_target_codes)
 
     return (
         interface, json_output, del_tmp, type, more_detail, less_detail, check_addresses,
         ip_mode, duration_passive, duration_aggressive, prefix_len, network, smac, sip,
-        rpref, period, chl, mtu, dns, nofwd
+        rpref, period, chl, mtu, dns, nofwd, validated_target_codes
     )

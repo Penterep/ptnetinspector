@@ -38,13 +38,13 @@ args = parse_args()
 create_csv()
 
 # Parse parameters
-interface, json_output, del_tmp_para, scanning_type, more_detail, less_detail, check_addresses, ip_mode, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd = parameter_control(
-    args.interface, args.j, args.n, args.t, args.more, args.less, args.nc, args.ipv4, args.ipv6, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd
+interface, json_output, del_tmp_para, scanning_type, more_detail, less_detail, check_addresses, ip_mode, duration_passive, duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns, nofwd, target_codes = parameter_control(
+    args.interface, args.j, args.n, args.t, args.more, args.less, args.nc, args.ipv4, args.ipv6, args.d, args.duration_router, args.prefix, args.smac, args.sip, args.rpref, args.period, args.chl, args.mtu, args.dns, args.nofwd, args.target_codes
 )
 
 Networks.extract_available_subnets(interface)
 Interface_object = Interface(interface)
-Vulnerability_object = Vulnerability(interface, scanning_type, ip_mode, smac, network, prefix_len, rpref, dns)
+Vulnerability_object = Vulnerability(interface, scanning_type, ip_mode, smac, network, prefix_len, rpref, dns, target_codes=target_codes)
 
 
 def print_message(message, msg_type="INFO"):
@@ -98,11 +98,11 @@ def output_protocols(scan_type, protocols, show_all=False):
             Non_json.output_protocol(interface, scan_type, protocol, file_path, less_detail)
 
 
-def handle_output(scan_type, protocols_basic, protocols_detailed=None):
+def handle_output(scan_type, protocols_basic, protocols_detailed=None, target_codes=None):
     """Unified output handling for different scan types."""
     if not json_output or (more_detail or less_detail):
-        Non_json.output_general(scan_type)
-        Non_json.read_vulnerability_table(scan_type, ip_mode)
+        Non_json.output_general(scan_type, target_codes=target_codes)
+        Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes)
         
         if more_detail:
             time_file = get_csv_path("time_incoming.csv")
@@ -110,7 +110,7 @@ def handle_output(scan_type, protocols_basic, protocols_detailed=None):
             if check_addresses:
                 Non_json.print_box("Unfiltered found addresses")
                 addr_file = get_csv_path("addresses_unfiltered.csv")
-                Non_json.output_general(scan_type, addr_file)
+                Non_json.output_general(scan_type, addr_file, target_codes=target_codes)
         
         output_protocols(scan_type, protocols_basic)
         
@@ -122,7 +122,10 @@ def setup_iptables(rule_type):
     """Setup iptables rules based on mode and IP versions enabled."""
     if not IptablesRule.check(rule_type, ip_mode.ipv4, ip_mode.ipv6, nofwd if rule_type == "a+" else False):
         IptablesRule.add(rule_type, ip_mode.ipv4, ip_mode.ipv6, nofwd if rule_type == "a+" else False)
-        print_message("Adding rules in configuration to perform scanning")
+        if rule_type == "a":
+            print_message("Adding rules in configuration to perform active scanning")
+        elif rule_type == "a+":
+            print_message("Adding rules in configuration to perform aggressive scanning")
 
 
 def cleanup_iptables(rule_type):
@@ -163,7 +166,7 @@ def ptnet_passive():
 
     protocols_basic = ["MDNS", "LLMNR", "MLDv1", "IGMPv1/v2", "WS-Discovery", "MLDv2", "IGMPv3"]
     protocols_detailed = ["RA"]
-    handle_output("p", protocols_basic, protocols_detailed)
+    handle_output("p", protocols_basic, protocols_detailed, target_codes=target_codes)
 
 
 def ptnet_active():
@@ -181,7 +184,7 @@ def ptnet_active():
 
     protocols_basic = ["MDNS", "LLMNR", "MLDv1", "IGMPv1/v2", "WS-Discovery", "MLDv2", "IGMPv3"]
     protocols_detailed = ["RA"]
-    handle_output("a", protocols_basic, protocols_detailed)
+    handle_output("a", protocols_basic, protocols_detailed, target_codes=target_codes)
 
 
 def ptnet_aggressive():
@@ -206,13 +209,13 @@ def ptnet_aggressive():
 
     protocols_basic = ["MDNS", "LLMNR", "MLDv1", "IGMPv1/v2", "WS-Discovery"]
     protocols_detailed = ["MLDv2", "IGMPv3", "RA"]
-    handle_output("a+", protocols_basic, protocols_detailed)
+    handle_output("a+", protocols_basic, protocols_detailed, target_codes=target_codes)
 
     if json_output:
         enablePrint()
         if more_detail:
             Non_json.print_box("Json output")
-        print(Json.output_object(True, "a+"))
+        print(Json.output_object(True, "a+", target_codes=target_codes))
 
     cleanup_iptables("a")
     cleanup_iptables("a+")
@@ -226,7 +229,7 @@ def check_eap_detected():
         ptprinthelper.ptprint("802.1x is detected, so scan will be cancelled", "WARNING")
         if json_output:
             Non_json.print_box("Json output")
-            print(Json.output_object(True, "802.1x"))
+            print(Json.output_object(True, "802.1x", target_codes=target_codes))
         sys.exit(0)
 
 
@@ -249,7 +252,7 @@ def execute_scan(scan_types):
         if len(scan_types) > 1:
             check_eap_detected()
             if json_output:
-                Json.output_object(False, "802.1x")
+                Json.output_object(False, "802.1x", target_codes=target_codes)
 
     if has_passive:
         Interface_object.shutdown_traffic()
@@ -275,9 +278,11 @@ def execute_scan(scan_types):
         if more_detail:
             Non_json.print_box("Json output")
         if has_active:
-            print(Json.output_object(True, "a"))
+            print(Json.output_object(True, "a", target_codes=target_codes))
         elif has_passive:
-            print(Json.output_object(True, "p"))
+            print(Json.output_object(True, "p", target_codes=target_codes))
+        elif has_eap:
+            print(Json.output_object(True, "802.1x", target_codes=target_codes))
 
     cleanup_and_exit()
 

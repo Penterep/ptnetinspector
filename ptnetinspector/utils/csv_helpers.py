@@ -293,6 +293,7 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
     """
     Sorts the CSV vulnerability file based on the first column (ID, assumed numeric), then by Code, then Description.
     Removes duplicate rows. When rows are identical except for Label, keeps the one with Label=1.
+    When rows share same ID, Mode, IPver, Code but differ only in Description, keeps the one with longest Description.
 
     Args:
         filepath (str): Path to the CSV file.
@@ -326,10 +327,31 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
     # Get unique rows from dictionary
     unique_rows = list(row_dict.values())
     
+    # Deduplicate by code: keep row with longest description for same ID, Mode, IPver, Code
+    code_dict = {}
+    for row in unique_rows:
+        if not row or len(row) < 7:
+            continue
+        # Key: ID, Mode, IPver, Code
+        code_key = (row[0], row[2], row[3], row[4])
+        
+        if code_key in code_dict:
+            existing_row = code_dict[code_key]
+            existing_desc_len = len(existing_row[5])
+            current_desc_len = len(row[5])
+            # Keep row with longer description
+            if current_desc_len > existing_desc_len:
+                code_dict[code_key] = row
+        else:
+            code_dict[code_key] = row
+    
+    # Get deduplicated rows
+    deduplicated_rows = list(code_dict.values())
+    
     # Separate numeric and network rows
     numeric_rows = []
     network_rows = []
-    for row in unique_rows:
+    for row in deduplicated_rows:
         if row and row[0].isdigit():
             numeric_rows.append(row)
         else:

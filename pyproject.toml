@@ -60,4 +60,4 @@ packages = ["ptnetinspector"]
 version = {attr = "ptnetinspector._version.__version__"}
 
 [tool.setuptools.package-data]
-ptnetinspector = ["data/manuf"]
+ptnetinspector = ["data/manuf", "data/vuln_catalog.csv"]

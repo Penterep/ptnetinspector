@@ -4,7 +4,7 @@
 | |_) / _ \ '_ \| __/ _ \ '__/ _ \ '_ \    | |/ _ \ / _ \| / __|
 |  __/  __/ | | | ||  __/ | |  __/ |_) |   | | (_) | (_) | \__ \
 |_|   \___|_| |_|\__\___|_|  \___| .__/    |_|\___/ \___/|_|___/
-                                 |_|      ptnetinspector v0.1.6
+                                 |_|      ptnetinspector v0.1.7
                                        https://www.penterep.com
 ```
 
@@ -31,9 +31,28 @@ This application requires **Python3**. Make sure it is installed, along with the
 sudo apt install python3 python3-venv -y  
 ```  
 
-### Steps to Install Dependencies, sudo should be used  
+### Installation Methods
 
-#### 1. **Create a Virtual Environment (if not already created)**  
+You can install ptnetinspector in two ways:
+
+#### Method 1: Install from PyPI (Recommended for Users)
+
+The easiest way to install ptnetinspector is directly from PyPI:
+
+```bash
+# Create and activate a virtual environment (recommended)
+python3 -m venv myenv
+source myenv/bin/activate
+
+# Install from PyPI
+pip install ptnetinspector
+```
+
+#### Method 2: Install from Source (For Development)
+
+If you want to modify the code or contribute to development:
+
+##### 1. **Create a Virtual Environment (if not already created)**  
 You can create a virtual environment with any name you prefer. Replace `<env_name>` with your chosen name in the following command:  
 ```bash
 python3 -m venv <env_name>
@@ -43,7 +62,7 @@ For example, if you want to name your virtual environment `myenv`, use:
 python3 -m venv myenv
 ```
 
-#### 2. **Activate the Virtual Environment**  
+##### 2. **Activate the Virtual Environment**  
 After creating the virtual environment, activate it by specifying its name. Replace `<env_name>` with the name you used during creation:  
 ```bash
 source <env_name>/bin/activate
@@ -53,10 +72,9 @@ For instance, if the name is `myenv`, use:
 source myenv/bin/activate
 ```
 
-#### 3. **Install the package**
+##### 3. **Install the package**
 
-After installing the dependencies, install the package itself so you can run the `ptnetinspector` command.
-It's recommended to install in editable/development mode if you plan to modify the code:
+After cloning the repository, install the package in editable/development mode:
 
 ```bash
 # inside your activated virtual environment
@@ -94,6 +112,10 @@ The following options are applicable to all scan modes:
 | `-n`    | Prevents deletion of `.csv` files in the `tmp` folder. |
 | `-more` | Displays full details of the network scan. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown. |
 | `-less` | Displays minimum details of the network scan. When used with `-j`, outputs minimal and JSON data. Default: Basic details are shown. |
+| `-nc`   | Disables checking if found addresses are valid and responsive. |
+| `-4`    | Only scan IPv4 traffic (cannot be used alone for `a+` mode). |
+| `-6`    | Only scan IPv6 traffic. |
+| `-ts`   | Filter vulnerabilities by code (space-separated). Only selected vulnerability codes will be scanned and reported. Each code must be valid for the selected scan mode(s). Example: `-ts PTV-NET-IDENT-MDNS-PTR PTV-NET-IDENT-LLMNR-PTR` |
 | `-h`    | Displays help message and exits. |
 
 ### Specific Options for Passive Scanning
@@ -101,6 +123,12 @@ The following options are applicable to all scan modes:
 | Option  | Description |
 |---------|-------------|
 | `-d`    | Duration of the passive scan in seconds (floating-point allowed). Default: 30 seconds. |
+
+### Specific Options for Active Scanning
+
+| Option  | Description |
+|---------|-------------|
+| `-smac` | Scanner's MAC address. Default: Taken from the interface specified by `-i`. |
 
 ### Specific Options for Aggressive Scanning
 
@@ -147,6 +175,17 @@ ptnetinspector -t a+ -i eth0 -j -da+ 35 -prefix 2001:1::/64 -smac 00:01:02:03:04
 Combine 802.1x and passive scans for a complex scenario. Specify passive scan duration.
 ```
 ptnetinspector -t 802.1x p -i eth0 -j -d 10
+```
+
+### Target-Specific Vulnerability Scanning
+Filter and scan only specific vulnerabilities using their codes.
+```
+ptnetinspector -t a -i eth0 -ts PTV-NET-IDENT-MDNS-PTR PTV-NET-IDENT-LLMNR-PTR
+```
+
+Combine with multiple scan modes (each mode must have at least one valid vulnerability):
+```
+ptnetinspector -t a a+ -i eth0 -ts PTV-NET-NET-MISCONF-OPEN-RA PTV-NET-IDENT-ICMP6-OUTRANGE
 ```
 
 ## License

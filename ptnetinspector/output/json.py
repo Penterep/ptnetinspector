@@ -19,22 +19,20 @@ class Json:
         return role.split(";")
 
     @staticmethod
-    def _get_vulnerabilities_for_id(vuln_df: pd.DataFrame, id_value: str, mode: str = None) -> list:
-        """Extract vulnerabilities for a given ID, optionally filtered by mode."""
+    def _get_vulnerabilities_for_id(vuln_df: pd.DataFrame, id_value: str, mode: str = None, target_codes: set[str] | None = None) -> list:
+        """Extract vulnerabilities for a given ID, optionally filtered by mode or target codes."""
         vulns = []
         device_vulns = vuln_df[vuln_df['ID'].astype(str) == id_value]
         for _, vuln_row in device_vulns.iterrows():
             # Filter by mode if provided
             if mode is not None and mode not in vuln_row.get('Mode', ''):
                 continue
+            code = vuln_row.get('Code', '')
+            if target_codes and code.strip().upper() not in target_codes:
+                continue
             if vuln_row.get('Label', 0) == 1:
-                code = vuln_row.get('Code', '')
                 desc = vuln_row.get('Description', '')
-                ipver = vuln_row.get('IPver', '')
-                if ipver != '' and vuln_row.get('ID', '') != 'Network':
-                    vulns.append(f"{code} for IPv{int(ipver)}: {desc}")
-                else:
-                    vulns.append(f"{code}: {desc}")
+                vulns.append(f"{code}: {desc}")
         return vulns
 
     @staticmethod
@@ -60,15 +58,17 @@ class Json:
         return ptjsonlib_object.get_result_json()
 
     @staticmethod
-    def output_vul_net(mode: str = None, vul_file: str = None) -> dict:
+    def output_vul_net(mode: str = None, vul_file: str = None, target_codes: set[str] | None = None) -> dict:
         """Extracts network vulnerabilities from CSV and adds them to the JSON object."""
         if vul_file is None:
             vul_file = get_csv_path("vulnerability.csv")
+
+        target_codes_set = {code.upper() for code in target_codes} if target_codes else None
         
         if has_additional_data(vul_file):
             try:
                 vuln_df = pd.read_csv(vul_file)
-                vulns = Json._get_vulnerabilities_for_id(vuln_df, "Network", mode)
+                vulns = Json._get_vulnerabilities_for_id(vuln_df, "Network", mode, target_codes_set)
                 for code, desc in [v.split(": ") for v in vulns]:
                     if not any(v['vulnCode'] == code for v in ptjsonlib_object.json_object['results']['vulnerabilities']):
                         ptjsonlib_object.add_vulnerability(vuln_code=code, description=desc)
@@ -132,12 +132,13 @@ class Json:
         return False
 
     @staticmethod
-    def output_object(extract_to_json: bool = True, mode: str = None) -> dict:
+    def output_object(extract_to_json: bool = True, mode: str = None, target_codes: set[str] | None = None) -> dict:
         """Main function to extract all network information and output as JSON."""
+        target_codes_set = {code.upper() for code in target_codes} if target_codes else None
         start_end_file = get_csv_path("start_end_mode.csv")
         delete_middle_content_csv(start_end_file)
         Json.output_property()
-        Json.output_vul_net(mode)
+        Json.output_vul_net(mode, target_codes=target_codes_set)
 
         if not extract_to_json:
             return ptjsonlib_object.get_result_json()
@@ -156,7 +157,7 @@ class Json:
             for _, row in role_node_df.iterrows():
                 mac_address, device_number, role = row['MAC'], row['Device_Number'], row['Role']
                 roles = Json.convert_role_to_list(role)
-                vul = Json._get_vulnerabilities_for_id(vuln_df, str(device_number), mode) if vuln_df is not None else []
+                vul = Json._get_vulnerabilities_for_id(vuln_df, str(device_number), mode, target_codes_set) if vuln_df is not None else []
 
                 node_ele = ptjsonlib_object.create_node_object(
                     node_type=f"Device {device_number}", parent_type="Site", parent=None,
