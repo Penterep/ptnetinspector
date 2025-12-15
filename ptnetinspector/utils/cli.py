@@ -27,7 +27,7 @@ from ptnetinspector.utils.ip_utils import (
     is_valid_MTU,
 )
 from ptnetinspector.utils.path import get_tmp_path
-from ptnetinspector.utils.vuln_catalog import load_vuln_catalog
+from ptnetinspector.utils.vuln_catalog import load_vuln_catalog, load_vuln_catalog_by_test
 from ptnetinspector._version import __version__
 
 ptjsonlib_object = PtJsonLib()
@@ -147,7 +147,7 @@ def get_help() -> list:
             ["-nc             ", "Do not check if found addresses are valid"],
             ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
             ["-6              ", "Only IPv6 traffic"],
-            ["-ts             ", "Filter vulnerabilities by code (space-separated, e.g., -ts PTV-NET-IDENT-MDNS-PTR PTV-NET-IDENT-LLMNR-PTR)"],
+            ["-ts             ", "Filter vulnerabilities by Test code (space-separated, e.g., -ts 4-MDNS 4-LLMNR)"],
             ["-h              ", "Show this help message and exit"]
         ]},
         {"passive scan options (mode p)": [
@@ -192,7 +192,14 @@ def get_help() -> list:
             ["Combined modes:"],
             ["   Run multiple scan modes in sequence"],
             ["      ptnetinspector -t 802.1x p -i eth0 -j -d 10"],
-            ["      ptnetinspector -t 802.1x a a+ -i eth0 -more"]
+            ["      ptnetinspector -t 802.1x a a+ -i eth0 -more"],
+            [""],
+            ["Test code filtering (-ts):"],
+            ["   Run only specific tests by Test code (auto-infers mode and IP version)"],
+            ["      ptnetinspector -ts 4-MDNS 4-LLMNR -i eth0 -j"],
+            ["      ptnetinspector -ts 6-MLDV1 -i eth0"],
+            ["      ptnetinspector -ts 6-OUTRANGE -i eth0"],
+            ["      ptnetinspector -ts 6-FAKERA -i eth0 -dns 2001:4860:4860::8888 (DNS must be specified for FAKERADNS)"],
         ]}
     ]
 
@@ -237,9 +244,11 @@ def enablePrint() -> None:
 # SECTION 4: PARAMETER VALIDATION FUNCTIONS
 # ============================================================================
 
-def _validate_mandatory_args(type, interface, json_output, more_detail) -> None:
+def _validate_mandatory_args(type, interface, json_output, more_detail, target_codes=None) -> None:
     """Validate mandatory arguments (type and interface)."""
-    if not type or not interface:
+    # When -ts is provided, allow omitting -t (type) and infer later
+    missing_type = (not type) and (not target_codes)
+    if missing_type or not interface:
         if not json_output or more_detail:
             ptprinthelper.ptprint("Missing compulsory parameters (type, interface)", "ERROR")
         if json_output:
@@ -250,6 +259,9 @@ def _validate_mandatory_args(type, interface, json_output, more_detail) -> None:
 
 def _validate_type_combination(type, json_output, more_detail) -> None:
     """Validate scan type combinations."""
+    # Allow missing type when it will be inferred from -ts later
+    if not type:
+        return
     if len(type) == 2:
         if "p" in type and "a" in type:
             if not json_output or more_detail:
@@ -306,7 +318,7 @@ def _validate_detail_flags(more_detail, less_detail, json_output) -> None:
 
 
 def _normalize_target_codes(target_codes: list[str] | None) -> list[str] | None:
-    """Normalize user-provided target codes to uppercase and de-duplicate."""
+    """Normalize user-provided Test codes to uppercase and de-duplicate."""
     if not target_codes:
         return None
     cleaned: list[str] = []
@@ -326,14 +338,19 @@ def _normalize_target_codes(target_codes: list[str] | None) -> list[str] | None:
     return unique_codes
 
 
-def _validate_target_codes(target_codes, scan_types, ip_mode, list_error, list_warning):
-    """Validate target vulnerability codes strictly against catalog, mode, and IP version."""
+def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_error, list_warning):
+    """Validate target Test codes and infer appropriate Mode/IPver if not explicitly provided.
+    
+    Returns:
+        - tuple of (validated_test_codes, inferred_scan_types, inferred_ip_mode, auto_filled_params)
+        - or None if validation fails
+    """
     normalized = _normalize_target_codes(target_codes)
     if normalized is None:
         return None
 
     try:
-        catalog = load_vuln_catalog()
+        test_catalog = load_vuln_catalog_by_test()
     except FileNotFoundError:
         list_error.append("Vulnerability catalog not found; unable to apply -ts filter. Program exits!")
         return None
@@ -341,65 +358,111 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, list_error, list_w
         list_error.append("Unable to load vulnerability catalog; unable to apply -ts filter. Program exits!")
         return None
 
-    # Check unknown codes and suggest closest matches
+    # Check unknown test codes and suggest closest matches
     missing = []
-    for code in normalized:
-        if code not in catalog:
-            suggestions = difflib.get_close_matches(code, catalog.keys(), n=3, cutoff=0.55)
+    for test_code in normalized:
+        if test_code not in test_catalog:
+            suggestions = difflib.get_close_matches(test_code, test_catalog.keys(), n=3, cutoff=0.55)
             suggestion_text = f". Nearest correct option(s): {', '.join(suggestions)}" if suggestions else ""
-            missing.append(f"{code}{suggestion_text}")
+            missing.append(f"{test_code}{suggestion_text}")
     if missing:
-        list_error.append(f"Unknown target vulnerability code(s): {', '.join(missing)}. Program exits!")
-
-    # If any unknown, skip further checks to avoid key errors
-    if missing:
+        list_error.append(f"Unknown target Test code(s): {', '.join(missing)}. Program exits!")
         return None
 
-    validated: set[str] = set()
-    for code in normalized:
-        entry = catalog[code]
-        # Mode compatibility (must intersect)
-        mode_field = entry.get("Mode", "")
-        if mode_field:
-            supported_modes = [m.strip() for m in mode_field.split(',') if m.strip()]
-            if scan_types and not any(m in scan_types for m in supported_modes):
-                list_error.append(
-                    f"Target code {code} is not valid for selected scan mode(s): {', '.join(scan_types)}. Allowed: {', '.join(supported_modes)}"
-                )
+    # Collect all vulnerability codes associated with selected Test codes
+    associated_vulns: dict[str, dict[str, str]] = {}
+    for test_code in normalized:
+        for entry in test_catalog[test_code]:
+            code = entry["Code"]
+            if code not in associated_vulns:
+                associated_vulns[code] = entry
 
-        # IP version compatibility
-        ipver = entry.get("IPver", "").strip().lower()
-        if ipver == "4" and not ip_mode.ipv4:
-            list_error.append(f"Target code {code} requires IPv4 but IPv4 scanning is disabled")
-        if ipver == "6" and not ip_mode.ipv6:
-            list_error.append(f"Target code {code} requires IPv6 but IPv6 scanning is disabled")
+    # Infer Mode and IPver based on test codes if not explicitly provided by user
+    inferred_scan_types = scan_types if scan_types else None
+    inferred_ip_mode = IPMode(ip_mode.ipv4, ip_mode.ipv6) if (ip_mode.ipv4 or ip_mode.ipv6) else None
+    auto_filled_params = {}
 
-        validated.add(code)
+    # If user didn't specify scan types, infer from Test codes using custom rules
+    if not inferred_scan_types:
+        # Gather modes per entry to check exclusivity
+        modes_per_entry: list[list[str]] = []
+        for entry in associated_vulns.values():
+            mode_field = entry.get("Mode", "")
+            modes = [m.strip() for m in mode_field.split(',') if m.strip()]
+            if modes:
+                modes_per_entry.append(modes)
 
-    # If any errors collected, abort (caller will exit)
-    if list_error:
-        return None
+        if not modes_per_entry:
+            list_error.append("Cannot infer scan mode from Test code(s). Please specify -t explicitly. Program exits!")
+            return None
 
-    # Ensure at least one vulnerability exists for each selected scan type
-    if scan_types and validated:
-        for scan_type in scan_types:
-            has_vuln_for_mode = False
-            for code in validated:
-                entry = catalog[code]
-                mode_field = entry.get("Mode", "")
-                if mode_field:
-                    supported_modes = [m.strip() for m in mode_field.split(',') if m.strip()]
-                    if scan_type in supported_modes:
-                        has_vuln_for_mode = True
-                        break
-            if not has_vuln_for_mode:
-                list_error.append(f"No target vulnerability codes are valid for scan mode '{scan_type}'. At least one code must be valid for each selected scan mode. Program exits!")
+        # Rule 1: If any Test maps exclusively to 802.1x, choose 802.1x
+        any_exclusive_eap = any(modes == ["802.1x"] for modes in modes_per_entry)
+        if any_exclusive_eap:
+            inferred_scan_types = ["802.1x"]
+        else:
+            # Rule 2: If any Test belongs only to a+ (and not a,a+ or p,a,a+), choose a+
+            any_exclusive_aggr = any(modes == ["a+"] for modes in modes_per_entry)
+            if any_exclusive_aggr:
+                inferred_scan_types = ["a+"]
+            else:
+                # Default: use active (a) if possible
+                inferred_scan_types = ["a"]
+
+    # If user didn't specify IP version, infer from test codes
+    # Check if user explicitly specified -4 or -6 (not just using defaults)
+    user_specified_ipver = ipv4 or ipv6
     
-    # Check again after per-mode validation
-    if list_error:
+    if not user_specified_ipver:
+        # User didn't specify IP version, so infer from test codes
+        allowed_ipvers = set()
+        for entry in associated_vulns.values():
+            ipver = entry.get("IPver", "").strip()
+            if ipver:
+                allowed_ipvers.add(ipver)
+        
+        # Enable only the IP versions that appear in the selected test codes
+        ipv4_enabled = "4" in allowed_ipvers
+        ipv6_enabled = "6" in allowed_ipvers
+        
+        inferred_ip_mode = IPMode(ipv4_enabled, ipv6_enabled)
+    else:
+        # User explicitly specified IP version(s), use that
+        inferred_ip_mode = ip_mode
+
+    # Validate that at least one vulnerability matches the inferred mode/ipver
+    valid_codes = set()
+    for code, entry in associated_vulns.items():
+        mode_field = entry.get("Mode", "")
+        ipver_field = entry.get("IPver", "").strip()
+        
+        # Check mode compatibility
+        if inferred_scan_types:
+            mode_match = False
+            if mode_field:
+                modes = [m.strip() for m in mode_field.split(',') if m.strip()]
+                mode_match = any(m in modes for m in inferred_scan_types)
+            if not mode_match:
+                continue
+        
+        # Check IP version compatibility
+        ipver_match = True
+        if ipver_field == "4" and not inferred_ip_mode.ipv4:
+            ipver_match = False
+        elif ipver_field == "6" and not inferred_ip_mode.ipv6:
+            ipver_match = False
+        
+        if ipver_match:
+            valid_codes.add(code)
+
+    if not valid_codes:
+        list_error.append(
+            f"No vulnerabilities match the inferred scan mode(s) {inferred_scan_types} and/or IP version(s). "
+            f"Consider specifying -t and/or -4/-6 explicitly. Program exits!"
+        )
         return None
 
-    return validated
+    return (normalized, inferred_scan_types, inferred_ip_mode, auto_filled_params)
 
 
 def _validate_passive_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning) -> float:
@@ -742,7 +805,7 @@ def parameter_control(
     logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
     # Validate mandatory arguments
-    _validate_mandatory_args(type, interface, json_output, more_detail)
+    _validate_mandatory_args(type, interface, json_output, more_detail, target_codes)
     _validate_type_combination(type, json_output, more_detail)
     _validate_interface(interface, json_output, more_detail)
 
@@ -754,7 +817,29 @@ def parameter_control(
 
     _validate_detail_flags(more_detail, less_detail, json_output)
 
-    validated_target_codes = _validate_target_codes(target_codes, type, ip_mode, list_error, list_warning)
+    # Handle -ts (Test code) filtering
+    validated_target_codes = None
+    inferred_type = type
+    inferred_ip_mode = ip_mode
+    auto_filled_params = {}
+    
+    if target_codes:
+        validation_result = _validate_target_codes(target_codes, type, ip_mode, ipv4, ipv6, list_error, list_warning)
+        if validation_result is None:
+            # _validate_target_codes will have populated list_error
+            pass
+        else:
+            test_codes, inferred_type, inferred_ip_mode, auto_filled_params = validation_result
+            validated_target_codes = test_codes
+            # Use inferred values if user didn't specify them
+            if not type:
+                type = inferred_type
+            if not ipv4 and not ipv6:
+                ip_mode = inferred_ip_mode
+
+    # Ensure type is set before mode-specific validation
+    if type is None:
+        type = inferred_type if inferred_type else ["a"]
 
     # Validate mode-specific parameters
     prefix_len = None
