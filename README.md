@@ -115,7 +115,7 @@ The following options are applicable to all scan modes:
 | `-nc`   | Disables checking if found addresses are valid and responsive. |
 | `-4`    | Only scan IPv4 traffic (cannot be used alone for `a+` mode). |
 | `-6`    | Only scan IPv6 traffic. |
-| `-ts`   | Filter vulnerabilities by code (space-separated). Only selected vulnerability codes will be scanned and reported. Each code must be valid for the selected scan mode(s). Example: `-ts PTV-NET-IDENT-MDNS-PTR PTV-NET-IDENT-LLMNR-PTR` |
+| `-ts`   | Filter vulnerabilities by Test code (space-separated). Only selected tests will be scanned and reported. Each code must be valid for the selected scan mode(s). Example: `-ts 4-MDNS 4-LLMNR 6-OUTRANGE` |
 | `-h`    | Displays help message and exits. |
 
 ### Specific Options for Passive Scanning
@@ -142,7 +142,7 @@ The following options are applicable to all scan modes:
 | `-period`  | Rate of RA packet sending (1 packet per `-period` seconds, floating-point allowed). Default: `Aggressive duration / 10`. |
 | `-chl`     | Current hop limit in RA messages. Default: 0. |
 | `-mtu`     | MTU advertised on the link. Excluded if not specified. |
-| `-dns`     | IPv6 address(es) of DNS server(s). Multiple addresses can be space-separated. Excluded if not specified. |
+| `-dns`     | IPv6 address(es) of DNS server(s). Multiple addresses can be space-separated. Excluded if not specified. Required for FAKERADNS vulnerability testing (part of FAKERA tests). |
 | `-nofwd`   | Prevents the scanner from forwarding packets (MiTM). Forwarding is allowed by default. |
 
 ## Examples
@@ -178,14 +178,26 @@ ptnetinspector -t 802.1x p -i eth0 -j -d 10
 ```
 
 ### Target-Specific Vulnerability Scanning
-Filter and scan only specific vulnerabilities using their codes.
+Filter and scan only specific vulnerabilities using their Test codes. The tool will auto-infer the appropriate scan mode(s) and IP version(s).
+
+Scan IPv4 multicast tests:
 ```
-ptnetinspector -t a -i eth0 -ts PTV-NET-IDENT-MDNS-PTR PTV-NET-IDENT-LLMNR-PTR
+ptnetinspector -ts 4-MDNS 4-LLMNR -i eth0 -j
 ```
 
-Combine with multiple scan modes (each mode must have at least one valid vulnerability):
+Test ICMPv6 OUTRANGE vulnerability (active or aggressive mode):
 ```
-ptnetinspector -t a a+ -i eth0 -ts PTV-NET-NET-MISCONF-OPEN-RA PTV-NET-IDENT-ICMP6-OUTRANGE
+ptnetinspector -ts 6-OUTRANGE -i eth0
+```
+
+Test FAKERA vulnerabilities (requires DNS to be specified for FAKERADNS detection):
+```
+ptnetinspector -ts 6-FAKERA -i eth0 -dns 2001:4860:4860::8888
+```
+
+Combine with multiple test codes:
+```
+ptnetinspector -ts 6-MLDV1 6-OUTRANGE -i eth0 -j
 ```
 
 ## License
