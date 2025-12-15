@@ -344,14 +344,12 @@ def execute_scan(scan_types):
 
 def main():
     """Main execution logic for scan types.""" 
-    # Use inferred/validated scan types from parameter_control rather than raw args
-    # execute_scan(scanning_type)
     try:
-        execute_scan(args.t)
+        execute_scan(scanning_type)
     except KeyboardInterrupt:
-        has_active = "a" in args.t
-        has_aggressive = "a+" in args.t
-        has_passive = "p" in args.t
+        has_active = "a" in scanning_type
+        has_aggressive = "a+" in scanning_type
+        has_passive = "p" in scanning_type
         
         # Cleanup on keyboard interrupt
         if has_active or has_aggressive:
@@ -367,9 +365,9 @@ def main():
             del_tmp_path()
         print_message("Scan interrupted by user", "WARNING")
     except Exception as e:
-        has_active = "a" in args.t
-        has_aggressive = "a+" in args.t
-        has_passive = "p" in args.t
+        has_active = "a" in scanning_type
+        has_aggressive = "a+" in scanning_type
+        has_passive = "p" in scanning_type
         
         # Cleanup on exception
         if has_active or has_aggressive:
