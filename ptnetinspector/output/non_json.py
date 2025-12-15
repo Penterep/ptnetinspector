@@ -12,9 +12,27 @@ from ptnetinspector.utils.ip_utils import (
 )
 from ptnetinspector.utils.ip_utils import in6_getansma, in6_getnsma
 from ptnetinspector.utils.oui import lookup_vendor_from_csv
+from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
 
 
 class Non_json:
+    @staticmethod
+    def filter_ips_by_mode(df: pd.DataFrame, ipver: IPMode) -> pd.DataFrame:
+        """Return rows whose IP matches the enabled IP versions."""
+        if 'IP' not in df.columns or (ipver.ipv4 and ipver.ipv6):
+            return df
+
+        def is_allowed(ip: str) -> bool:
+            if is_valid_ipv6(ip):
+                return ipver.ipv6
+            try:
+                ipaddress.IPv4Address(ip)
+                return ipver.ipv4
+            except (ipaddress.AddressValueError, ValueError, TypeError):
+                return False
+
+        return df[df['IP'].apply(is_allowed)].reset_index(drop=True)
+
     @staticmethod
     def transform_role_print(role: str) -> str:
         """
@@ -96,11 +114,26 @@ class Non_json:
             mode (str): Scan mode.
             ipver (IPMode): IP version object.
             csv_file_path (str): Path to vulnerability CSV file.
+            target_codes (set[str] | None): Optional Test codes to filter by (e.g., {'4-MDNS', '6-MLDV1'}).
         """
         if csv_file_path is None:
             csv_file_path = get_csv_path("vulnerability.csv")
 
-        target_codes_set = {code.upper() for code in target_codes} if target_codes else None
+        # Convert Test codes to vulnerability Codes
+        target_codes_set = None
+        if target_codes:
+            try:
+                test_catalog = load_vuln_catalog_by_test()
+                vuln_codes = set()
+                for test_code in target_codes:
+                    test_code_upper = test_code.upper()
+                    if test_code_upper in test_catalog:
+                        for entry in test_catalog[test_code_upper]:
+                            vuln_codes.add(entry["Code"].upper())
+                target_codes_set = vuln_codes if vuln_codes else None
+            except Exception:
+                # If catalog load fails, treat as no filter
+                target_codes_set = None
         
         vulnerabilities_ipv4 = {}
         vulnerabilities_ipv6 = {}
@@ -257,12 +290,13 @@ class Non_json:
                 print_network_stats(vulnerabilities_net_ipv6, net_ids_ipv6, sorted_codes_net_ipv6, "6")
 
     @staticmethod
-    def output_general(mode: str, addresses_file_name: str = None, target_codes: set[str] | None = None):
+    def output_general(mode: str, ipver: IPMode, addresses_file_name: str = None, target_codes: set[str] | None = None):
         """
         Output general device and network information, including vulnerabilities.
 
         Args:
             mode (str): Scan mode.
+            ipver (IPMode): Enabled IP versions.
             addresses_file_name (str): Path to addresses CSV file.
             target_codes (set[str] | None): Optional filter for vulnerability codes.
         """
@@ -276,6 +310,7 @@ class Non_json:
         if has_additional_data(addresses_file_name) and has_additional_data(role_node_file):
             role_node_df = pd.read_csv(role_node_file)
             addresses_df = pd.read_csv(addresses_file_name)
+            addresses_df = Non_json.filter_ips_by_mode(addresses_df, ipver)
             try:
                 vuln_df = pd.read_csv(vulnerability_file)
                 net_vulns = vuln_df[vuln_df['ID'] == "Network"]
@@ -284,7 +319,7 @@ class Non_json:
                     if target_codes_set and code.strip().upper() not in target_codes_set:
                         continue
                     desc = vuln_row.get('Description', '')
-                    ipver = vuln_row.get('IPver', '')
+                    ipver_vuln = vuln_row.get('IPver', '')
                     label = vuln_row.get('Label', '')
                     if label == 1 and (mode in vuln_row['Mode']):
                         ptprinthelper.ptprint(f"{code}: {desc}", "VULN", colortext=True)
@@ -301,22 +336,23 @@ class Non_json:
                 ptprinthelper.ptprint(f"    MAC   {mac_address}")
                 ip_addresses = addresses_df.loc[addresses_df['MAC'] == mac_address, 'IP'].tolist()
                 list_solicited_ip = []
-                for ip in ip_addresses:
-                    if is_valid_ipv6(ip):
-                        if is_link_local_ipv6(ip) or is_global_unicast_ipv6(ip) or is_ipv6_ula(ip):
-                            list_solicited_ip.append(in6_getnsma(ip))
-                if ip_addresses:
+                if ipver.ipv6:
                     for ip in ip_addresses:
                         if is_valid_ipv6(ip):
+                            if not is_llsnm_ipv6(ip):
+                                list_solicited_ip.append(in6_getnsma(ip))
+                if ip_addresses:
+                    for ip in ip_addresses:
+                        if ipver.ipv6 and is_valid_ipv6(ip):
                             if is_llsnm_ipv6(ip):
                                 if ip not in list_solicited_ip:
                                     ptprinthelper.ptprint("    IPv6  " + in6_getansma(ip) + " (possible address)")
-                            elif is_global_unicast_ipv6(ip) or is_link_local_ipv6(ip) or is_ipv6_ula(ip):
+                            elif not is_llsnm_ipv6(ip):
                                 if all_ip.count(ip) >= 2:
                                     ptprinthelper.ptprint("    IPv6  " + ip + " (duplicated address, probably not owned)")
                                 else:
                                     ptprinthelper.ptprint("    IPv6  " + ip)
-                        else:
+                        elif ipver.ipv4:
                             try:
                                 ipv4_address = ipaddress.IPv4Address(ip)
                                 if all_ip.count(ip) >= 2:
@@ -332,7 +368,7 @@ class Non_json:
                 for _, vuln_row in device_vulns.iterrows():
                     code = vuln_row.get('Code', '')
                     desc = vuln_row.get('Description', '')
-                    ipver = vuln_row.get('IPver', '')
+                    ipver_vuln = vuln_row.get('IPver', '')
                     label = vuln_row.get('Label', '')
                     if label == 1 and (mode in vuln_row.get('Mode', '')):
                         ptprinthelper.ptprint(f"    {code}: {desc}", "VULN", colortext=True)
@@ -340,6 +376,7 @@ class Non_json:
     @staticmethod
     def output_protocol(
         interface,
+        ipver: IPMode,
         mode,
         protocol,
         file_name,
@@ -350,6 +387,7 @@ class Non_json:
 
         Args:
             interface: Network interface.
+            ipver (IPMode): Enabled IP versions.
             mode (str): Scan mode.
             protocol (str): Protocol name.
             file_name (str): Path to protocol CSV file.
@@ -416,7 +454,7 @@ class Non_json:
                     for _, vuln_row in network_vulns.iterrows():
                         code = vuln_row.get('Code', '')
                         desc = vuln_row.get('Description', '')
-                        ipver = vuln_row.get('IPver', '')
+                        ipver_vuln = vuln_row.get('IPver', '')
                         label = vuln_row.get('Label', '')
                         if label == 1 and (mode in vuln_row['Mode']):
                             ptprinthelper.ptprint(f"{code}: {desc}", "VULN", colortext=True)
@@ -426,7 +464,8 @@ class Non_json:
                     for item in is_dhcp_slaac():
                         ptprinthelper.ptprint(f"{item} is discovered", "INFO")
                 df = pd.read_csv(file_name)
-                list_mac_protocol = Non_json.get_unique_mac_addresses(file_name)
+                df = Non_json.filter_ips_by_mode(df, ipver)
+                list_mac_protocol = df['MAC'].drop_duplicates().tolist()
                 unique_devices = df.groupby('MAC')['IP'].nunique()
                 num_devices = unique_devices.count()
                 ptprinthelper.ptprint(f"Number of devices found: {num_devices}", "OK")
@@ -457,39 +496,36 @@ class Non_json:
                                 filtered_rows = df[df['MAC'] == mac_address]
                                 other_info_list = filtered_rows[['M', 'O', 'H', 'A', 'L', 'Preference', 'Router_lft', 'Reachable_time', 'Retrans_time', 'DNS', 'MTU', 'Prefix', 'Valid_lft', 'Preferred_lft']].values.tolist()
                             if ip_addresses:
-                                i = 0
-                                ip_previous = 0
-                                for ip in ip_addresses:
+                                ip_previous = None
+                                for idx, ip in enumerate(ip_addresses):
                                     if ip_previous != ip:
-                                        if is_valid_ipv6(ip):
-                                            if is_global_unicast_ipv6(ip) or is_link_local_ipv6(ip) or is_ipv6_ula(ip):
+                                        if ipver.ipv6 and is_valid_ipv6(ip):
+                                            if not is_llsnm_ipv6(ip):
                                                 ptprinthelper.ptprint("    IPv6  " + ip)
-                                        else:
+                                        elif ipver.ipv4:
                                             try:
-                                                ipv4_address = ipaddress.IPv4Address(ip)
+                                                ipaddress.IPv4Address(ip)
                                                 ptprinthelper.ptprint("    IPv4  " + ip)
                                             except ipaddress.AddressValueError:
+                                                ip_previous = ip
                                                 continue
                                     ip_previous = ip
                                     if protocol in ["MLDv1", "IGMPv1/v2"]:
-                                        ptprinthelper.ptprint("    " + other_info_list[i][0] + " with group: " + other_info_list[i][1])
-                                        i += 1
+                                        ptprinthelper.ptprint("    " + other_info_list[idx][0] + " with group: " + other_info_list[idx][1])
                                     if protocol in ["MLDv2", "IGMPv3"]:
-                                        ptprinthelper.ptprint("    " + other_info_list[i][0] + " with group: " +
-                                                            other_info_list[i][1] + " and sources: " +
-                                                            other_info_list[i][2])
-                                        i += 1
+                                        ptprinthelper.ptprint("    " + other_info_list[idx][0] + " with group: " +
+                                                            other_info_list[idx][1] + " and sources: " +
+                                                            other_info_list[idx][2])
                                     if protocol == "RA":
-                                        ptprinthelper.ptprint("    Flag  " + "M-" + other_info_list[i][0] + ", O-" + other_info_list[i][1] +
-                                                            ", H-" + other_info_list[i][2] + ", A-" + other_info_list[i][3] +
-                                                            ", L-" + other_info_list[i][4] + ", Preference-" + other_info_list[i][5])
-                                        ptprinthelper.ptprint(f"    Router lifetime: {other_info_list[i][6]}s, Reachable time: {other_info_list[i][7]}ms, Retransmission time: {other_info_list[i][8]} ms")
-                                        if other_info_list[i][11] != "[]":
-                                            ptprinthelper.ptprint("    Prefix: " + other_info_list[i][11])
-                                        if other_info_list[i][13] != "[]" and other_info_list[i][12] != "[]":
-                                            ptprinthelper.ptprint(f"    Preferred lifetime: {other_info_list[i][13]}s, Valid lifetime: {other_info_list[i][12]}s")
-                                        ptprinthelper.ptprint(f"    MTU: {other_info_list[i][10]}, DNS: {other_info_list[i][9]}")
-                                        i += 1
+                                        ptprinthelper.ptprint("    Flag  " + "M-" + other_info_list[idx][0] + ", O-" + other_info_list[idx][1] +
+                                                            ", H-" + other_info_list[idx][2] + ", A-" + other_info_list[idx][3] +
+                                                            ", L-" + other_info_list[idx][4] + ", Preference-" + other_info_list[idx][5])
+                                        ptprinthelper.ptprint(f"    Router lifetime: {other_info_list[idx][6]}s, Reachable time: {other_info_list[idx][7]}ms, Retransmission time: {other_info_list[idx][8]} ms")
+                                        if other_info_list[idx][11] != "[]":
+                                            ptprinthelper.ptprint("    Prefix: " + other_info_list[idx][11])
+                                        if other_info_list[idx][13] != "[]" and other_info_list[idx][12] != "[]":
+                                            ptprinthelper.ptprint(f"    Preferred lifetime: {other_info_list[idx][13]}s, Valid lifetime: {other_info_list[idx][12]}s")
+                                        ptprinthelper.ptprint(f"    MTU: {other_info_list[idx][10]}, DNS: {other_info_list[idx][9]}")
                     if protocol != "RA":
                         try:
                             vuln_df = pd.read_csv(vulnerability_file)
@@ -501,7 +537,7 @@ class Non_json:
                             for _, vuln_row in device_vulns.iterrows():
                                 code = vuln_row.get('Code', '')
                                 desc = vuln_row.get('Description', '')
-                                ipver = vuln_row.get('IPver', '')
+                                ipver_vuln = vuln_row.get('IPver', '')
                                 label = vuln_row.get('Label', '')
                                 if label == 1 and (mode in vuln_row['Mode']):
                                     ptprinthelper.ptprint(f"    {code}: {desc}", "VULN", colortext=True)
