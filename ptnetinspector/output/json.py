@@ -10,9 +10,28 @@ from ptnetinspector.utils.ip_utils import (
 from ptnetinspector.utils.ip_utils import in6_getansma, in6_getnsma
 from ptnetinspector.utils.oui import lookup_vendor_from_csv
 from ptnetinspector.utils.cli import ptjsonlib_object
+from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
+from ptnetinspector.send.send import IPMode
 
 
 class Json:
+    @staticmethod
+    def filter_ips_by_mode(df: pd.DataFrame, ipver: IPMode) -> pd.DataFrame:
+        """Return rows whose IP matches enabled IP versions."""
+        if 'IP' not in df.columns or (ipver.ipv4 and ipver.ipv6):
+            return df
+
+        def is_allowed(ip: str) -> bool:
+            if is_valid_ipv6(ip):
+                return ipver.ipv6
+            try:
+                ipaddress.IPv4Address(ip)
+                return ipver.ipv4
+            except (ipaddress.AddressValueError, ValueError, TypeError):
+                return False
+
+        return df[df['IP'].apply(is_allowed)].reset_index(drop=True)
+
     @staticmethod
     def convert_role_to_list(role: str) -> list:
         """Convert the role string to a list by splitting at semicolon."""
@@ -36,11 +55,11 @@ class Json:
         return vulns
 
     @staticmethod
-    def output_property() -> dict:
+    def output_property(ipver: IPMode) -> dict:
         """Extracts network properties from CSV files and adds them to the JSON object."""
         ra_file = get_csv_path("RA.csv")
         
-        if has_additional_data(ra_file):
+        if ipver.ipv6 and has_additional_data(ra_file):
             df = pd.read_csv(ra_file)
             for value in df['Prefix'].unique():
                 if value != "[]":
@@ -88,7 +107,7 @@ class Json:
     def _create_ipv6_address_node(ip: str, device_number: int, key_node_ele: str, all_ip: list) -> bool:
         """Create and add an IPv6 address node."""
         if is_llsnm_ipv6(ip):
-            list_solicited_ip = [in6_getnsma(addr) for addr in [ip] if is_link_local_ipv6(addr) or is_global_unicast_ipv6(addr) or is_ipv6_ula(addr)]
+            list_solicited_ip = [in6_getnsma(addr) for addr in [ip] if not is_llsnm_ipv6(addr)]
             if ip not in list_solicited_ip:
                 node = ptjsonlib_object.create_node_object(
                     node_type="Address", parent_type=f"Device {device_number}",
@@ -99,7 +118,7 @@ class Json:
                 if isinstance(node, dict):
                     ptjsonlib_object.add_node(node)
                     return True
-        elif is_global_unicast_ipv6(ip) or is_link_local_ipv6(ip) or is_ipv6_ula(ip):
+        elif not is_llsnm_ipv6(ip):
             desc = "duplicated address, probably not owned" if all_ip.count(ip) >= 2 else "normal address"
             node = ptjsonlib_object.create_node_object(
                 node_type="Address", parent_type=f"Device {device_number}",
@@ -132,12 +151,35 @@ class Json:
         return False
 
     @staticmethod
-    def output_object(extract_to_json: bool = True, mode: str = None, target_codes: set[str] | None = None) -> dict:
+    def output_object(extract_to_json: bool = True, mode: str = None, target_codes: set[str] | None = None, ipver: IPMode | None = None) -> dict:
         """Main function to extract all network information and output as JSON."""
-        target_codes_set = {code.upper() for code in target_codes} if target_codes else None
+        if ipver is None:
+            ipver = IPMode(True, True)
+
+        if not isinstance(ptjsonlib_object.json_object, dict):
+            # Ensure json object is in a clean state (covers repeated calls in tests)
+            ptjsonlib_object.__init__()
+        
+        # Convert Test codes to vulnerability Codes
+        target_codes_set = None
+        if target_codes:
+            try:
+                test_catalog = load_vuln_catalog_by_test()
+                vuln_codes = set()
+                for test_code in target_codes:
+                    test_code_upper = test_code.upper()
+                    if test_code_upper in test_catalog:
+                        for entry in test_catalog[test_code_upper]:
+                            vuln_codes.add(entry["Code"].upper())
+                target_codes_set = vuln_codes if vuln_codes else None
+            except Exception:
+                # If catalog load fails, treat as no filter
+                target_codes_set = None
+        
         start_end_file = get_csv_path("start_end_mode.csv")
         delete_middle_content_csv(start_end_file)
-        Json.output_property()
+
+        Json.output_property(ipver)
         Json.output_vul_net(mode, target_codes=target_codes_set)
 
         if not extract_to_json:
@@ -151,6 +193,7 @@ class Json:
         if (has_additional_data(addresses_file) or has_additional_data(addresses_unfiltered_file)) and has_additional_data(role_node_file):
             role_node_df = pd.read_csv(role_node_file)
             addresses_df = pd.read_csv(addresses_file) if has_additional_data(addresses_file) else pd.read_csv(addresses_unfiltered_file)
+            addresses_df = Json.filter_ips_by_mode(addresses_df, ipver)
             all_ip = addresses_df['IP'].to_list()
             vuln_df = pd.read_csv(vulnerability_file) if has_additional_data(vulnerability_file) else None
 
