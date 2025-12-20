@@ -1,3 +1,7 @@
+"""Entity for IGMPv1/v2 multicast membership observations.
+
+Extends Node with protocol/multicast specifics and persists to CSV.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node

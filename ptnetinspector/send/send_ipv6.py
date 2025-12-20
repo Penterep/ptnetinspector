@@ -1,3 +1,8 @@
+"""IPv6 active sending primitives.
+
+Implements Scapy-based probes for IPv6 (ICMPv6, RA/RS, mDNS/LLMNR, DHCPv6,
+MLD/Multicast, etc.) that complement passive capture in active/aggressive modes.
+"""
 import ipaddress
 import csv
 import time

@@ -36,7 +36,7 @@ class TestPassiveScanEndToEnd:
         assert args.t == ['p']
         assert args.j is True
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-more'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-vv'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_passive_with_more_detail(self, mock_intf_list):
         """Test passive scan with more detail output."""
@@ -44,7 +44,7 @@ class TestPassiveScanEndToEnd:
         
         args = parse_args()
         assert args.t == ['p']
-        assert args.more is True
+        assert args.vv is True
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-less'])
     @patch('netifaces.interfaces', return_value=['eth0'])
@@ -100,7 +100,7 @@ class TestPassiveScanEndToEnd:
         # With -nc flag, nc becomes False (store_false)
         assert args.nc is False
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-d', '10', '-j', '-more', '-4'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-d', '10', '-j', '-vv', '-4'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_passive_combined_options(self, mock_intf_list):
         """Test passive scan with multiple options combined."""
@@ -110,7 +110,7 @@ class TestPassiveScanEndToEnd:
         assert args.t == ['p']
         assert args.d == '10'
         assert args.j is True
-        assert args.more is True
+        assert args.vv is True
         assert args.ipv4 is True
 
 
@@ -329,7 +329,7 @@ class TestEAPScanEndToEnd:
         assert args.t == ['802.1x']
         assert args.j is True
 
-    @patch('sys.argv', ['ptnetinspector', '-t', '802.1x', '-i', 'eth0', '-more'])
+    @patch('sys.argv', ['ptnetinspector', '-t', '802.1x', '-i', 'eth0', '-vv'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_eap_with_more_detail(self, mock_intf_list):
         """Test 802.1x scan with more detail."""
@@ -337,7 +337,7 @@ class TestEAPScanEndToEnd:
         
         args = parse_args()
         assert args.t == ['802.1x']
-        assert args.more is True
+        assert args.vv is True
 
     @patch('sys.argv', ['ptnetinspector', '-t', '802.1x', '-i', 'eth0', '-4'])
     @patch('netifaces.interfaces', return_value=['eth0'])
@@ -426,14 +426,14 @@ class TestOutputFormatEndToEnd:
         # Without -n flag, n is True (default)
         assert args.n is True
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-more'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-vv'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_more_detail_output(self, mock_intf_list):
         """Test more detail output flag."""
         from ptnetinspector.utils.cli import parse_args
         
         args = parse_args()
-        assert args.more is True
+        assert args.vv is True
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-less'])
     @patch('netifaces.interfaces', return_value=['eth0'])
@@ -539,7 +539,7 @@ class TestErrorHandling:
 class TestComprehensiveScenarios:
     """End-to-end tests for comprehensive real-world scenarios."""
 
-    @patch('sys.argv', ['ptnetinspector', '-t', '802.1x', 'p', 'a', '-i', 'eth0', '-j', '-more', '-4'])
+    @patch('sys.argv', ['ptnetinspector', '-t', '802.1x', 'p', 'a', '-i', 'eth0', '-j', '-vv', '-4'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_multi_mode_scan_with_options(self, mock_intf_list):
         """Test multiple scan modes with various output options."""
@@ -555,7 +555,7 @@ class TestComprehensiveScenarios:
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', 
                         '-smac', 'aa:bb:cc:dd:ee:ff', '-sip', '2001:db8::1', 
-                        '-rpref', 'High', '-mtu', '1280', '-da+', '120', '-j', '-more'])
+                        '-rpref', 'High', '-mtu', '1280', '-da+', '120', '-j', '-vv'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_scan_all_options(self, mock_intf_list):
         """Test aggressive scan with all optional parameters."""

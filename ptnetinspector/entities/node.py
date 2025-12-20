@@ -1,3 +1,7 @@
+"""Base entity for discovered nodes (MAC/IP pairs).
+
+Provides shared CSV persistence and loading utilities for specialized entities.
+"""
 import csv
 import subprocess
 from ptnetinspector.utils.path import get_csv_path

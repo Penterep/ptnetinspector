@@ -1,3 +1,9 @@
+"""Active sending helpers for discovery and validation.
+
+Wraps Scapy routines that send probes (e.g., EAPOL, LLMNR/mDNS triggers) to
+solicit responses, complementing passive capture when active/aggressive modes
+are selected.
+"""
 import ipaddress
 import csv
 import socket
@@ -42,7 +48,12 @@ class Send:
 
     @staticmethod
     def send_llmnr_mdns(interface, ip_mode):
-        # Function to send LLMNR and mDNS to find the addresses both in layer IP and Payload
+        """Send LLMNR and mDNS queries to discover hosts and addresses.
+
+        Args:
+            interface (str): Network interface name.
+            ip_mode (IPMode): Enabled IP versions (IPv4/IPv6).
+        """
         csv_file = get_csv_path('addresses.csv')
         with open(csv_file, newline='') as csvfile:
             # Create a CSV reader object

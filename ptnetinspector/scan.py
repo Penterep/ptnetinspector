@@ -1,3 +1,8 @@
+"""Packet capture, analysis, and active probing utilities.
+
+This module contains sniffing logic and protocol parsers that extract network
+facts into CSV artifacts, used later for both human-readable and JSON outputs.
+"""
 import csv
 import multiprocessing
 import pandas as pd
@@ -360,11 +365,15 @@ class Save:
 class Run:
     @staticmethod
     def run_normal_mode(interface, mode, ip_mode, timeout):
-        """
-        Run normal sniffing and sending mode.
+        """Run normal (passive/active/802.1x) scanning workflow.
 
-        input: interface (str), mode (str), ip_mode (IPMode), timeout (int)
-        output: None (writes to files, updates objects)
+        Args:
+            interface (str): Network interface name.
+            mode (str): One of "802.1x", "p", "a".
+            ip_mode (IPMode): Enabled IP versions.
+            timeout (int | None): Duration for passive capture or 802.1x wait.
+        Returns:
+            None. Writes CSV artifacts and updates derived files.
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:  
@@ -446,16 +455,30 @@ class Run:
             remove_duplicates_from_csv(get_csv_path("MLDv2.csv"))
             remove_duplicates_from_csv(get_csv_path("RA.csv"))
             remove_duplicates_from_csv(get_csv_path("localname.csv"))
-            sort_csv_role_node(interface, get_csv_path("role_node.csv"))
+            sort_csv_role_node(interface, get_csv_path("role_node.csv", interface))
 
     @staticmethod
     def run_aggressive_mode(interface, ip_mode, prefix_len, network, source_mac, source_ip, rpref, duration, period, chl, mtu, dns):
-        """
-        Run aggressive sniffing and sending mode.
+        """Run aggressive scanning workflow (active senders + parallel capture).
 
-        input: interface (str), ip_mode (IPMode), prefix_len (int), network (str), source_mac (str), source_ip (str),
-               rpref (str), duration (int), period (int), chl (str), mtu (int), dns (str)
-        output: None (runs processes)
+        Spawns multiple processes to flood RA/NS/RS and concurrently run normal
+        active and passive flows.
+
+        Args:
+            interface (str): Network interface name.
+            ip_mode (IPMode): Enabled IP versions.
+            prefix_len (int): IPv6 prefix length for RA.
+            network (str): IPv6 network/prefix for RA.
+            source_mac (str): Source MAC to use in frames.
+            source_ip (str): Source IP to use where applicable.
+            rpref (str): Router preference for RA.
+            duration (int): Duration for aggressive run.
+            period (int): Period for repeating sends.
+            chl (str): Channel or auxiliary param used by senders.
+            mtu (int): MTU to advertise.
+            dns (str | list[str]): DNS server(s) to advertise.
+        Returns:
+            None. Coordinates subprocesses and writes CSV artifacts.
         """
         p1 = multiprocessing.Process(target=SendIPv6.send_RA,
                                      args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, True, period, duration])

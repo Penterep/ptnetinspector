@@ -1,3 +1,7 @@
+"""Helpers for network prefix discovery and persistence.
+
+Loads and writes local IPv4/IPv6 network information used by probes/filters.
+"""
 import csv
 import ipaddress
 import netifaces
@@ -7,13 +11,10 @@ from ptnetinspector.utils.path import get_csv_path
 class Networks:
     @staticmethod
     def load_networks() -> tuple[list[ipaddress.IPv4Network], list[ipaddress.IPv6Network]]:
-        """
-        Load networks from a CSV file and return lists of IPv4 and IPv6 subnets.
+        """Load network prefixes from CSV and return IPv4/IPv6 subnets.
 
         Returns:
-            tuple: A tuple containing two lists:
-                - List of IPv4 subnets (ipaddress.IPv4Network objects)
-                - List of IPv6 subnets (ipaddress.IPv6Network objects)
+            tuple: (list of IPv4 networks, list of IPv6 networks).
         """
         ipv4_subnets = []
         ipv6_subnets = []

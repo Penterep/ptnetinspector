@@ -1,3 +1,7 @@
+"""Entity for LLMNR responders observed on the network.
+
+Persists observed MAC/IP pairs responding to LLMNR into CSV.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node

@@ -1,3 +1,8 @@
+"""CLI parsing, validation, and normalization for ptnetinspector.
+
+Exposes argument parsing, normalization to internal types, and convenience
+helpers to validate network-related inputs and drive scan configuration.
+"""
 import argparse
 import logging
 import os
@@ -79,8 +84,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-t", nargs='+', choices=["802.1x", "p", "a", "a+"], help="first mandatory argument")
     parser.add_argument("-i", dest="interface", help="second mandatory argument")
     parser.add_argument("-j", action="store_true")
-    parser.add_argument("-n", action="store_false")
-    parser.add_argument("-more", action="store_true", default=False)
+    parser.add_argument("-target", dest="target_macs", nargs="+", action="append", help="target device MAC address(es) for results filtering (space-separated; -target can be repeated)")
+    parser.add_argument("-vv", action="store_true", default=False)
     parser.add_argument("-less", action="store_true", default=False)
     parser.add_argument("-nc", action="store_false", default=True)
     parser.add_argument("-4", dest="ipv4", action="store_true", default=False)
@@ -97,6 +102,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-mtu", action="store", help="the MTU of RA in aggressive mode.")
     parser.add_argument("-nofwd", action="store_true", default=False)
     parser.add_argument("-ts", dest="target_codes", nargs="+", help="filter vulnerabilities by code (space-separated)")
+    parser.add_argument("-tmpret", dest="tmp_retention", type=float, default=1800.0, help="temporary file retention in seconds (default: 1800)")
 
     # Print help message if no arguments provided or "-h" is used
     if len(sys.argv) == 1 or "-h" in sys.argv:
@@ -141,13 +147,14 @@ def get_help() -> list:
             ["                ", "   a+        Aggressive mode - perform tests as fake router"],
             ["-i              ", "Interface (mandatory)"],
             ["-j              ", "Output in JSON format"],
-            ["-n              ", "Do not delete .csv files in tmp folder"],
-            ["-more           ", "Show full details of network scan"],
+            ["-target         ", "Target device MAC address(es) for filtering (space-separated; only show results for these devices)"],
+            ["-vv             ", "Show full details of network scan"],
             ["-less           ", "Show minimum details of network scan"],
             ["-nc             ", "Do not check if found addresses are valid"],
             ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
             ["-6              ", "Only IPv6 traffic"],
-            ["-ts             ", "Filter vulnerabilities by Test code (space-separated, e.g., -ts 4-MDNS 4-LLMNR)"],
+            ["-ts             ", "Filter vulnerabilities by Test code (space-separated, e.g., -ts 4-MDNS 6-LLMNR)"],
+            ["-tmpret         ", "Temporary file retention in seconds (default: 1800; set small for dev reset)"],
             ["-h              ", "Show this help message and exit"]
         ]},
         {"passive scan options (mode p)": [
@@ -181,7 +188,7 @@ def get_help() -> list:
             [""],
             ["Active mode:"],
             ["   Test vulnerabilities such as IPv4/IPv6, MLD/IGMP, ICMPv6/ICMP, LLMNR, mDNS, DHCPv6/DHCP, WS-Discovery"],
-            ["      ptnetinspector -t a -i eth0 -more"],
+            ["      ptnetinspector -t a -i eth0 -vv"],
             ["      ptnetinspector -t a -i eth0 -less -j"],
             [""],
             ["Aggressive mode:"],
@@ -191,15 +198,14 @@ def get_help() -> list:
             [""],
             ["Combined modes:"],
             ["   Run multiple scan modes in sequence"],
-            ["      ptnetinspector -t 802.1x p -i eth0 -j -d 10"],
-            ["      ptnetinspector -t 802.1x a a+ -i eth0 -more"],
+            ["      ptnetinspector -t 802.1x a a+ -i eth0 -vv"],
             [""],
             ["Test code filtering (-ts):"],
             ["   Run only specific tests by Test code (auto-infers mode and IP version)"],
-            ["      ptnetinspector -ts 4-MDNS 4-LLMNR -i eth0 -j"],
+            ["      ptnetinspector -ts 4-MDNS 6-LLMNR -i eth0 -j"],
             ["      ptnetinspector -ts 6-MLDV1 -i eth0"],
             ["      ptnetinspector -ts 6-OUTRANGE -i eth0"],
-            ["      ptnetinspector -ts 6-FAKERA -i eth0 -dns 2001:4860:4860::8888 (DNS must be specified for FAKERADNS)"],
+            ["      ptnetinspector -ts 6-FAKERA -i eth0 -prefix 2001:db8::/64 -dns 2001:4860:4860::8888 (FAKERA requires prefix and DNS)"],
         ]}
     ]
 
@@ -384,7 +390,7 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
 
     # If user didn't specify scan types, infer from Test codes using custom rules
     if not inferred_scan_types:
-        # Gather modes per entry to check exclusivity
+        # Gather modes per entry to check exclusivity and compose a combined scan plan
         modes_per_entry: list[list[str]] = []
         for entry in associated_vulns.values():
             mode_field = entry.get("Mode", "")
@@ -396,18 +402,42 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
             list_error.append("Cannot infer scan mode from Test code(s). Please specify -t explicitly. Program exits!")
             return None
 
-        # Rule 1: If any Test maps exclusively to 802.1x, choose 802.1x
-        any_exclusive_eap = any(modes == ["802.1x"] for modes in modes_per_entry)
-        if any_exclusive_eap:
-            inferred_scan_types = ["802.1x"]
-        else:
-            # Rule 2: If any Test belongs only to a+ (and not a,a+ or p,a,a+), choose a+
-            any_exclusive_aggr = any(modes == ["a+"] for modes in modes_per_entry)
-            if any_exclusive_aggr:
-                inferred_scan_types = ["a+"]
-            else:
-                # Default: use active (a) if possible
-                inferred_scan_types = ["a"]
+        has_eap = False
+        has_passive = False
+        has_active = False
+        has_aggressive = False
+        aggressive_only = False
+
+        for modes in modes_per_entry:
+            if modes == ["802.1x"]:
+                has_eap = True
+            if "p" in modes:
+                has_passive = True
+            if modes == ["a+"]:
+                aggressive_only = True
+            if "a" in modes:
+                has_active = True
+            if "a+" in modes:
+                has_aggressive = True
+
+        inferred_scan_types = []
+
+        if has_eap:
+            inferred_scan_types.append("802.1x")
+        if has_passive:
+            inferred_scan_types.append("p")
+
+        # Prefer the least intrusive option unless a+ is mandatory
+        if aggressive_only:
+            inferred_scan_types.append("a+")
+        elif has_active:
+            inferred_scan_types.append("a")
+        elif has_aggressive:
+            inferred_scan_types.append("a+")
+
+        if not inferred_scan_types:
+            list_error.append("Cannot infer scan mode from Test code(s). Please specify -t explicitly. Program exits!")
+            return None
 
     # If user didn't specify IP version, infer from test codes
     # Check if user explicitly specified -4 or -6 (not just using defaults)
@@ -463,6 +493,26 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
         return None
 
     return (normalized, inferred_scan_types, inferred_ip_mode, auto_filled_params)
+
+
+def _require_fakera_params(validated_target_codes, prefix, dns, list_error) -> None:
+    """Ensure FAKERA-related tests have required RA parameters."""
+    if not validated_target_codes:
+        return
+    if not any("FAKERA" in code for code in validated_target_codes):
+        return
+
+    if prefix is None or not is_valid_ipv6_prefix(prefix):
+        list_error.append("Test code FAKERA requires -prefix with a valid IPv6 prefix. Program exits!")
+
+    if not dns:
+        list_error.append("Test code FAKERA requires -dns with at least one IPv6 address. Program exits!")
+    else:
+        invalid_dns = [addr for addr in dns if not is_valid_ipv6(addr)]
+        if invalid_dns:
+            list_error.append(
+                f"Test code FAKERA requires IPv6 DNS address(es); invalid: {', '.join(invalid_dns)}. Program exits!"
+            )
 
 
 def _validate_passive_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning) -> float:
@@ -685,84 +735,104 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
 
 def _print_errors(list_error, json_output, more_detail) -> None:
     """Print accumulated errors and exit."""
-    if not json_output or more_detail:
-        Non_json.print_box("Errors about inserted parameters")
-        for info in list_error:
-            ptprinthelper.ptprint(info, "ERROR")
+    # Ensure stdout is restored (in case blockPrint was applied earlier)
+    enablePrint()
+    # JSON mode: if -vv (more_detail), print both terminal errors and JSON object
     if json_output:
-        print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
+        if more_detail:
+            Non_json.print_box("Errors about inserted parameters")
+            for info in list_error:
+                ptprinthelper.ptprint(info, "ERROR", condition=True, indent=4)
+            # Print JSON error next
+            print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
+            # Then show help
+            ptprinthelper.help_print(get_help(), SCRIPTNAME, __version__)
+            sys.exit(0)
+        else:
+            # -j without -vv: emit only JSON error payload
+            print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
+            sys.exit(0)
+
+    # Text mode only
+    Non_json.print_box("Errors about inserted parameters")
+    for info in list_error:
+        ptprinthelper.ptprint(info, "ERROR", condition=True, indent=4)
     ptprinthelper.help_print(get_help(), SCRIPTNAME, __version__)
     sys.exit(0)
 
 
 def _print_warnings(list_warning, json_output, more_detail, less_detail) -> None:
     """Print accumulated warnings."""
+    GREY = "\033[90m"
+    END = "\033[0m"
     if (not json_output or more_detail) and not less_detail:
         if len(list_warning) >= 1:
             Non_json.print_box("Warning about inserted parameters")
             for info in list_warning:
-                ptprinthelper.ptprint(info, "WARNING")
+                ptprinthelper.ptprint(f"{GREY}{info}{END}", "WARNING", condition=True, indent=4)
 
 
-def _print_parameter_info(interface, ip_mode, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, target_codes) -> None:
+def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, target_codes, target_macs, tmp_retention) -> None:
     """Print information about inserted parameters."""
     if not less_detail:
         Non_json.print_box("Information about inserted parameters")
-        ptprinthelper.ptprint("Interface: " + interface, "INFO")
+        ptprinthelper.ptprint(f"Interface: {interface}", "INFO", condition=True, indent=4)
         if ip_mode.ipv4 and ip_mode.ipv6:
-            ptprinthelper.ptprint("IPv4 and IPv6 mode", "INFO")
+            ptprinthelper.ptprint("IPv4 and IPv6 mode", "INFO", condition=True, indent=4)
         elif ip_mode.ipv4 and not ip_mode.ipv6:
-            ptprinthelper.ptprint("IPv4-only mode", "INFO")
+            ptprinthelper.ptprint("IPv4-only mode", "INFO", condition=True, indent=4)
         elif ip_mode.ipv6 and not ip_mode.ipv4:
-            ptprinthelper.ptprint("IPv6-only mode", "INFO")
+            ptprinthelper.ptprint("IPv6-only mode", "INFO", condition=True, indent=4)
         if json_output:
-            ptprinthelper.ptprint("Allowing json output", "INFO")
+            ptprinthelper.ptprint("Allowing json output", "INFO", condition=True, indent=4)
         if not json_output:
-            ptprinthelper.ptprint("Disabling json output", "INFO")
-        if not del_tmp:
-            ptprinthelper.ptprint("Temporary files are not deleted after all", "INFO")
-        if del_tmp:
-            ptprinthelper.ptprint("Temporary files are deleted after all", "INFO")
+            ptprinthelper.ptprint("Disabling json output", "INFO", condition=True, indent=4)
+        ptprinthelper.ptprint("Temporary files are deleted after all", "INFO", condition=True, indent=4)
         
         for ele in type:
             if ele == "802.1x":
-                ptprinthelper.ptprint(f"Using mode {ele}", "INFO")
+                ptprinthelper.ptprint(f"Using mode {ele}", "INFO", condition=True, indent=4)
             if ele == "p":
-                ptprinthelper.ptprint(f"Using mode passive", "INFO")
+                ptprinthelper.ptprint(f"Using mode passive", "INFO", condition=True, indent=4)
             if ele == "a":
-                ptprinthelper.ptprint(f"Using mode active", "INFO")
+                ptprinthelper.ptprint(f"Using mode active", "INFO", condition=True, indent=4)
             if ele == "a+":
-                ptprinthelper.ptprint(f"Using mode aggressive", "INFO")
+                ptprinthelper.ptprint(f"Using mode aggressive", "INFO", condition=True, indent=4)
         
         if more_detail:
-            ptprinthelper.ptprint(f"Displaying full detail (except for mode 802.1x)", "INFO")
+            ptprinthelper.ptprint("Displaying full detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
         if not more_detail:
-            ptprinthelper.ptprint(f"Displaying only basic detail (except for mode 802.1x)", "INFO")
+            ptprinthelper.ptprint("Displaying only basic detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
         if check_addresses:
-            ptprinthelper.ptprint("Checking the found addresses if they are valid or not", "INFO")
+            ptprinthelper.ptprint("Checking the found addresses if they are valid or not", "INFO", condition=True, indent=4)
         if not check_addresses:
-            ptprinthelper.ptprint("Not checking the found addresses if they are valid or not", "INFO")
+            ptprinthelper.ptprint("Not checking the found addresses if they are valid or not", "INFO", condition=True, indent=4)
         
         if "p" in type:
-            ptprinthelper.ptprint(f"Passive duration: {duration_passive}s", "INFO")
+            ptprinthelper.ptprint(f"Passive duration: {duration_passive}s", "INFO", condition=True, indent=4)
         if "a" in type:
-            ptprinthelper.ptprint(f"Source MAC used in active mode: {smac}", "INFO")
+            ptprinthelper.ptprint(f"Source MAC used in active mode: {smac}", "INFO", condition=True, indent=4)
         if "a+" in type:
-            ptprinthelper.ptprint(f"Aggressive duration (time being the fake router): {duration_aggressive}s", "INFO")
-            ptprinthelper.ptprint(f"Network prefix used in aggressive mode: {network}/{prefix_len}", "INFO")
-            ptprinthelper.ptprint(f"Source MAC used in aggressive mode: {smac}", "INFO")
-            ptprinthelper.ptprint(f"Source IP used in aggressive mode: {sip}", "INFO")
-            ptprinthelper.ptprint(f"Preference flag of RA used in aggressive mode: {convert_preferenceRA(rpref)}", "INFO")
-            ptprinthelper.ptprint(f"Sending rate of RA used in aggressive mode: 1 packet per {period}s", "INFO")
-            ptprinthelper.ptprint(f"Current hop limit of RA used in aggressive mode: {chl}", "INFO")
-            ptprinthelper.ptprint(f"MTU of RA used in aggressive mode: {mtu}", "INFO")
-            ptprinthelper.ptprint(f"DNS of RA used in aggressive mode: {dns}", "INFO")
+            ptprinthelper.ptprint(f"Aggressive duration (time being the fake router): {duration_aggressive}s", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"Network prefix used in aggressive mode: {network}/{prefix_len}", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"Source MAC used in aggressive mode: {smac}", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"Source IP used in aggressive mode: {sip}", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"Preference flag of RA used in aggressive mode: {convert_preferenceRA(rpref)}", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"Sending rate of RA used in aggressive mode: 1 packet per {period}s", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"Current hop limit of RA used in aggressive mode: {chl}", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"MTU of RA used in aggressive mode: {mtu}", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"DNS of RA used in aggressive mode: {dns}", "INFO", condition=True, indent=4)
             if not nofwd:
-                ptprinthelper.ptprint(f"Packets to remote network will be forwarded through the scanner in aggressive mode", "INFO")
+                ptprinthelper.ptprint("Packets to remote network will be forwarded through the scanner in aggressive mode", "INFO", condition=True, indent=4)
             if nofwd:
-                ptprinthelper.ptprint(f"Packets to remote network will be dropped at the scanner in aggressive mode", "INFO")
+                ptprinthelper.ptprint("Packets to remote network will be dropped at the scanner in aggressive mode", "INFO", condition=True, indent=4)
         if target_codes:
-            ptprinthelper.ptprint(f"Target vulnerability codes: {sorted(target_codes)}", "INFO")
+            ptprinthelper.ptprint(f"Target vulnerability codes: {sorted(target_codes)}", "INFO", condition=True, indent=4)
+
+        if target_macs:
+            ptprinthelper.ptprint(f"Target devices (MAC addresses): {sorted(m.lower() for m in target_macs)}", "INFO", condition=True, indent=4)
+
+        ptprinthelper.ptprint(f"Temporary file retention: {tmp_retention}s", "INFO", condition=True, indent=4)
 
 
 # ============================================================================
@@ -772,7 +842,6 @@ def _print_parameter_info(interface, ip_mode, json_output, del_tmp, type, more_d
 def parameter_control(
     interface,
     json_output,
-    del_tmp,
     type,
     more_detail,
     less_detail,
@@ -791,6 +860,8 @@ def parameter_control(
     dns,
     nofwd,
     target_codes,
+    tmp_retention,
+    target_macs,
 ) -> tuple:
     """
     Checks and validates inserted parameters. Returns all variables if no error, otherwise prints errors and exits.
@@ -798,85 +869,141 @@ def parameter_control(
     output: tuple of validated parameters
     description: Validates arguments for scan modes, prints warnings/errors, and returns standardized parameter set.
     """
-    list_error = []
-    list_warning = []
+    list_error: list[str] = []
+    list_warning: list[str] = []
 
-    # Turning off logging
     logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
-    # Validate mandatory arguments
     _validate_mandatory_args(type, interface, json_output, more_detail, target_codes)
     _validate_type_combination(type, json_output, more_detail)
     _validate_interface(interface, json_output, more_detail)
 
-    # Setup IP mode
-    if not ipv4 and not ipv6:
-        ip_mode = IPMode(False, True)
-    else:
-        ip_mode = IPMode(ipv4, ipv6)
+    ip_mode = IPMode(ipv4, ipv6) if (ipv4 or ipv6) else IPMode(False, True)
 
     _validate_detail_flags(more_detail, less_detail, json_output)
 
-    # Handle -ts (Test code) filtering
+    try:
+        tmp_retention = float(tmp_retention) if tmp_retention is not None else 1800.0
+        if tmp_retention <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        tmp_retention = 1800.0
+        list_warning.append("Temporary file retention must be > 0; using default 1800s")
+
     validated_target_codes = None
     inferred_type = type
     inferred_ip_mode = ip_mode
-    auto_filled_params = {}
-    
+
     if target_codes:
         validation_result = _validate_target_codes(target_codes, type, ip_mode, ipv4, ipv6, list_error, list_warning)
-        if validation_result is None:
-            # _validate_target_codes will have populated list_error
-            pass
-        else:
-            test_codes, inferred_type, inferred_ip_mode, auto_filled_params = validation_result
+        if validation_result is not None:
+            test_codes, inferred_type, inferred_ip_mode, _ = validation_result
             validated_target_codes = test_codes
-            # Use inferred values if user didn't specify them
             if not type:
                 type = inferred_type
-            if not ipv4 and not ipv6:
+            if not (ipv4 or ipv6) and inferred_ip_mode:
                 ip_mode = inferred_ip_mode
 
-    # Ensure type is set before mode-specific validation
+    _require_fakera_params(validated_target_codes, prefix, dns, list_error)
+
     if type is None:
         type = inferred_type if inferred_type else ["a"]
 
-    # Validate mode-specific parameters
     prefix_len = None
     network = None
 
     if type == ["p"] or ("p" in type and "802.1x" in type):
         duration_passive = _validate_passive_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning)
-
     elif type == ["802.1x"]:
         _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error)
-
     elif type == ["a"] or ("a" in type and "802.1x" in type and len(type) == 2):
         smac = _validate_active_mode(interface, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning)
-
     if type == ["a+"] or ("a+" in type and ("802.1x" in type or "a" in type)):
         duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns = _validate_aggressive_mode(
             interface, ip_mode, duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning
         )
 
-    # Print errors and exit if any
-    if len(list_error) >= 1:
+    if list_error:
         _print_errors(list_error, json_output, more_detail)
-
-    if json_output and not (more_detail or less_detail):
-        blockPrint()
-
-    _print_warnings(list_warning, json_output, more_detail, less_detail)
 
     if duration_aggressive is not None:
         duration_aggressive = float(duration_aggressive)
     if period is not None:
         period = float(period)
 
-    _print_parameter_info(interface, ip_mode, json_output, del_tmp, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, validated_target_codes)
+    validated_target_macs = None
+    if target_macs:
+        # Flatten when -target provided multiple times with nargs+ (list of lists)
+        flat_targets = []
+        for item in target_macs:
+            if isinstance(item, list):
+                flat_targets.extend(item)
+            else:
+                flat_targets.append(item)
+        normalized = set()
+        for mac in flat_targets:
+            mac_upper = mac.upper()
+            if not is_valid_mac(mac_upper):
+                list_error.append(f"Invalid MAC address: {mac}")
+            else:
+                normalized.add(mac_upper)
+        if list_error:
+            _print_errors(list_error, json_output, more_detail)
+        if normalized:
+            validated_target_macs = normalized
+
+    if json_output and not (more_detail or less_detail):
+        blockPrint()
+
+    if not list_error:
+        _print_warnings(list_warning, json_output, more_detail, less_detail)
+
+    _print_parameter_info(
+        interface,
+        ip_mode,
+        json_output,
+        type,
+        more_detail,
+        less_detail,
+        check_addresses,
+        duration_passive,
+        duration_aggressive,
+        network,
+        prefix_len,
+        smac,
+        sip,
+        rpref,
+        period,
+        chl,
+        mtu,
+        dns,
+        nofwd,
+        validated_target_codes,
+        validated_target_macs,
+        tmp_retention,
+    )
 
     return (
-        interface, json_output, del_tmp, type, more_detail, less_detail, check_addresses,
-        ip_mode, duration_passive, duration_aggressive, prefix_len, network, smac, sip,
-        rpref, period, chl, mtu, dns, nofwd, validated_target_codes
+        interface,
+        json_output,
+        type,
+        more_detail,
+        less_detail,
+        check_addresses,
+        ip_mode,
+        duration_passive,
+        duration_aggressive,
+        prefix_len,
+        network,
+        smac,
+        sip,
+        rpref,
+        period,
+        chl,
+        mtu,
+        dns,
+        nofwd,
+        validated_target_codes,
+        tmp_retention,
+        validated_target_macs,
     )

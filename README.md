@@ -108,14 +108,15 @@ The following options are applicable to all scan modes:
 |---------|-------------|
 | `-t`    | Type of scan (**mandatory**, can choose more than one): <br> - `802.1x`: Network test for 802.1x protocol <br> - `a`: Active mode for network scanning <br> - `a+`: Aggressive mode for network scanning <br> - `p`: Passive mode for network scanning |
 | `-i`    | Interface (**mandatory**) |
+| `-target` | Target device(s) by MAC address (space-separated or repeated). Filters output to only show results for specified MAC(s). Example: `-target ca:01:08:2b:00:01 -target 00:0c:29:35:45:d8` or `-target ca:01:08:2b:00:01 00:0c:29:35:45:d8` |
 | `-j`    | Output in JSON format. Displays only JSON output unless used with other options. Includes errors if present. |
-| `-n`    | Prevents deletion of `.csv` files in the `tmp` folder. |
-| `-more` | Displays full details of the network scan. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown. |
+| `-vv` | Displays full details of the network scan. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown. |
 | `-less` | Displays minimum details of the network scan. When used with `-j`, outputs minimal and JSON data. Default: Basic details are shown. |
 | `-nc`   | Disables checking if found addresses are valid and responsive. |
 | `-4`    | Only scan IPv4 traffic (cannot be used alone for `a+` mode). |
 | `-6`    | Only scan IPv6 traffic. |
-| `-ts`   | Filter vulnerabilities by Test code (space-separated). Only selected tests will be scanned and reported. Each code must be valid for the selected scan mode(s). Example: `-ts 4-MDNS 4-LLMNR 6-OUTRANGE` |
+| `-ts`   | Filter vulnerabilities by Test code (space-separated). Only selected tests will be scanned and reported. The tool will **automatically infer and schedule the required scan mode(s)**. Example: `-ts 4-MDNS 4-LLMNR 6-OUTRANGE` will auto-infer mode `a` (active). Mixed modes like `-ts 6-OUTRANGE 802-1X` will infer `[802.1x, a]`. |
+| `-tmpret` | Temporary file retention in seconds (default: 1800). Set a small value for quick cleanup during development. |
 | `-h`    | Displays help message and exits. |
 
 ### Specific Options for Passive Scanning
@@ -162,7 +163,7 @@ ptnetinspector -t p -i eth0 -less
 ### Active Mode
 Test vulnerabilities with packets such as MLD, ICMPv6, LLMNR, and mDNS.
 ```
-ptnetinspector -t a -i eth0 -more
+ptnetinspector -t a -i eth0 -vv
 ```
 
 ### Aggressive Mode
@@ -178,14 +179,14 @@ ptnetinspector -t 802.1x p -i eth0 -j -d 10
 ```
 
 ### Target-Specific Vulnerability Scanning
-Filter and scan only specific vulnerabilities using their Test codes. The tool will auto-infer the appropriate scan mode(s) and IP version(s).
+Filter and scan only specific vulnerabilities using their Test codes. The tool will **automatically infer the appropriate scan mode(s)** and IP version(s) based on the test codes provided.
 
 Scan IPv4 multicast tests:
 ```
 ptnetinspector -ts 4-MDNS 4-LLMNR -i eth0 -j
 ```
 
-Test ICMPv6 OUTRANGE vulnerability (active or aggressive mode):
+Test ICMPv6 OUTRANGE vulnerability (auto-infers active mode):
 ```
 ptnetinspector -ts 6-OUTRANGE -i eth0
 ```
@@ -195,9 +196,32 @@ Test FAKERA vulnerabilities (requires DNS to be specified for FAKERADNS detectio
 ptnetinspector -ts 6-FAKERA -i eth0 -dns 2001:4860:4860::8888
 ```
 
-Combine with multiple test codes:
+Combine multiple test codes (auto-infers mode `a`):
 ```
 ptnetinspector -ts 6-MLDV1 6-OUTRANGE -i eth0 -j
+```
+
+Mixed 802.1x and other tests (auto-infers modes `[802.1x, a]`):
+```
+ptnetinspector -ts 802-1X 6-OUTRANGE 4-MULTIECHO -i eth0
+```
+
+### Target-Specific Device Filtering
+Filter scan results to focus on specific devices using their MAC addresses:
+
+Scan and display results for a single target device:
+```
+ptnetinspector -t a -i eth0 -target ca:01:08:2b:00:01
+```
+
+Scan and display results for multiple target devices (using repeated flag):
+```
+ptnetinspector -t a -i eth0 -target ca:01:08:2b:00:01 -target 00:0c:29:35:45:d8
+```
+
+Scan and display results for multiple target devices (using space-separated):
+```
+ptnetinspector -t a -i eth0 -target ca:01:08:2b:00:01 00:0c:29:35:45:d8
 ```
 
 ## License

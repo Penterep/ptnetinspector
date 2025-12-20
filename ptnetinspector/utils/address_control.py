@@ -1,3 +1,8 @@
+"""Address mapping and validation helpers.
+
+Provides routines to read, validate, and enrich MAC/IP mappings collected
+during scans; used by both passive and active flows.
+"""
 import ipaddress
 import asyncio
 import csv
@@ -53,9 +58,9 @@ def filter_unicast_addresses(mappings: List[AddressMapping], ip_mode: IPMode) ->
     ipv4_subnets, ipv6_subnets = Networks.load_networks()
 
     if not ipv4_subnets and ip_mode.ipv4:
-        ptprinthelper.ptprint("Auto-detection of IPv4 subnets failed. All unicast IPv4 addresses will be kept.", "WARNING")
+        ptprinthelper.ptprint("\033[90mAuto-detection of IPv4 subnets failed. All unicast IPv4 addresses will be kept\033[0m", "WARNING", condition=True, indent=4)
     if not ipv6_subnets and ip_mode.ipv6:
-        ptprinthelper.ptprint("Auto-detection of IPv6 subnets failed. All unicast IPv6 addresses will be kept.", "WARNING")
+        ptprinthelper.ptprint("\033[90mAuto-detection of IPv6 subnets failed. All unicast IPv6 addresses will be kept\033[0m", "WARNING", condition=True, indent=4)
 
     for mapping in mappings:
         try:

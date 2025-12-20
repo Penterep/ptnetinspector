@@ -1,3 +1,7 @@
+"""Entity for MLDv2 multicast membership observations.
+
+Extends Node with report type, multicast and source list, persisted to CSV.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node

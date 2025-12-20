@@ -1,3 +1,7 @@
+"""Entity for IPv6 Router Advertisement details discovered.
+
+Persists RA fields per router into CSV for later analysis/output.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node

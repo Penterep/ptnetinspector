@@ -1,3 +1,7 @@
+"""WS-Discovery parsing and persistence helpers.
+
+Extracts XAddrs/endpoints from WS-Discovery packets and persists results.
+"""
 import csv
 import re
 import socket
