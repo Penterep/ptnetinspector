@@ -342,8 +342,30 @@ class Non_json:
             if target_macs_set:
                 addresses_df = addresses_df[addresses_df['MAC'].str.upper().isin(target_macs_set)]
                 role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(target_macs_set)]
+            
+            # Network and device vulnerability testing section
             try:
                 vuln_df = pd.read_csv(vulnerability_file)
+                
+                # Convert Test codes to vulnerability Codes if target_codes_set is provided
+                target_vuln_codes_set = None
+                if target_codes_set:
+                    try:
+                        test_catalog = load_vuln_catalog_by_test()
+                        vuln_codes = set()
+                        for test_code in target_codes_set:
+                            test_code_upper = test_code.upper()
+                            if test_code_upper in test_catalog:
+                                for entry in test_catalog[test_code_upper]:
+                                    vuln_codes.add(entry["Code"].upper())
+                        target_vuln_codes_set = vuln_codes if vuln_codes else None
+                    except Exception:
+                        target_vuln_codes_set = None
+                
+                # Collect ALL vulnerabilities (network + device) to determine overall test status
+                all_vuln_results = []
+                
+                # Process network vulnerabilities
                 net_vulns = vuln_df[vuln_df['ID'] == "Network"]
                 
                 # If target MACs specified, collect device vulnerabilities to correlate with network vulns
@@ -358,9 +380,11 @@ class Non_json:
                             target_device_vuln_codes.add(net_code)
                         target_device_vuln_codes.add(dev_code)
                 
+                # Collect network vulnerabilities matching criteria
+                network_vuln_results = []
                 for _, vuln_row in net_vulns.iterrows():
                     code = vuln_row.get('Code', '')
-                    if target_codes_set and code.strip().upper() not in target_codes_set:
+                    if target_vuln_codes_set and code.strip().upper() not in target_vuln_codes_set:
                         continue
                     
                     # If target MACs specified, only show network vulns related to target device vulns
@@ -371,16 +395,55 @@ class Non_json:
                             continue
                     
                     desc = vuln_row.get('Description', '')
-                    ipver_vuln = vuln_row.get('IPver', '')
                     label = vuln_row.get('Label', '')
                     short_code = extract_short_code(code)
                     if mode in vuln_row['Mode']:
+                        network_vuln_results.append((desc, short_code, label, code))
+                        all_vuln_results.append(label)
+                
+                # Collect device vulnerabilities matching criteria for overall test status
+                if target_vuln_codes_set:
+                    # Filter device vulnerabilities based on target_vuln_codes and target_macs
+                    for _, vuln_row in vuln_df.iterrows():
+                        if vuln_row['ID'] == "Network":
+                            continue
+                        code = vuln_row.get('Code', '')
+                        if code.strip().upper() not in target_vuln_codes_set:
+                            continue
+                        # If target MACs specified, filter by MAC
+                        if target_macs_set:
+                            mac = vuln_row.get('MAC', '').strip().upper()
+                            if mac not in target_macs_set:
+                                continue
+                        label = vuln_row.get('Label', '')
+                        if mode in vuln_row.get('Mode', ''):
+                            all_vuln_results.append(label)
+                
+                # Print overall test summary when using -ts (checks both network and device vulns)
+                if target_codes_set and all_vuln_results:
+                    has_any_vuln = any(label == 1 for label in all_vuln_results)
+                    # Format test codes for display
+                    test_codes_display = ', '.join(sorted(target_codes_set))
+                    if has_any_vuln:
+                        ptprinthelper.ptprint(f"There is security problem(s) found from the Test ({test_codes_display})", "ERROR", colortext=True, condition=True, indent=4)
+                    else:
+                        ptprinthelper.ptprint(f"No security problem(s) found from the Test ({test_codes_display})", "OK", colortext=True, condition=True, indent=4)
+                
+                # Print network vulnerabilities if any exist
+                if network_vuln_results:
+                    all_na = all(label not in (0, 1) for _, _, label, _ in network_vuln_results)
+                    header_text = "Network vulnerability test results:" if not all_na else "Network vulnerability test results: N/A"
+                    ptprinthelper.ptprint(header_text, "INFO", condition=True, indent=4)
+                    
+                    # Print individual network vulnerability results
+                    for desc, short_code, label, code in network_vuln_results:
                         if label == 1:
-                            ptprinthelper.ptprint(f"{desc} (...{short_code})", "VULN", colortext=True, condition=True, indent=4)
+                            ptprinthelper.ptprint(f"{desc} (...{short_code})", "VULN", colortext=True, condition=True, indent=8)
                         elif label == 0:
-                            ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=4)
+                            ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=8)
             except Exception:
                 pass
+            
             if target_macs_set:
                 resolved_targets = []
                 missing_targets = []
