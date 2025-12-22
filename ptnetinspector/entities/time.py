@@ -1,3 +1,7 @@
+"""Entity to track packet timestamps per MAC.
+
+Used for time-based correlation and ordering; persisted to CSV.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 

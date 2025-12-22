@@ -1,3 +1,8 @@
+"""IP utilities and helpers for validation, IPv4/IPv6 logic, and parsing.
+
+This module centralizes IP-related checks, conversions, and protocol helpers
+used throughout the scanner to interpret captured data and drive decisions.
+"""
 import datetime
 import ipaddress
 import socket

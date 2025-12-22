@@ -1,3 +1,7 @@
+"""Entity representing default gateways discovered on the network.
+
+Provides persistence helpers to record default gateway MAC/IP pairs into CSV.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 

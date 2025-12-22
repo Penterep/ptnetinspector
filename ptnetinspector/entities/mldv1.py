@@ -1,3 +1,7 @@
+"""Entity for MLDv1 multicast membership observations.
+
+Extends Node with protocol/multicast details and persists to CSV.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node

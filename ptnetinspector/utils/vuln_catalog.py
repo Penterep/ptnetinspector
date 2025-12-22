@@ -1,3 +1,8 @@
+"""Vulnerability catalog access utilities.
+
+Loads the static vulnerability catalog shipped with the package and exposes
+helpers to look up by code or by Test, used to filter/report vulnerabilities.
+"""
 import csv
 from pathlib import Path
 

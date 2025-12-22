@@ -1,3 +1,7 @@
+"""Entity for remote communication pairs observed in traffic.
+
+Captures src/dst MAC/IP tuples for flows and loads from CSV.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node

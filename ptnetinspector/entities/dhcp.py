@@ -1,3 +1,7 @@
+"""Entity for DHCP/DHCPv6 roles and addresses discovered.
+
+Supports loading DHCP-related MAC/IP/role tuples from CSV artifacts.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 

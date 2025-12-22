@@ -53,8 +53,8 @@ Source = "https://github.com/Penterep/ptnetinspector"
 [project.scripts]
 ptnetinspector = "ptnetinspector.main:main"
 
-[tool.setuptools]
-packages = ["ptnetinspector"]
+[tool.setuptools.packages.find]
+include = ["ptnetinspector*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "ptnetinspector._version.__version__"}

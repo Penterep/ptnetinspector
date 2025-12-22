@@ -1,3 +1,7 @@
+"""Entity for EAP/EAPOL events captured during 802.1x checks.
+
+Handles persistence of EAP observations in CSV form.
+"""
 import csv
 from ptnetinspector.utils.path import get_csv_path
 

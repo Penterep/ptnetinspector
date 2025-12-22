@@ -1,3 +1,8 @@
+"""IPv4 active sending primitives.
+
+Implements Scapy-based probes for IPv4 (ICMP, mDNS/LLMNR, DHCP, IGMP, etc.)
+that complement passive capture in active/aggressive modes.
+"""
 import ipaddress
 import random
 import time

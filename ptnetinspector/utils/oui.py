@@ -1,3 +1,8 @@
+"""OUI/vendor lookup utilities for MAC addresses.
+
+Handles reading the local manuf database and resolving MAC prefixes to vendor
+names, and exposes helpers used during CSV/JSON enrichment.
+"""
 import csv
 from collections import OrderedDict
 from pathlib import Path

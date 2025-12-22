@@ -1,3 +1,8 @@
+"""CSV creation, mutation, and utility helpers for ptnetinspector.
+
+Centralizes creation of tmp CSVs, sorting/cleanup, and simple analytics used by
+both the terminal (non-JSON) and JSON outputs.
+"""
 import csv
 import os
 import socket
@@ -8,14 +13,25 @@ from scapy.all import get_if_hwaddr
 from ptnetinspector.utils.path import get_csv_path, get_tmp_path
 
 
-def create_csv() -> None:
+def create_csv(interface: str | None = None) -> None:
     """
     Creates multiple CSV files with predefined headers in the temporary directory.
+
+    Args:
+        interface (str | None): Network interface name. If provided, creates CSVs in tmp/<interface>/ folder.
 
     Output:
         None
     """
-    directory = get_tmp_path()
+    directory = get_tmp_path(interface)
+    with open(f"{directory}/addresses.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/addresses_unfiltered.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
     with open(f"{directory}/packets.csv", 'w', newline='') as csvfile:
         fieldnames = ['time', 'src MAC', 'des MAC', 'source IP', 'destination IP', 'protocol', 'length']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -109,6 +125,10 @@ def create_csv() -> None:
         fieldnames = ['ID', 'MAC', 'Mode', 'IPver', 'Code', 'Description', 'Label']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
+    with open(f"{directory}/networks.csv", 'w', newline='') as csvfile:
+        fieldnames = ['network_prefix', 'prefix_length']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
 
 def sort_csv_based_MAC(interface: str, file_name: str) -> None:
     """
@@ -142,9 +162,9 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
     Output:
         None
     """
-    addresses_csv = get_csv_path('addresses.csv')
+    addresses_csv = get_csv_path('addresses.csv', interface)
     if has_additional_data(addresses_csv):
-        ra_csv = get_csv_path('RA.csv')
+        ra_csv = get_csv_path('RA.csv', interface)
         sort_csv_based_MAC(interface, addresses_csv)
         sort_csv_based_MAC(interface, ra_csv)
         df1 = pd.read_csv(addresses_csv)
@@ -178,7 +198,7 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
                     device_roles[mac_address] = "Router"
             else:
                 device_roles[mac_address] = "Router"
-        default_gw_csv = get_csv_path('default_gw.csv')
+        default_gw_csv = get_csv_path('default_gw.csv', interface)
         df_gateway = pd.read_csv(default_gw_csv)
         for _, row in df_gateway.iterrows():
             mac_address = row['MAC']
@@ -199,7 +219,7 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
                 device_roles[mac_address] += f";IPv{ip_version} default GW"
             else:
                 device_roles[mac_address] = f"Router;IPv{ip_version} default GW"
-        dhcp_csv = get_csv_path('dhcp.csv')
+        dhcp_csv = get_csv_path('dhcp.csv', interface)
         df_gateway = pd.read_csv(dhcp_csv)
         for _, row in df_gateway.iterrows():
             mac_address = row['MAC']

@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""Network interface helpers.
+
+Encapsulates detecting/manipulating interface addresses and iptables rule state
+required by passive/active/aggressive scan modes.
+"""
 import os
 import subprocess
 import sys
@@ -84,8 +89,7 @@ class Interface:
         return list_ll
 
     def check_interface(self) -> bool:
-        """
-        Check if the network interface exists.
+        """Check if the configured network interface exists.
 
         Returns:
             bool: True if interface exists, False otherwise.
@@ -108,7 +112,6 @@ class Interface:
                 universal_newlines=True
             )
         except subprocess.CalledProcessError as e:
-            print(f"Error: {e}")
             exit(1)
 
         addresses = ip_output.split("\n")
