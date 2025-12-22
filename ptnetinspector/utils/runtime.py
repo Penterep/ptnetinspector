@@ -268,6 +268,56 @@ def terminate_child_processes(timeout: float = 1.0) -> None:
             pass
 
 
+def can_reuse_tmp_data(current_sig: dict, saved_sig: dict) -> bool:
+    """Check if saved tmp data can be reused for current run.
+    
+    Args:
+        current_sig: Current run signature with parameters
+        saved_sig: Saved run signature from previous run
+        
+    Returns:
+        bool: True if tmp data can be reused, False if fresh scan needed
+    
+    Rules for reuse:
+    - All core parameters must match (interface, scan types, modes, durations, etc.)
+    - target_macs: 
+      * If saved data has no target filter (empty), all devices were scanned, so any 
+        current target is valid (subset of all devices)
+      * If saved data has target filter, current target must be subset of saved target
+    - target_codes: Can use different (subset) test codes if they exist in saved data
+    """
+    # List of parameters that must match exactly
+    must_match_keys = {
+        "interface", "scanning_type", "check_addresses", "ip_mode",
+        "duration_passive", "duration_aggressive", "prefix_len", "network",
+        "smac", "sip", "rpref", "period", "chl", "mtu", "dns", "nofwd"
+    }
+    
+    # Check exact match for core parameters
+    for key in must_match_keys:
+        if current_sig.get(key) != saved_sig.get(key):
+            return False
+    
+    # Check target_macs: 
+    # - If saved_macs is empty, all devices were scanned, so any current target is valid
+    # - If saved_macs is not empty, current must be subset of saved (or empty in current)
+    current_macs = set(current_sig.get("target_macs", []))
+    saved_macs = set(saved_sig.get("target_macs", []))
+    if saved_macs:  # saved_macs is not empty
+        # Saved run had target filter, current must be subset of saved
+        if current_macs and not current_macs.issubset(saved_macs):
+            return False
+    # else: saved_macs is empty (all devices scanned), any current target is valid
+    
+    # Check target_codes: current must be subset of saved (or empty)
+    current_codes = set(current_sig.get("target_codes", []))
+    saved_codes = set(saved_sig.get("target_codes", []))
+    if current_codes and not current_codes.issubset(saved_codes):
+        return False
+    
+    return True
+
+
 def prepare_tmp_files(
     interface: str,
     retention_seconds: float,
@@ -352,7 +402,7 @@ def prepare_tmp_files(
         write_run_signature_fn(tmp_dir, current_signature)
         return False
 
-    if saved_signature != current_signature:
+    if not can_reuse_tmp_data(current_signature, saved_signature):
         if not less_detail:
             ptprinthelper.ptprint("\033[90mTmp files parameters differ from current run; recreating temporary files\033[0m", "WARNING", condition=True, indent=4)
         del_tmp_path_fn(interface)
@@ -445,10 +495,10 @@ def handle_output(
                 addr_file = get_csv_path_fn("addresses_unfiltered.csv")
                 Non_json.output_general(scan_type, ip_mode, addr_file, target_codes=target_codes, target_macs=target_macs)
 
-        output_protocols(scan_type, protocols_basic, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs)
+            output_protocols(scan_type, protocols_basic, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs)
 
-        if more_detail and protocols_detailed:
-            output_protocols(scan_type, protocols_detailed, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs)
+            if protocols_detailed:
+                output_protocols(scan_type, protocols_detailed, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs)
 
 
 def handle_addresses(interface, ip_mode, passive: bool = False) -> None:

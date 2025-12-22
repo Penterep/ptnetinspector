@@ -827,7 +827,7 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
             if nofwd:
                 ptprinthelper.ptprint("Packets to remote network will be dropped at the scanner in aggressive mode", "INFO", condition=True, indent=4)
         if target_codes:
-            ptprinthelper.ptprint(f"Target vulnerability codes: {sorted(target_codes)}", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint(f"Target vulnerability test(s): {sorted(target_codes)}", "INFO", condition=True, indent=4)
 
         if target_macs:
             ptprinthelper.ptprint(f"Target devices (MAC addresses): {sorted(m.lower() for m in target_macs)}", "INFO", condition=True, indent=4)

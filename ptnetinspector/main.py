@@ -47,11 +47,8 @@ from ptlibs.ptjsonlib import PtJsonLib
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings("ignore")
 
-try:
-    acquire_global_lock()
-except RuntimeError as err:
-    print_message(str(err), "ERROR", condition=True)
-    sys.exit(1)
+# Acquire global lock - will wait and queue if another instance is running
+acquire_global_lock()
 
 
 def custom_signal_handler(sig, frame):
@@ -313,6 +310,8 @@ def ptnet_aggressive():
         cleanup_iptables("a")
         cleanup_iptables("a+")
         print_message("Aggressive scan ended", condition=True)
+    else:
+        print_message("Reused scan data and performed analysis", condition=True)
 
 
 def execute_scan(scan_types):
@@ -334,14 +333,20 @@ def execute_scan(scan_types):
         ptnet_passive()
         Interface_object.restore_traffic()
         print_message("The interface is restored", condition=True, indent=4)
-        print_message("Passive scan ended", condition=True)
+        if not REUSE_EXISTING_DATA:
+            print_message("Passive scan ended", condition=True)
+        else:
+            print_message("Reused scan data and performed analysis", condition=True)
     elif has_active or has_aggressive:
         Interface_object.restore_traffic()
 
     if has_active and not has_aggressive:
         ptnet_active()
         cleanup_iptables("a")
-        print_message("Active scan ended", condition=True)
+        if not REUSE_EXISTING_DATA:
+            print_message("Active scan ended", condition=True)
+        else:
+            print_message("Reused scan data and performed analysis", condition=True)
     elif has_aggressive:
         if has_active:
             ptnet_active()
@@ -426,7 +431,7 @@ def main():
             if more_detail:
                 Non_json.print_box("Json output")
             # Final output reads accumulated CSVs; avoid mode filtering
-            print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode))
+            print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs))
     except KeyboardInterrupt:
         has_active = "a" in scanning_type
         has_aggressive = "a+" in scanning_type

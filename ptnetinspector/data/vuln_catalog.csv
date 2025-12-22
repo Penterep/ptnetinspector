@@ -1,8 +1,8 @@
 ID,Mode,IPver,Code,Description,Test
 Network,"a,a+",4,PTV-NET-IDENT-ICMP-4-BRCASTECHO,Network allows the delivery of standard broadcast ICMP Echo Request,4-BRCASTECHO
 Node,"a,a+",4,PTV-NET-IDENT-ICMP-4-BRCASTECHODEV,Device responds to standard broadcast ICMP Echo Request,4-BRCASTECHO
-Node,"a,a+",4,PTV-NET-IDENT-4-DNSSD,Network allows devices discovery with IPv4 DNS Service Discovery,4-DNSSD
-Network,"a,a+",4,PTV-NET-IDENT-4-DNSSDDEV,Device responds to IPv4 DNS Service Discovery packets,4-DNSSD
+Network,"a,a+",4,PTV-NET-IDENT-4-DNSSD,Network allows devices discovery with IPv4 DNS Service Discovery,4-DNSSD
+Node,"a,a+",4,PTV-NET-IDENT-4-DNSSDDEV,Device responds to IPv4 DNS Service Discovery packets,4-DNSSD
 Network,"a,a+",4,PTV-NET-MITM-4-ICMPREDIR,Network does not block ICMP Redirect messages,4-ICMPREDIR
 Node,"a,a+",4,PTV-NET-MITM-4-ICMPREDIRDEV,Device communication can be redirected using ICMP Redirect,4-ICMPREDIR
 Network,"a,a+",4,PTV-NET-IDENT-ICMP-4-INVPACKET,Network allows the delivery of invalid ICMP packets,4-INVPACKET
@@ -20,7 +20,7 @@ Node,"a,a+",4,PTV-NET-IDENT-ICMP-4-MULTIECHODEV,Device responds to standard mult
 Network,"a,a+",4,PTV-NET-IDENT-4-WS,Network allows devices discovery with IPv4 WS-Discovery,4-WS
 Node,"a,a+",4,PTV-NET-IDENT-4-WSDEV,Device responds to IPv4 WS-Discovery packets,4-WS
 Network,"a,a+",6,PTV-NET-IDENT-6-DNSSD,Network allows devices discovery with IPv6 DNS Service Discovery,6-DNSSD
-Network,"a,a+",6,PTV-NET-IDENT-6-DNSSDDEV,Device responds to IPv6 DNS Service Discovery packets,6-DNSSD
+Node,"a,a+",6,PTV-NET-IDENT-6-DNSSDDEV,Device responds to IPv6 DNS Service Discovery packets,6-DNSSD
 Network,a+,6,PTV-NET-MISCONF-6-RAGUARD,Network does not have RA guard configured,6-FAKERA
 Network,a+,6,PTV-NET-MITM-6-FAKERADNS,Network allows a client to be forced to use a fraudulent DNS server through a spoofed RA message,6-FAKERA
 Node,a+,6,PTV-NET-MITM-6-FAKERADNSDEV,Device connects to a fraudulent DNS server through a spoofed RA message,6-FAKERA

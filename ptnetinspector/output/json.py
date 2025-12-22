@@ -136,7 +136,7 @@ class Json:
         return False
 
     @staticmethod
-    def output_object(extract_to_json: bool = True, mode: str = None, target_codes: set[str] | None = None, ipver: IPMode | None = None) -> dict:
+    def output_object(extract_to_json: bool = True, mode: str = None, target_codes: set[str] | None = None, ipver: IPMode | None = None, target_macs: set[str] | None = None) -> dict:
         """Build and return the final JSON report from CSV artifacts.
 
         Args:
@@ -144,6 +144,7 @@ class Json:
             mode: Optional mode filter for vulnerability entries ("802.1x", "p", "a", "a+").
             target_codes: Optional set of Test codes to include; mapped to vuln codes.
             ipver: Optional IPMode to filter addresses by IP family.
+            target_macs: Optional set of target MAC addresses to filter devices.
         Returns:
             dict: JSON structure (stringified when written to file).
         """
@@ -170,6 +171,9 @@ class Json:
                 # If catalog load fails, treat as no filter
                 target_codes_set = None
         
+        # Normalize target MACs to uppercase
+        target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
+        
         start_end_file = get_csv_path("start_end_mode.csv")
         delete_middle_content_csv(start_end_file)
 
@@ -188,6 +192,12 @@ class Json:
             role_node_df = pd.read_csv(role_node_file)
             addresses_df = pd.read_csv(addresses_file) if has_additional_data(addresses_file) else pd.read_csv(addresses_unfiltered_file)
             addresses_df = filter_ips_by_mode(addresses_df, ipver)
+            
+            # Filter by target MACs if specified
+            if target_macs_set:
+                role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(target_macs_set)]
+                addresses_df = addresses_df[addresses_df['MAC'].str.upper().isin(target_macs_set)]
+            
             all_ip = addresses_df['IP'].to_list()
             vuln_df = pd.read_csv(vulnerability_file) if has_additional_data(vulnerability_file) else None
 
