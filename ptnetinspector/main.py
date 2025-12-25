@@ -47,8 +47,13 @@ from ptlibs.ptjsonlib import PtJsonLib
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings("ignore")
 
+ptjsonlib_object = PtJsonLib()
+args = parse_args()
+
+# Determine lock verbosity: suppress if -j and not -vv
+lock_verbose = not (getattr(args, 'j', False) and not getattr(args, 'vv', False))
 # Acquire global lock - will wait and queue if another instance is running
-acquire_global_lock()
+acquire_global_lock(verbose=lock_verbose)
 
 
 def custom_signal_handler(sig, frame):
@@ -56,9 +61,6 @@ def custom_signal_handler(sig, frame):
 
 
 signal.signal(signal.SIGINT, custom_signal_handler)
-
-ptjsonlib_object = PtJsonLib()
-args = parse_args()
 
 (
     interface,

@@ -135,10 +135,7 @@ class Non_json:
                             target_device_vuln_codes.add(net_code)
                         target_device_vuln_codes.add(code)
                     
-                    # Filter network vulnerabilities by target device correlation
-                    if target_macs_set and entity_id == 'Network':
-                        if not any(code in tcode or tcode in code for tcode in target_device_vuln_codes):
-                            continue
+                    # Do not filter out network vulnerabilities when target MACs are specified
                     
                     ipver_value = row.get('IPver', '').strip()
                     description = row.get('Description', code)
@@ -332,6 +329,7 @@ class Non_json:
         target_codes_set = {code.upper() for code in target_codes} if target_codes else None
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
         
+        
         if has_additional_data(addresses_file_name) and has_additional_data(role_node_file):
             role_node_df_full = pd.read_csv(role_node_file)
             role_node_df = role_node_df_full.copy()
@@ -386,14 +384,7 @@ class Non_json:
                     code = vuln_row.get('Code', '')
                     if target_vuln_codes_set and code.strip().upper() not in target_vuln_codes_set:
                         continue
-                    
-                    # If target MACs specified, only show network vulns related to target device vulns
-                    if target_macs_set:
-                        code_upper = code.strip().upper()
-                        # Check if this network vuln correlates with any target device vuln
-                        if not any(code_upper in tcode or tcode in code_upper for tcode in target_device_vuln_codes):
-                            continue
-                    
+                    # No filtering by target device vulns: always show all network vulns
                     desc = vuln_row.get('Description', '')
                     label = vuln_row.get('Label', '')
                     short_code = extract_short_code(code)
