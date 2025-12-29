@@ -410,15 +410,22 @@ class Non_json:
                         if mode in vuln_row.get('Mode', ''):
                             all_vuln_results.append(label)
                 
-                # Print overall test summary when using -ts (checks both network and device vulns)
-                if target_codes_set and all_vuln_results:
+                # Print overall test summary
+                if all_vuln_results:
                     has_any_vuln = any(label == 1 for label in all_vuln_results)
-                    # Format test codes for display
-                    test_codes_display = ', '.join(sorted(target_codes_set))
-                    if has_any_vuln:
-                        ptprinthelper.ptprint(f"There is security problem(s) found from the Test ({test_codes_display})", "ERROR", colortext=True, condition=True, indent=4)
+                    if target_codes_set:
+                        # -ts mode: show test codes
+                        test_codes_display = ', '.join(sorted(target_codes_set))
+                        if has_any_vuln:
+                            ptprinthelper.ptprint(f"There is security problem(s) found from the Test ({test_codes_display})", "ERROR", colortext=True, condition=True, indent=4)
+                        else:
+                            ptprinthelper.ptprint(f"No security problem(s) found from the Test ({test_codes_display})", "OK", colortext=True, condition=True, indent=4)
                     else:
-                        ptprinthelper.ptprint(f"No security problem(s) found from the Test ({test_codes_display})", "OK", colortext=True, condition=True, indent=4)
+                        # No -ts: generic message
+                        if has_any_vuln:
+                            ptprinthelper.ptprint("Security problem(s) found", "ERROR", colortext=True, condition=True, indent=4)
+                        else:
+                            ptprinthelper.ptprint("No security problem(s) found", "OK", colortext=True, condition=True, indent=4)
                 
                 # Print network vulnerabilities if any exist
                 if network_vuln_results:
