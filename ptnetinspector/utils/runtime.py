@@ -5,8 +5,10 @@ Provides: global output suppression flags, unified printing helpers that respect
 CLI verbosity policies, and stdout dual-writing for logging to file while
 streaming to the terminal.
 """
+import csv
 import json
 import multiprocessing
+import os
 import sys
 import time
 from io import StringIO
@@ -18,6 +20,7 @@ from ptlibs import ptprinthelper
 from ptnetinspector.entities.networks import Networks
 from ptnetinspector.output.non_json import Non_json
 from ptnetinspector.utils.address_control import validate_addresses_mapping
+from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
 
 
 # Global variable to capture terminal output
@@ -268,23 +271,92 @@ def terminate_child_processes(timeout: float = 1.0) -> None:
             pass
 
 
-def can_reuse_tmp_data(current_sig: dict, saved_sig: dict) -> bool:
+def _check_macs_in_role_node(tmp_path: Path, target_macs: set[str]) -> bool:
+    """Check if all target MACs exist in saved role_node.csv.
+    
+    Args:
+        tmp_path: Path to tmp directory containing role_node.csv
+        target_macs: Set of MAC addresses (uppercase) to check
+        
+    Returns:
+        bool: True if all target MACs exist in role_node.csv, False otherwise
+    """
+    role_node_file = tmp_path / "role_node.csv"
+    if not role_node_file.exists():
+        return False
+    
+    try:
+        with open(role_node_file, 'r', newline='') as f:
+            reader = csv.DictReader(f)
+            saved_macs = {row['MAC'].upper() for row in reader if 'MAC' in row}
+        return target_macs.issubset(saved_macs)
+    except Exception:
+        return False
+
+
+def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[str]) -> bool:
+    """Check if all target test codes have vulnerability data in saved vulnerability.csv.
+    
+    Args:
+        tmp_path: Path to tmp directory containing vulnerability.csv
+        target_test_codes: Set of test codes (uppercase) to check
+        
+    Returns:
+        bool: True if all test codes have corresponding vulnerabilities in saved data, False otherwise
+    """
+    vulnerability_file = tmp_path / "vulnerability.csv"
+    if not vulnerability_file.exists():
+        return False
+    
+    try:
+        # Load catalog to map vuln codes to test codes
+        test_catalog = load_vuln_catalog_by_test()
+        code_to_test: dict[str, str] = {}
+        for test_code, entries in test_catalog.items():
+            for entry in entries:
+                vuln_code = entry.get("Code", "").strip().upper()
+                if vuln_code:
+                    code_to_test[vuln_code] = test_code
+        
+        # Read saved vulnerability data and collect test codes found
+        with open(vulnerability_file, 'r', newline='') as f:
+            reader = csv.DictReader(f)
+            saved_test_codes = set()
+            for row in reader:
+                vuln_code = row.get('Code', '').strip().upper()
+                test_code = code_to_test.get(vuln_code, '')
+                if test_code:
+                    saved_test_codes.add(test_code.upper())
+        
+        # Check if all target test codes are in saved data
+        return target_test_codes.issubset(saved_test_codes)
+    except Exception:
+        return False
+
+
+def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None = None) -> bool:
     """Check if saved tmp data can be reused for current run.
     
     Args:
         current_sig: Current run signature with parameters
         saved_sig: Saved run signature from previous run
+        tmp_path: Path to tmp directory (needed for MAC and test code validation)
         
     Returns:
         bool: True if tmp data can be reused, False if fresh scan needed
     
     Rules for reuse:
     - All core parameters must match (interface, scan types, modes, durations, etc.)
-    - target_macs: 
-      * If saved data has no target filter (empty), all devices were scanned, so any 
-        current target is valid (subset of all devices)
-      * If saved data has target filter, current target must be subset of saved target
-    - target_codes: Can use different (subset) test codes if they exist in saved data
+    - target_macs:
+      * Previous NO target, current HAS target: Can reuse IF target MACs exist in saved role_node.csv
+      * Previous HAS target, current NO target: Cannot reuse (saved data is filtered, need full scan)
+      * Both have targets: Can reuse IF current is subset of saved
+      * Neither has targets: Can reuse (both are full scans)
+    - target_codes:
+      * Previous NO test filter, current HAS test filter: Can reuse IF test codes exist in saved vulnerability.csv
+      * Previous HAS test filter, current NO test filter: Cannot reuse (saved data is filtered, need full test run)
+      * Both have test filters: Can reuse IF current is subset of saved
+      * Neither has test filters: Can reuse (both run all tests)
     """
     # List of parameters that must match exactly
     must_match_keys = {
@@ -298,22 +370,43 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict) -> bool:
         if current_sig.get(key) != saved_sig.get(key):
             return False
     
-    # Check target_macs: 
-    # - If saved_macs is empty, all devices were scanned, so any current target is valid
-    # - If saved_macs is not empty, current must be subset of saved (or empty in current)
+    # Check target_macs with corrected logic
     current_macs = set(current_sig.get("target_macs", []))
     saved_macs = set(saved_sig.get("target_macs", []))
-    if saved_macs:  # saved_macs is not empty
-        # Saved run had target filter, current must be subset of saved
-        if current_macs and not current_macs.issubset(saved_macs):
-            return False
-    # else: saved_macs is empty (all devices scanned), any current target is valid
     
-    # Check target_codes: current must be subset of saved (or empty)
+    if saved_macs and not current_macs:
+        # Previous run HAD target, current run has NO target
+        # Cannot reuse: saved data only has filtered devices, not all devices
+        return False
+    elif not saved_macs and current_macs:
+        # Previous run had NO target (full scan), current run HAS target
+        # Can reuse IF target MACs exist in saved role_node.csv
+        if tmp_path is None or not _check_macs_in_role_node(tmp_path, current_macs):
+            return False
+    elif saved_macs and current_macs:
+        # Both have targets: current must be subset of saved
+        if not current_macs.issubset(saved_macs):
+            return False
+    # else: neither has targets (both full scans), can reuse
+    
+    # Check target_codes with corrected logic (same pattern as target_macs)
     current_codes = set(current_sig.get("target_codes", []))
     saved_codes = set(saved_sig.get("target_codes", []))
-    if current_codes and not current_codes.issubset(saved_codes):
+    
+    if saved_codes and not current_codes:
+        # Previous run HAD test filter, current run has NO test filter
+        # Cannot reuse: saved data only has filtered tests, not all tests
         return False
+    elif not saved_codes and current_codes:
+        # Previous run had NO test filter (all tests), current run HAS test filter
+        # Can reuse IF target test codes exist in saved vulnerability.csv
+        if tmp_path is None or not _check_test_codes_in_vulnerability(tmp_path, current_codes):
+            return False
+    elif saved_codes and current_codes:
+        # Both have test filters: current must be subset of saved
+        if not current_codes.issubset(saved_codes):
+            return False
+    # else: neither has test filters (both run all tests), can reuse
     
     return True
 
@@ -402,7 +495,7 @@ def prepare_tmp_files(
         write_run_signature_fn(tmp_dir, current_signature)
         return False
 
-    if not can_reuse_tmp_data(current_signature, saved_signature):
+    if not can_reuse_tmp_data(current_signature, saved_signature, tmp_dir):
         if not less_detail:
             ptprinthelper.ptprint("\033[90mTmp files parameters differ from current run; recreating temporary files\033[0m", "WARNING", condition=True, indent=4)
         del_tmp_path_fn(interface)

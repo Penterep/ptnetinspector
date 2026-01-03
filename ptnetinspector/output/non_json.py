@@ -135,10 +135,7 @@ class Non_json:
                             target_device_vuln_codes.add(net_code)
                         target_device_vuln_codes.add(code)
                     
-                    # Filter network vulnerabilities by target device correlation
-                    if target_macs_set and entity_id == 'Network':
-                        if not any(code in tcode or tcode in code for tcode in target_device_vuln_codes):
-                            continue
+                    # Do not filter out network vulnerabilities when target MACs are specified
                     
                     ipver_value = row.get('IPver', '').strip()
                     description = row.get('Description', code)
@@ -332,6 +329,7 @@ class Non_json:
         target_codes_set = {code.upper() for code in target_codes} if target_codes else None
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
         
+        
         if has_additional_data(addresses_file_name) and has_additional_data(role_node_file):
             role_node_df_full = pd.read_csv(role_node_file)
             role_node_df = role_node_df_full.copy()
@@ -386,14 +384,7 @@ class Non_json:
                     code = vuln_row.get('Code', '')
                     if target_vuln_codes_set and code.strip().upper() not in target_vuln_codes_set:
                         continue
-                    
-                    # If target MACs specified, only show network vulns related to target device vulns
-                    if target_macs_set:
-                        code_upper = code.strip().upper()
-                        # Check if this network vuln correlates with any target device vuln
-                        if not any(code_upper in tcode or tcode in code_upper for tcode in target_device_vuln_codes):
-                            continue
-                    
+                    # No filtering by target device vulns: always show all network vulns
                     desc = vuln_row.get('Description', '')
                     label = vuln_row.get('Label', '')
                     short_code = extract_short_code(code)
@@ -419,15 +410,22 @@ class Non_json:
                         if mode in vuln_row.get('Mode', ''):
                             all_vuln_results.append(label)
                 
-                # Print overall test summary when using -ts (checks both network and device vulns)
-                if target_codes_set and all_vuln_results:
+                # Print overall test summary
+                if all_vuln_results:
                     has_any_vuln = any(label == 1 for label in all_vuln_results)
-                    # Format test codes for display
-                    test_codes_display = ', '.join(sorted(target_codes_set))
-                    if has_any_vuln:
-                        ptprinthelper.ptprint(f"There is security problem(s) found from the Test ({test_codes_display})", "ERROR", colortext=True, condition=True, indent=4)
+                    if target_codes_set:
+                        # -ts mode: show test codes
+                        test_codes_display = ', '.join(sorted(target_codes_set))
+                        if has_any_vuln:
+                            ptprinthelper.ptprint(f"There is security problem(s) found from the Test ({test_codes_display})", "ERROR", colortext=True, condition=True, indent=4)
+                        else:
+                            ptprinthelper.ptprint(f"No security problem(s) found from the Test ({test_codes_display})", "OK", colortext=True, condition=True, indent=4)
                     else:
-                        ptprinthelper.ptprint(f"No security problem(s) found from the Test ({test_codes_display})", "OK", colortext=True, condition=True, indent=4)
+                        # No -ts: generic message
+                        if has_any_vuln:
+                            ptprinthelper.ptprint("Security problem(s) found", "ERROR", colortext=True, condition=True, indent=4)
+                        else:
+                            ptprinthelper.ptprint("No security problem(s) found", "OK", colortext=True, condition=True, indent=4)
                 
                 # Print network vulnerabilities if any exist
                 if network_vuln_results:
@@ -504,6 +502,9 @@ class Non_json:
 
                 vuln_df = pd.read_csv(vulnerability_file)
                 device_vulns = vuln_df[vuln_df['ID'].astype(str) == str(device_number)]
+                # Respect -ts filters for device vulnerabilities as well
+                if target_vuln_codes_set:
+                    device_vulns = device_vulns[device_vulns['Code'].str.upper().isin(target_vuln_codes_set)]
                 for _, vuln_row in device_vulns.iterrows():
                     code = vuln_row.get('Code', '')
                     desc = vuln_row.get('Description', '')

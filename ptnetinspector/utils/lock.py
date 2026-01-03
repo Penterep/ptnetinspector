@@ -75,22 +75,23 @@ def _wait_for_lock_release(lock_file: Path, verbose: bool = True) -> None:
     import sys
     from ptlibs import ptprinthelper
 
-    if verbose:
-        ptprinthelper.ptprint(
-            "Waiting for the previous ptnetinspector process to finish. Your run is queued.",
-            "INFO",
-            condition=True
-        )
 
-    attempt = 0
+    waiting_printed = False
     while True:
-        attempt += 1
+        # Print waiting message only once
+        if verbose and not waiting_printed:
+            ptprinthelper.ptprint(
+                "Waiting for the previous ptnetinspector process to finish. Your run is queued",
+                "INFO",
+                condition=True
+            )
+            waiting_printed = True
 
         # Check if stale lock and clean it
         if _cleanup_stale_lock(lock_file):
             if verbose:
                 ptprinthelper.ptprint(
-                    "Previous process terminated. Starting your run now.",
+                    "Previous process terminated. Starting your run now",
                     "INFO",
                     condition=True
                 )
@@ -115,14 +116,6 @@ def _wait_for_lock_release(lock_file: Path, verbose: bool = True) -> None:
                 os.close(fd_test)
         except OSError:
             pass
-
-        # Display progress message periodically
-        if attempt % 6 == 0 and verbose:  # Every 3 seconds (6 * 0.5s)
-            ptprinthelper.ptprint(
-                "Still waiting for the previous process to finish...",
-                "INFO",
-                condition=True
-            )
 
         time.sleep(_QUEUE_CHECK_INTERVAL)
 
