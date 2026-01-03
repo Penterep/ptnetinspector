@@ -502,6 +502,9 @@ class Non_json:
 
                 vuln_df = pd.read_csv(vulnerability_file)
                 device_vulns = vuln_df[vuln_df['ID'].astype(str) == str(device_number)]
+                # Respect -ts filters for device vulnerabilities as well
+                if target_vuln_codes_set:
+                    device_vulns = device_vulns[device_vulns['Code'].str.upper().isin(target_vuln_codes_set)]
                 for _, vuln_row in device_vulns.iterrows():
                     code = vuln_row.get('Code', '')
                     desc = vuln_row.get('Description', '')
