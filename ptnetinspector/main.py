@@ -50,18 +50,8 @@ warnings.filterwarnings("ignore")
 ptjsonlib_object = PtJsonLib()
 args = parse_args()
 
-# Determine lock verbosity: suppress if -j and not -vv
-lock_verbose = not (getattr(args, 'j', False) and not getattr(args, 'vv', False))
-# Acquire global lock - will wait and queue if another instance is running
-acquire_global_lock(verbose=lock_verbose)
-
-
-def custom_signal_handler(sig, frame):
-    raise KeyboardInterrupt()
-
-
-signal.signal(signal.SIGINT, custom_signal_handler)
-
+# Validate and process parameters FIRST (before acquiring lock)
+# This ensures invalid parameters cause immediate errors without waiting in queue
 (
     interface,
     json_output,
@@ -109,6 +99,19 @@ signal.signal(signal.SIGINT, custom_signal_handler)
     args.tmp_retention,
     args.target_macs,
 )
+
+# Determine lock verbosity: suppress if -j and not -vv
+lock_verbose = not (json_output and not more_detail)
+# Acquire global lock - will wait and queue if another instance is running
+# This is done AFTER parameter validation to avoid queueing with invalid parameters
+acquire_global_lock(verbose=lock_verbose)
+
+
+def custom_signal_handler(sig, frame):
+    raise KeyboardInterrupt()
+
+
+signal.signal(signal.SIGINT, custom_signal_handler)
 
 REUSE_EXISTING_DATA = False
 
