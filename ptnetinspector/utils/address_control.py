@@ -57,9 +57,16 @@ def filter_unicast_addresses(mappings: List[AddressMapping], ip_mode: IPMode) ->
     result = []
     ipv4_subnets, ipv6_subnets = Networks.load_networks()
 
-    if not ipv4_subnets and ip_mode.ipv4:
+    # Dynamically check if non-JSON output should be suppressed (avoid circular import)
+    try:
+        from ptnetinspector.utils import runtime
+        suppress = runtime._suppress_non_json
+    except (ImportError, AttributeError):
+        suppress = False
+
+    if not ipv4_subnets and ip_mode.ipv4 and not suppress:
         ptprinthelper.ptprint("\033[90mAuto-detection of IPv4 subnets failed. All unicast IPv4 addresses will be kept\033[0m", "WARNING", condition=True, indent=4)
-    if not ipv6_subnets and ip_mode.ipv6:
+    if not ipv6_subnets and ip_mode.ipv6 and not suppress:
         ptprinthelper.ptprint("\033[90mAuto-detection of IPv6 subnets failed. All unicast IPv6 addresses will be kept\033[0m", "WARNING", condition=True, indent=4)
 
     for mapping in mappings:

@@ -7,7 +7,7 @@ IP version and vulnerability codes, and writes the final `ptnetinspector-output.
 import ipaddress
 import pandas as pd
 from ptlibs.app_dirs import AppDirs
-from ptnetinspector.utils.path import get_csv_path, get_output_dir
+from ptnetinspector.utils.path import get_csv_path, get_output_dir, get_tmp_path
 from ptnetinspector.utils.csv_helpers import delete_middle_content_csv
 from ptnetinspector.utils.output_helpers import filter_ips_by_mode, convert_role_to_list
 from ptnetinspector.utils.ip_utils import (
@@ -224,7 +224,7 @@ class Json:
         output_json = ptjsonlib_object.get_result_json()
         
         if extract_to_json:
-            output_file = get_output_dir() / "ptnetinspector-output.json"
+            output_file = get_tmp_path() / "ptnetinspector-output.json"
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(output_json)
 
