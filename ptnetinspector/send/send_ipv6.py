@@ -335,7 +335,6 @@ class SendIPv6:
                 pkt = [pkt_a, pkt_aaaa, pkt_any]
                 sendp(pkt, iface=interface, verbose=False)
 
-    @staticmethod
     def IPv6_test_mdns_llmnr(ip_address, interface) -> None:
         """
         Test mDNS and LLMNR for a given IPv6 address.
@@ -346,12 +345,12 @@ class SendIPv6:
             None
         """
         name = SendIPv6.send_reverse_ipv6_llmnr(ip_address, interface)
-        if name is not None:
+        if name is not None and name.strip():
             SendIPv6.send_mDNS_ipv6(name, interface)
             SendIPv6.send_llmnr_ipv6(name, interface)
             return
         name = SendIPv6.send_reverse_ipv6_MDNS(ip_address, interface)
-        if name is not None:
+        if name is not None and name.strip():
             SendIPv6.send_mDNS_ipv6(name, interface)
             SendIPv6.send_llmnr_ipv6(name, interface)
             return
