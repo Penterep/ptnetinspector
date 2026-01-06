@@ -158,13 +158,13 @@ class SendIPv4:
             return
         name = SendIPv4.send_reverse_ipv4_llmnr(ip_address, interface)
 
-        if name is not None:
+        if name is not None and name.strip():
             SendIPv4.send_mDNS_ipv4(name, interface)
             SendIPv4.send_llmnr_ipv4(name, interface)
             return
         name = SendIPv4.send_reverse_ipv4_MDNS(ip_address, interface)
 
-        if name is not None:
+        if name is not None and name.strip():
             SendIPv4.send_mDNS_ipv4(name, interface)
             SendIPv4.send_llmnr_ipv4(name, interface)
             return

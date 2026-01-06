@@ -378,8 +378,8 @@ def main():
         target_macs=set(target_macs) if target_macs else None,
     )
 
-    json_output_path = get_output_dir() / "ptnetinspector-output.json"
-    text_output_path = get_output_dir() / "ptnetinspector-output.txt"
+    json_output_path = get_tmp_path(interface) / "ptnetinspector-output.json"
+    text_output_path = get_tmp_path(interface) / "ptnetinspector-output.txt"
 
     current_signature = build_run_signature(
         interface,
@@ -474,6 +474,14 @@ def main():
     finally:
         # Stop logging output to file
         stop_output_logging()
+        
+        # Clean up text output file if JSON-only mode (no -vv)
+        if json_output and not more_detail:
+            if text_output_path.exists():
+                try:
+                    text_output_path.unlink()
+                except OSError:
+                    pass
 
 
 if __name__ == "__main__":

@@ -47,6 +47,8 @@ class MDNS(Node):
     @staticmethod
     def full_name_MDNS(name):
         # Function to complete MDNS name to use for asking about IP
+        # Strip trailing dot from FQDN before processing
+        name = name.rstrip('.')
         if ".local" in name:
             return name
         else:
