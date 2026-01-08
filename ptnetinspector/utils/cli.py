@@ -37,6 +37,50 @@ from ptnetinspector._version import __version__
 
 ptjsonlib_object = PtJsonLib()
 SCRIPTNAME = "ptnetinspector"
+
+
+def _stringify_error(message) -> str:
+    if isinstance(message, list):
+        return "\n".join(str(m) for m in message)
+    return str(message)
+
+
+def _store_error_outputs(message, json_output: bool, interface: str | None = None) -> None:
+    """Persist error outputs: JSON when -j, text otherwise. Removes the other format."""
+    msg_str = _stringify_error(message)
+    tmp_dir = get_tmp_path(interface)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    json_path = tmp_dir / "ptnetinspector-output.json"
+    txt_path = tmp_dir / "ptnetinspector-output.txt"
+
+    if json_output:
+        # Remove old txt file if it exists
+        try:
+            if txt_path.exists():
+                txt_path.unlink()
+        except Exception:
+            pass
+        # Write JSON
+        try:
+            ptjsonlib_object.__init__()
+            ptjsonlib_object.set_status("error", msg_str)
+            json_content = ptjsonlib_object.get_result_json()
+            json_path.write_text(json_content, encoding="utf-8")
+        except Exception:
+            pass
+    else:
+        # Remove old JSON file if it exists
+        try:
+            if json_path.exists():
+                json_path.unlink()
+        except Exception:
+            pass
+        # Write text
+        try:
+            txt_path.write_text(msg_str + "\n", encoding="utf-8")
+        except Exception:
+            pass
 # ============================================================================
 # SECTION 1: ARGUMENT PARSER CLASS & PARSING FUNCTIONS
 # ============================================================================
@@ -66,7 +110,9 @@ class CustomArgumentParser(argparse.ArgumentParser):
         for err in error_msgs:
             if err in message:
                 msg = "Expected argument after the prefix or the argument is invalid. Try ptnetinspector -h for help"
-                if '-j' in sys.argv:
+                json_output = '-j' in sys.argv
+                _store_error_outputs(msg, json_output)
+                if json_output:
                     print(ptjsonlib_object.end_error(msg, ptjsonlib_object))
                 else:
                     ptprinthelper.ptprint(msg, "ERROR")
@@ -113,6 +159,7 @@ def parse_args() -> argparse.Namespace:
 
     if unknown_args:
         msg = "Unexpected arguments found. Try ptnetinspector -h for help"
+        _store_error_outputs(msg, args.j)
         if "-j" in unknown_args or args.j:
             print(ptjsonlib_object.end_error(msg, ptjsonlib_object))
             sys.exit(0)
@@ -257,6 +304,7 @@ def _validate_mandatory_args(type, interface, json_output, more_detail, target_c
     if missing_type or not interface:
         if not json_output or more_detail:
             ptprinthelper.ptprint("Missing compulsory parameters (type, interface)", "ERROR")
+        _store_error_outputs("Missing compulsory parameters (type, interface)", json_output, None)
         if json_output:
             print(ptjsonlib_object.end_error("Missing compulsory parameters (type, interface)", ptjsonlib_object))
         ptprinthelper.help_print(get_help(), SCRIPTNAME, __version__)
@@ -272,18 +320,21 @@ def _validate_type_combination(type, json_output, more_detail) -> None:
         if "p" in type and "a" in type:
             if not json_output or more_detail:
                 ptprinthelper.ptprint("Passive mode is also a part of active mode. Choose again!", "ERROR")
+            _store_error_outputs("Passive mode is also a part of active mode. Choose again!", json_output, None)
             if json_output:
                 print(ptjsonlib_object.end_error("Passive mode is also a part of active mode. Choose again!", ptjsonlib_object))
             sys.exit(1)
         if "p" in type and "a+" in type:
             if not json_output or more_detail:
                 ptprinthelper.ptprint("Passive mode is also a part of aggressive mode. Choose again!", "ERROR")
+            _store_error_outputs("Passive mode is also a part of aggressive mode. Choose again!", json_output, None)
             if json_output:
                 print(ptjsonlib_object.end_error("Passive mode is also a part of aggressive mode. Choose again!", ptjsonlib_object))
             sys.exit(1)
         if type[0] == type[1]:
             if not json_output or more_detail:
                 ptprinthelper.ptprint("Duplicated choices. Choose again!", "ERROR")
+            _store_error_outputs("Duplicated choices. Choose again!", json_output, None)
             if json_output:
                 print(ptjsonlib_object.end_error("Duplicated choices. Choose again!", ptjsonlib_object))
             sys.exit(1)
@@ -294,6 +345,7 @@ def _validate_type_combination(type, json_output, more_detail) -> None:
         else:
             if not json_output or more_detail:
                 ptprinthelper.ptprint("Invalid choice. Choose again!", "ERROR")
+            _store_error_outputs("Invalid choice. Choose again!", json_output, None)
             if json_output:
                 print(ptjsonlib_object.end_error("Invalid choice. Choose again!", ptjsonlib_object))
             sys.exit(1)
@@ -307,6 +359,7 @@ def _validate_interface(interface, json_output, more_detail) -> None:
             err = f"Invalid inserted interface: {interface}. Program exits!"
             if not json_output or more_detail:
                 ptprinthelper.ptprint(err, "ERROR")
+            _store_error_outputs(err, json_output, None)
             if json_output:
                 print(ptjsonlib_object.end_error(err, ptjsonlib_object))
             sys.exit(1)
@@ -318,6 +371,7 @@ def _validate_detail_flags(more_detail, less_detail, json_output) -> None:
         err = "Showing full detail and less detail can not be set at the same time. Program exits!"
         if not json_output or more_detail:
             ptprinthelper.ptprint(err, "ERROR")
+        _store_error_outputs(err, json_output, None)
         if json_output:
             print(ptjsonlib_object.end_error(err, ptjsonlib_object))
         sys.exit(1)
@@ -874,6 +928,12 @@ def parameter_control(
 
     logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
+    # Ensure tmp path is interface-scoped for any early errors
+    try:
+        set_current_interface(interface)
+    except Exception:
+        pass
+
     _validate_mandatory_args(type, interface, json_output, more_detail, target_codes)
     _validate_type_combination(type, json_output, more_detail)
     _validate_interface(interface, json_output, more_detail)
@@ -924,7 +984,12 @@ def parameter_control(
         )
 
     if list_error:
-        _print_errors(list_error, json_output, more_detail)
+        _store_error_outputs(list_error, json_output, interface)
+        if json_output:
+            print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
+        else:
+            _print_errors(list_error, json_output, more_detail)
+        sys.exit(1)
 
     if duration_aggressive is not None:
         duration_aggressive = float(duration_aggressive)
@@ -948,7 +1013,12 @@ def parameter_control(
             else:
                 normalized.add(mac_upper)
         if list_error:
-            _print_errors(list_error, json_output, more_detail)
+            _store_error_outputs(list_error, json_output, interface)
+            if json_output:
+                print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
+            else:
+                _print_errors(list_error, json_output, more_detail)
+            sys.exit(1)
         if normalized:
             validated_target_macs = normalized
 
