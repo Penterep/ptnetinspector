@@ -23,21 +23,21 @@ from ptnetinspector.send.send import IPMode
 
 class Json:
     @staticmethod
-    def _get_vulnerabilities_for_id(vuln_df: pd.DataFrame, id_value: str, mode: str = None, target_codes: set[str] | None = None) -> list:
-        """Extract vulnerabilities for a given ID, optionally filtered by mode or target codes."""
-        vulns = []
+    def _get_vulnerabilities_for_id(vuln_df: pd.DataFrame, id_value: str, mode: str = None, target_codes: set[str] | None = None) -> list[str]:
+        """Extract vulnerability codes for a given ID, optionally filtered by mode or target codes."""
+        vuln_codes: list[str] = []
         device_vulns = vuln_df[vuln_df['ID'].astype(str) == id_value]
         for _, vuln_row in device_vulns.iterrows():
-            # Filter by mode if provided
             if mode is not None and mode not in vuln_row.get('Mode', ''):
                 continue
             code = vuln_row.get('Code', '')
+            if not code:
+                continue
             if target_codes and code.strip().upper() not in target_codes:
                 continue
             if vuln_row.get('Label', 0) == 1:
-                desc = vuln_row.get('Description', '')
-                vulns.append(f"{code}: {desc}")
-        return vulns
+                vuln_codes.append(code.strip())
+        return vuln_codes
 
     @staticmethod
     def output_property(ipver: IPMode) -> dict:
@@ -73,9 +73,9 @@ class Json:
             try:
                 vuln_df = pd.read_csv(vul_file)
                 vulns = Json._get_vulnerabilities_for_id(vuln_df, "Network", mode, target_codes_set)
-                for code, desc in [v.split(": ") for v in vulns]:
+                for code in vulns:
                     if not any(v['vulnCode'] == code for v in ptjsonlib_object.json_object['results']['vulnerabilities']):
-                        ptjsonlib_object.add_vulnerability(vuln_code=code, description=desc)
+                        ptjsonlib_object.add_vulnerability(vuln_code=code)
             except Exception:
                 pass
         return ptjsonlib_object.get_result_json()
@@ -95,7 +95,7 @@ class Json:
             list_solicited_ip = [in6_getnsma(addr) for addr in [ip] if not is_llsnm_ipv6(addr)]
             if ip not in list_solicited_ip:
                 node = ptjsonlib_object.create_node_object(
-                    node_type="Address", parent_type=f"Device {device_number}",
+                    node_type="Address", parent_type=None,
                     parent=key_node_ele, properties={
                         "IP": in6_getansma(ip), "protocol": "IPv6", "description": "possible address"
                     }
@@ -106,7 +106,7 @@ class Json:
         elif not is_llsnm_ipv6(ip):
             desc = "duplicated address, probably not owned" if all_ip.count(ip) >= 2 else "normal address"
             node = ptjsonlib_object.create_node_object(
-                node_type="Address", parent_type=f"Device {device_number}",
+                node_type="Address", parent_type=None,
                 parent=key_node_ele, properties={
                     "IP": ip, "protocol": "IPv6", "description": desc
                 }
@@ -123,7 +123,7 @@ class Json:
             ipaddress.IPv4Address(ip)
             desc = "duplicated address, probably not owned" if all_ip.count(ip) >= 2 else "normal address"
             node = ptjsonlib_object.create_node_object(
-                node_type="Address", parent_type=f"Device {device_number}",
+                node_type="Address", parent_type=None,
                 parent=key_node_ele, properties={
                     "IP": ip, "protocol": "IPv4", "description": desc
                 }
@@ -204,17 +204,34 @@ class Json:
             for _, row in role_node_df.iterrows():
                 mac_address, device_number, role = row['MAC'], row['Device_Number'], row['Role']
                 roles = convert_role_to_list(role)
+                # Derive primary type and role-based flags
+                is_preferred_router = "Preferred router" in roles
+                is_router = ("Router" in roles) or is_preferred_router
+                device_type = "Preferred router" if is_preferred_router else ("Router" if is_router else "Host")
+                ipv4_default_gw = "IPv4 default GW" in roles
+                ipv6_default_gw = "IPv6 default GW" in roles
+                dhcpv4_server = "DHCP server" in roles
+                dhcpv6_server = "DHCPv6 server" in roles
                 vul = Json._get_vulnerabilities_for_id(vuln_df, str(device_number), mode, target_codes_set) if vuln_df is not None else []
 
                 node_ele = ptjsonlib_object.create_node_object(
-                    node_type=f"Device {device_number}", parent_type="Site", parent=None,
+                    node_type="Device", parent_type="Site", parent=None,
                     properties={
-                        "name": f"Device {device_number}", "type": roles, "MAC": mac_address,
-                        "description": lookup_vendor_from_csv(mac_address)
-                    },
-                    vulnerabilities=vul
+                        "name": f"Device {device_number}",
+                        "type": device_type,
+                        "MAC": mac_address,
+                        "MAC_description": lookup_vendor_from_csv(mac_address),
+                        "IPv4_default_GW": ipv4_default_gw,
+                        "IPv6_default_GW": ipv6_default_gw,
+                        "DHCPv4_server": dhcpv4_server,
+                        "DHCPv6_server": dhcpv6_server
+                    }
                 )
                 ptjsonlib_object.add_node(node_ele)
+
+                for code in vul:
+                    if not any(v.get("vulnCode") == code for v in node_ele.get("vulnerabilities", [])):
+                        node_ele.setdefault("vulnerabilities", []).append({"vulnCode": code})
 
                 ip_addresses = addresses_df.loc[addresses_df['MAC'] == mac_address, 'IP'].tolist()
                 for ip in ip_addresses:
