@@ -95,7 +95,7 @@ class Json:
             list_solicited_ip = [in6_getnsma(addr) for addr in [ip] if not is_llsnm_ipv6(addr)]
             if ip not in list_solicited_ip:
                 node = ptjsonlib_object.create_node_object(
-                    node_type="Address", parent_type="Device",
+                    node_type="Address", parent_type=None,
                     parent=key_node_ele, properties={
                         "IP": in6_getansma(ip), "protocol": "IPv6", "description": "possible address"
                     }
@@ -106,7 +106,7 @@ class Json:
         elif not is_llsnm_ipv6(ip):
             desc = "duplicated address, probably not owned" if all_ip.count(ip) >= 2 else "normal address"
             node = ptjsonlib_object.create_node_object(
-                node_type="Address", parent_type="Device",
+                node_type="Address", parent_type=None,
                 parent=key_node_ele, properties={
                     "IP": ip, "protocol": "IPv6", "description": desc
                 }
@@ -123,7 +123,7 @@ class Json:
             ipaddress.IPv4Address(ip)
             desc = "duplicated address, probably not owned" if all_ip.count(ip) >= 2 else "normal address"
             node = ptjsonlib_object.create_node_object(
-                node_type="Address", parent_type="Device",
+                node_type="Address", parent_type=None,
                 parent=key_node_ele, properties={
                     "IP": ip, "protocol": "IPv4", "description": desc
                 }
@@ -204,13 +204,27 @@ class Json:
             for _, row in role_node_df.iterrows():
                 mac_address, device_number, role = row['MAC'], row['Device_Number'], row['Role']
                 roles = convert_role_to_list(role)
+                # Derive primary type and role-based flags
+                is_preferred_router = "Preferred router" in roles
+                is_router = ("Router" in roles) or is_preferred_router
+                device_type = "Preferred router" if is_preferred_router else ("Router" if is_router else "Host")
+                ipv4_default_gw = "IPv4 default GW" in roles
+                ipv6_default_gw = "IPv6 default GW" in roles
+                dhcpv4_server = "DHCP server" in roles
+                dhcpv6_server = "DHCPv6 server" in roles
                 vul = Json._get_vulnerabilities_for_id(vuln_df, str(device_number), mode, target_codes_set) if vuln_df is not None else []
 
                 node_ele = ptjsonlib_object.create_node_object(
                     node_type="Device", parent_type="Site", parent=None,
                     properties={
-                        "name": f"Device {device_number}", "type": roles, "MAC": mac_address,
-                        "description": lookup_vendor_from_csv(mac_address)
+                        "name": f"Device {device_number}",
+                        "type": device_type,
+                        "MAC": mac_address,
+                        "MAC_description": lookup_vendor_from_csv(mac_address),
+                        "IPv4_default_GW": ipv4_default_gw,
+                        "IPv6_default_GW": ipv6_default_gw,
+                        "DHCPv4_server": dhcpv4_server,
+                        "DHCPv6_server": dhcpv6_server
                     }
                 )
                 ptjsonlib_object.add_node(node_ele)
