@@ -58,12 +58,12 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
         except Exception:
             pass
     
-    # If interface is invalid or None, store in base data directory
+    # If interface is invalid or None, store in tmp/ directory
     # If valid, store in tmp/interface directory
     if interface_is_valid:
         output_dir = get_tmp_path(interface)
     else:
-        output_dir = get_output_dir()
+        output_dir = get_tmp_path(None)
     
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -254,7 +254,7 @@ def get_help() -> list:
             ["-less           ", "Show minimum details of network scan"],
             ["-nc             ", "Do not check if found addresses are valid"],
             ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
-            ["-6              ", "Only IPv6 traffic"],
+            ["-6              ", "Only IPv6 traffic (default if no IP version is specified)"],
             ["-ts             ", "Filter vulnerabilities by Test code (space-separated, e.g., -ts 4-MDNS 6-LLMNR)"],
             ["-tmpret         ", "Temporary file retention in seconds (default: 1800; set small for dev reset)"],
             ["-h              ", "Show this help message and exit"]
