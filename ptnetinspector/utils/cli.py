@@ -144,6 +144,9 @@ class CustomArgumentParser(argparse.ArgumentParser):
                         interface = sys.argv[i_index + 1]
                 except (ValueError, IndexError):
                     pass
+            # Show logo for errors unless -j without -vv
+            if not json_output or more_detail:
+                ptprinthelper.print_banner(SCRIPTNAME, __version__)
             _store_error_outputs(msg, json_output, interface, more_detail)
             # Print to terminal if not json_output OR if more_detail is set
             if not json_output or more_detail:
@@ -166,6 +169,9 @@ class CustomArgumentParser(argparse.ArgumentParser):
                             interface = sys.argv[i_index + 1]
                     except (ValueError, IndexError):
                         pass
+                # Show logo for errors unless -j without -vv
+                if not json_output or more_detail:
+                    ptprinthelper.print_banner(SCRIPTNAME, __version__)
                 _store_error_outputs(msg, json_output, interface, more_detail)
                 # Print to terminal if not json_output OR if more_detail is set
                 if not json_output or more_detail:
@@ -215,6 +221,9 @@ def parse_args() -> argparse.Namespace:
 
     if unknown_args:
         msg = "Unexpected arguments found."
+        # Show logo for errors unless -j without -vv
+        if not args.j or args.vv:
+            ptprinthelper.print_banner(SCRIPTNAME, __version__)
         _store_error_outputs(msg, args.j, args.interface, args.vv)
         if not args.j or args.vv:
             ptprinthelper.ptprint(msg, "ERROR")
@@ -228,6 +237,20 @@ def parse_args() -> argparse.Namespace:
 # ============================================================================
 # SECTION 2: HELP & DOCUMENTATION FUNCTIONS
 # ============================================================================
+
+def display_logo(json_output: bool = False, more_detail: bool = False) -> None:
+    """
+    Display the Penterep Tools logo/banner.
+    
+    Args:
+        json_output: Whether JSON output mode is enabled (-j flag)
+        more_detail: Whether verbose mode is enabled (-vv flag)
+    
+    The logo is displayed unless -j is used without -vv.
+    """
+    if not json_output or more_detail:
+        ptprinthelper.print_banner(SCRIPTNAME, __version__)
+
 
 def get_help() -> list:
     """
@@ -357,6 +380,8 @@ def _validate_mandatory_args(type, interface, json_output, more_detail, target_c
     # When -ts is provided, allow omitting -t (type) and infer later
     missing_type = (not type) and (not target_codes)
     if missing_type or not interface:
+        # Show logo for errors unless -j without -vv
+        display_logo(json_output, more_detail)
         if not json_output or more_detail:
             ptprinthelper.ptprint("Missing compulsory parameters (type, interface).", "ERROR")
         _store_error_outputs("Missing compulsory parameters (type, interface).", json_output, None, more_detail)
@@ -372,6 +397,8 @@ def _validate_type_combination(type, json_output, more_detail) -> None:
         return
     if len(type) == 2:
         if "p" in type and "a" in type:
+            # Show logo for errors unless -j without -vv
+            display_logo(json_output, more_detail)
             if not json_output or more_detail:
                 ptprinthelper.ptprint("Passive mode is also a part of active mode.", "ERROR")
             _store_error_outputs("Passive mode is also a part of active mode.", json_output, None, more_detail)
@@ -379,6 +406,8 @@ def _validate_type_combination(type, json_output, more_detail) -> None:
                 print(ptjsonlib_object.end_error("Passive mode is also a part of active mode.", ptjsonlib_object))
             sys.exit(1)
         if "p" in type and "a+" in type:
+            # Show logo for errors unless -j without -vv
+            display_logo(json_output, more_detail)
             if not json_output or more_detail:
                 ptprinthelper.ptprint("Passive mode is also a part of aggressive mode.", "ERROR")
             _store_error_outputs("Passive mode is also a part of aggressive mode.", json_output, None, more_detail)
@@ -386,6 +415,8 @@ def _validate_type_combination(type, json_output, more_detail) -> None:
                 print(ptjsonlib_object.end_error("Passive mode is also a part of aggressive mode.", ptjsonlib_object))
             sys.exit(1)
         if type[0] == type[1]:
+            # Show logo for errors unless -j without -vv
+            display_logo(json_output, more_detail)
             if not json_output or more_detail:
                 ptprinthelper.ptprint("Duplicated choices.", "ERROR")
             _store_error_outputs("Duplicated choices.", json_output, None, more_detail)
@@ -397,6 +428,8 @@ def _validate_type_combination(type, json_output, more_detail) -> None:
         if "802.1x" in type and "a" in type and "a+" in type and len(type) == 3:
             pass
         else:
+            # Show logo for errors unless -j without -vv
+            display_logo(json_output, more_detail)
             if not json_output or more_detail:
                 ptprinthelper.ptprint("Invalid choice.", "ERROR")
             _store_error_outputs("Invalid choice.", json_output, None, more_detail)
@@ -411,6 +444,8 @@ def _validate_interface(interface, json_output, more_detail) -> None:
         valid_interface = netifaces.interfaces()
         if interface not in valid_interface:
             err = f"Invalid inserted interface: {interface}."
+            # Show logo for errors unless -j without -vv
+            display_logo(json_output, more_detail)
             if not json_output or more_detail:
                 ptprinthelper.ptprint(err, "ERROR")
             _store_error_outputs(err, json_output, None, more_detail)
@@ -423,6 +458,8 @@ def _validate_detail_flags(more_detail, less_detail, json_output) -> None:
     """Validate detail display flags."""
     if more_detail and less_detail:
         err = "Showing full detail and less detail can not be set at the same time."
+        # Show logo for errors unless -j without -vv
+        display_logo(json_output, more_detail)
         if not json_output or more_detail:
             ptprinthelper.ptprint(err, "ERROR")
         _store_error_outputs(err, json_output, None, more_detail)
@@ -845,6 +882,8 @@ def _print_errors(list_error, json_output, more_detail) -> None:
     """Print accumulated errors and exit."""
     # Ensure stdout is restored (in case blockPrint was applied earlier)
     enablePrint()
+    # Show logo for errors unless -j without -vv
+    display_logo(json_output, more_detail)
     # JSON mode: if -vv (more_detail), print both terminal errors and JSON object
     if json_output:
         if more_detail:

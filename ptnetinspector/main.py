@@ -50,6 +50,10 @@ warnings.filterwarnings("ignore")
 ptjsonlib_object = PtJsonLib()
 args = parse_args()
 
+# Display logo at startup unless -j without -vv
+from ptnetinspector.utils.cli import display_logo
+display_logo(args.j, args.vv)
+
 # Validate and process parameters FIRST (before acquiring lock)
 # This ensures invalid parameters cause immediate errors without waiting in queue
 (
