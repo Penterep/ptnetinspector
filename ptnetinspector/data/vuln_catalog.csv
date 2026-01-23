@@ -24,8 +24,8 @@ Node,"a,a+",6,PTV-NET-IDENT-6-DNSSDDEV,Device responds to IPv6 DNS Service Disco
 Network,a+,6,PTV-NET-MISCONF-6-RAGUARD,Network does not have RA guard configured,6-FAKERA
 Network,a+,6,PTV-NET-MITM-6-FAKERADNS,Network allows a client to be forced to use a fraudulent DNS server through a spoofed RA message,6-FAKERA
 Node,a+,6,PTV-NET-MITM-6-FAKERADNSDEV,Device connects to a fraudulent DNS server through a spoofed RA message,6-FAKERA
-Network,a+,6,PTV-NET-MITM-6-ICMPREDIR,Network does not block ICMPv6 Redirect messages,6-FAKERA
-Node,a+,6,PTV-NET-MITM-6-ICMPREDIRDEV,Device communication can be redirected using ICMPv6 Redirect,6-FAKERA
+Network,a+,6,PTV-NET-MITM-6-ICMPREDIR,Network permits ICMPv6 Redirect messages that steer devices through the attacker,6-FAKERA
+Node,a+,6,PTV-NET-MITM-6-ICMPREDIRDEV,Device can be steered to forward traffic through the attacker via ICMPv6 Redirect,6-FAKERA
 Network,a+,6,PTV-NET-NET-MISCONF-6-FAKERA,Network allows the delivery of illegitimate RA packets,6-FAKERA
 Node,a+,6,PTV-NET-NET-MISCONF-6-FAKERADEV,Device does not ignore the illegitimate RA packets,6-FAKERA
 Network,"a,a+",6,PTV-NET-IDENT-ICMP-6-INVECHODO,Network allows the delivery of invalid Destionation Option ICMPv6 Echo Request,6-INVECHODO
