@@ -339,6 +339,13 @@ class IptablesRule:
             
             if ipv4:
                 subprocess.run(["iptables", "-A", "OUTPUT", "-p", "icmp", "--icmp-type", "redirect", "-j", "DROP"], check=True)
+                if not nofwd:
+                    command = 'sysctl -w net.ipv4.ip_forward=1 >/dev/null'
+                    subprocess.run(["iptables", "-A", "FORWARD", "-j", "ACCEPT"], check=True)
+                else:
+                    command = 'sysctl -w net.ipv4.ip_forward=0 >/dev/null'
+                    subprocess.run(["iptables", "-A", "FORWARD", "-j", "DROP"], check=True)
+                os.system(command)
 
     @staticmethod
     def remove(ipv6_rule: bool | None, mode: str, ipv4: bool = True, ipv6: bool = True) -> None:
@@ -368,8 +375,10 @@ class IptablesRule:
                 
                 if ipv4:
                     subprocess.run(["iptables", "-D", "OUTPUT", "-p", "icmp", "--icmp-type", "redirect", "-j", "DROP"], check=False)
+                    command = 'sysctl -w net.ipv4.ip_forward=0 >/dev/null'
                     subprocess.run(["iptables", "-D", "FORWARD", "-j", "ACCEPT"], stderr=subprocess.DEVNULL, check=False)
                     subprocess.run(["iptables", "-D", "FORWARD", "-j", "DROP"], stderr=subprocess.DEVNULL, check=False)
+                    os.system(command)
 
     @staticmethod
     def check(mode: str, ipv4: bool = True, ipv6: bool = True, nofwd: bool = False) -> bool | None:
@@ -407,6 +416,11 @@ class IptablesRule:
                     rules_exist = rules_exist or ipv4_rule_exists
                 if mode == "a+":
                     ipv4_rule_exists = any("-p icmp -m icmp --icmp-type redirect -j DROP" in line for line in output.split("\n"))
+                    output_2 = subprocess.check_output(["sysctl", "net.ipv4.ip_forward"], stderr=subprocess.STDOUT, universal_newlines=True)
+                    if not nofwd:
+                        ipv4_rule_exists = ipv4_rule_exists and "net.ipv4.ip_forward = 1" in output_2
+                    else:
+                        ipv4_rule_exists = ipv4_rule_exists and "net.ipv4.ip_forward = 0" in output_2
                     rules_exist = rules_exist or ipv4_rule_exists
             
             return rules_exist if (ipv4 or ipv6) else None

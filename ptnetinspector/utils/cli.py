@@ -31,12 +31,13 @@ from ptnetinspector.utils.ip_utils import (
     is_valid_mac,
     is_valid_MTU,
 )
-from ptnetinspector.utils.path import get_output_dir, get_tmp_path
+from ptnetinspector.utils.path import get_output_dir, get_tmp_path, set_current_interface
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog, load_vuln_catalog_by_test
 from ptnetinspector._version import __version__
 
 ptjsonlib_object = PtJsonLib()
 SCRIPTNAME = "ptnetinspector"
+_LOGO_SHOWN = False
 
 
 def _stringify_error(message) -> str:
@@ -248,8 +249,12 @@ def display_logo(json_output: bool = False, more_detail: bool = False) -> None:
     
     The logo is displayed unless -j is used without -vv.
     """
+    global _LOGO_SHOWN
+    if _LOGO_SHOWN:
+        return
     if not json_output or more_detail:
         ptprinthelper.print_banner(SCRIPTNAME, __version__)
+        _LOGO_SHOWN = True
 
 
 def get_help() -> list:
