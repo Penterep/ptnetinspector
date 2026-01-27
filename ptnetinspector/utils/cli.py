@@ -582,11 +582,11 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
             inferred_scan_types.append("802.1x")
 
         # Choose the SINGLE most appropriate mode based on what tests require:
-        # Strategy: Prefer the least intrusive mode that can satisfy all selected tests
+        # Strategy: Prefer the less intrusive mode that can satisfy all selected tests
         # 1. If ANY test requires ONLY aggressive mode → use a+
         # 2. Else if ANY test requires ONLY active mode → use a
         # 3. Else if ANY test requires ONLY passive mode → use p
-        # 4. Else (all tests support multiple modes) → prefer passive (least intrusive)
+        # 4. Else (all tests support multiple modes) → prefer active (less intrusive than a+)
         
         if aggressive_only:
             # At least one test requires aggressive mode exclusively
@@ -597,12 +597,12 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
         elif passive_only:
             # At least one test requires passive mode exclusively (and none require a/a+ only)
             inferred_scan_types.append("p")
-        elif passive_possible:
-            # All tests support passive mode among other options - choose passive (least intrusive)
-            inferred_scan_types.append("p")
         elif active_possible:
-            # All tests support active mode but not passive
+            # All tests support active mode among other options - choose active (less intrusive than a+)
             inferred_scan_types.append("a")
+        elif passive_possible:
+            # All tests support passive mode but not active
+            inferred_scan_types.append("p")
         elif aggressive_possible:
             # All tests support only aggressive mode
             inferred_scan_types.append("a+")
