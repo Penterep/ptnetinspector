@@ -44,10 +44,11 @@ Version 0.1.7
 
 Version 0.1.8
 -------------
-- Added Penterep Tools logo display on startup and all error scenarios
-- Logo displays everywhere except when using -j (JSON mode) without -vv (verbose)
 - Improved JSON output structure: flattened device type, added gateway/DHCP flags
-- Renamed 'description' field to 'MAC_description' for clarity
-- Set Address parent_type to null for better data consistency
 - Enhanced error handling and output persistence
 - Standardized error output format across all validation scenarios
+
+Version 0.1.9
+-------------
+- Updated IPv6 address predictability detection logic
+- Enhanced version management and release process
