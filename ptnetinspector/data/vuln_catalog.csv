@@ -54,8 +54,8 @@ Network,"a,a+",6,PTV-NET-IDENT-ICMP-6-MULTIECHO,Network allows the delivery of s
 Node,"a,a+",6,PTV-NET-IDENT-ICMP-6-MULTIECHODEV,Device responds to standard multicast ICMPv6 Echo Request,6-MULTIECHO
 Network,"a,a+",6,PTV-NET-IDENT-ICMP-6-OUTRANGE,Network allows valid or invalid ICMPv6 packets to be delivered from sources outside the scanned local network range,6-OUTRANGE
 Node,"a,a+",6,PTV-NET-IDENT-ICMP-6-OUTRANGEDEV,Device responds to valid or invalid ICMPv6 packets from sources outside the scanned local network range,6-OUTRANGE
-Node,"p,a,a+",6,PTV-NET-IDENT-6-PREDICT-GLOBIP,Devices uses predictable IPv6 global address,6-PREDICT-GLOBIP
-Node,"p,a,a+",6,PTV-NET-IDENT-6-PREDICT-LINKLOCALIP,Devices uses predictable IPv6 link-local address,6-PREDICT-LINKLOCALIP
+Node,"p,a,a+",6,PTV-NET-IDENT-6-PREDICT-GLOBIP,Device uses predictable IPv6 global address,6-PREDICT-GLOBIP
+Node,"p,a,a+",6,PTV-NET-IDENT-6-PREDICT-LINKLOCALIP,Device uses predictable IPv6 link-local address,6-PREDICT-LINKLOCALIP
 Network,"a,a+",6,PTV-NET-IDENT-6-WS,Network allows devices discovery with IPv6 WS-Discovery,6-WS
 Node,"a,a+",6,PTV-NET-IDENT-6-WSDEV,Device responds to IPv6 WS-Discovery packets,6-WS
 Network,802.1x,,PTV-NET-NET-MISCONF-8021X,Network does not have 802.1x deployed,802-1X

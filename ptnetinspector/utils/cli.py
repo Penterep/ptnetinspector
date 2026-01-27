@@ -553,36 +553,58 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
             return None
 
         has_eap = False
-        has_passive = False
-        has_active = False
-        has_aggressive = False
+        passive_only = False
+        passive_possible = False
+        active_only = False
+        active_possible = False
         aggressive_only = False
+        aggressive_possible = False
 
         for modes in modes_per_entry:
             if modes == ["802.1x"]:
                 has_eap = True
+            if modes == ["p"]:
+                passive_only = True
             if "p" in modes:
-                has_passive = True
+                passive_possible = True
+            if modes == ["a"]:
+                active_only = True
+            if "a" in modes:
+                active_possible = True
             if modes == ["a+"]:
                 aggressive_only = True
-            if "a" in modes:
-                has_active = True
             if "a+" in modes:
-                has_aggressive = True
+                aggressive_possible = True
 
         inferred_scan_types = []
 
         if has_eap:
             inferred_scan_types.append("802.1x")
-        if has_passive:
-            inferred_scan_types.append("p")
 
-        # Prefer the least intrusive option unless a+ is mandatory
+        # Choose the SINGLE most appropriate mode based on what tests require:
+        # Strategy: Prefer the least intrusive mode that can satisfy all selected tests
+        # 1. If ANY test requires ONLY aggressive mode → use a+
+        # 2. Else if ANY test requires ONLY active mode → use a
+        # 3. Else if ANY test requires ONLY passive mode → use p
+        # 4. Else (all tests support multiple modes) → prefer passive (least intrusive)
+        
         if aggressive_only:
+            # At least one test requires aggressive mode exclusively
             inferred_scan_types.append("a+")
-        elif has_active:
+        elif active_only:
+            # At least one test requires active mode exclusively (and none require a+ only)
             inferred_scan_types.append("a")
-        elif has_aggressive:
+        elif passive_only:
+            # At least one test requires passive mode exclusively (and none require a/a+ only)
+            inferred_scan_types.append("p")
+        elif passive_possible:
+            # All tests support passive mode among other options - choose passive (least intrusive)
+            inferred_scan_types.append("p")
+        elif active_possible:
+            # All tests support active mode but not passive
+            inferred_scan_types.append("a")
+        elif aggressive_possible:
+            # All tests support only aggressive mode
             inferred_scan_types.append("a+")
 
         if not inferred_scan_types:
