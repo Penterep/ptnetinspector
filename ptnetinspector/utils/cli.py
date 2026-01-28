@@ -958,7 +958,6 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
             ptprinthelper.ptprint("Allowing json output", "INFO", condition=True, indent=4)
         if not json_output:
             ptprinthelper.ptprint("Disabling json output", "INFO", condition=True, indent=4)
-        ptprinthelper.ptprint("Temporary files are deleted after all", "INFO", condition=True, indent=4)
         
         for ele in type:
             if ele == "802.1x":
