@@ -247,6 +247,7 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
             final_df = pd.merge(existing_df, new_df, on='MAC', how='left')
             final_df.to_csv(file_name, index=False)
             final_df = pd.read_csv(file_name)
+            final_df['Role'] = final_df['Role'].astype('object')
             blank_role_rows = final_df[final_df['Role'].isna() | (final_df['Role'] == '')]
             host_str = 'Host'
             final_df.loc[blank_role_rows.index, 'Role'] = host_str
