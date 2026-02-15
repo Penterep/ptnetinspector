@@ -4,6 +4,7 @@
 Encapsulates detecting/manipulating interface addresses and iptables rule state
 required by passive/active/aggressive scan modes.
 """
+import ipaddress
 import os
 import subprocess
 import sys
@@ -87,6 +88,24 @@ class Interface:
             if ipv6.startswith("fe80"):
                 list_ll.append(ipv6)
         return list_ll
+    
+    def get_interface_global_unicast_list(self) -> list:
+        """
+        Retrieve global IPv6 addresses of the network interface.
+
+        Returns:
+            list: List of global IPv6 addresses (not starting with 'fe80').
+        """
+        ips = self.get_interface_ips()
+        list_global = []
+        for ipv6 in ips:
+            try:
+                addr = ipaddress.IPv6Address(ipv6)
+                if addr.is_global and not addr.is_multicast:
+                    list_global.append(ipv6)
+            except ipaddress.AddressValueError:
+                pass
+        return list_global        
 
     def check_interface(self) -> bool:
         """Check if the configured network interface exists.
