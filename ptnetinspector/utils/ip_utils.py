@@ -736,7 +736,7 @@ def send_ipv6_from_all_addresses(interface, payload, dst_ip, dst_mac = None) -> 
                     pkt = (Ether(src=src_mac, dst=dst_mac) /
                             IPv6(src=src_ip, dst=dst_ip) /
                             payload)
-                    packets.extend(sendp(pkt, iface=interface, verbose=False))
+                    sendp(pkt, iface=interface, verbose=False)
                 except ipaddress.AddressValueError:
                     pass
     return packets
@@ -775,5 +775,5 @@ def send_ipv6_from_all_lla_addresses(interface, payload, dst_ip, dst_mac = None)
             pkt = (Ether(src=src_mac, dst=dst_mac) /
                 IPv6(src=ip_addresses, dst=dst_ip) /
                 payload)
-            packets.extend(sendp(pkt, iface=interface, verbose=False))
+            sendp(pkt, iface=interface, verbose=False)
     return packets

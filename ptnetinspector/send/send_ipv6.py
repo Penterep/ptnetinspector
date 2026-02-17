@@ -516,7 +516,7 @@ class SendIPv6:
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
             send_ipv6_from_all_addresses(interface, 
-                PrototypeIPv6Packet.get_payload_wsdiscovery_probe(), dst="ff02::c"),                
+                PrototypeIPv6Packet.get_payload_wsdiscovery(), dst_ip="ff02::c"),                
 
     @staticmethod
     def send_dns_sd_probe(interface: str) -> None:
@@ -550,7 +550,7 @@ class SendIPv6:
             None
         """
         send_ipv6_from_all_lla_addresses(interface,
-            PrototypeIPv6Packet.get_payload_dhcpv6_solicit(get_if_hwaddr(interface)), dst="ff02::1:2")
+            PrototypeIPv6Packet.get_payload_dhcpv6_solicit(get_if_hwaddr(interface)), dst_ip="ff02::1:2")
 
 
 def generate_more_possible_IP(interface) -> dict | None:
