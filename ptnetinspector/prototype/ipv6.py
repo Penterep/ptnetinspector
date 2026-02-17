@@ -7,6 +7,8 @@ from scapy.layers.inet6 import IPv6, ICMPv6MLQuery, ICMPv6EchoRequest, IPv6ExtHd
 from scapy.layers.inet import UDP
 from scapy.layers.l2 import Ether
 from scapy.layers.dhcp6 import DUID_LL, DHCP6OptElapsedTime, DHCP6OptIA_NA, DHCP6OptClientId, DHCP6_Solicit
+from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
+from scapy.layers.dns import DNS, DNSQR, DNSRR
 
 class PrototypeIPv6Packet:
     # Extension headers
@@ -21,7 +23,7 @@ class PrototypeIPv6Packet:
     # L3 Payloads
     #
 
-    def get_payload_icmpv6_echo_request(id) -> Packet:
+    def get_l3payload_icmpv6_echo_request(id) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with specified ID, without any extension headers.
         Does not include L2 and L3 headers, only the ICMPv6 payload.
@@ -32,7 +34,7 @@ class PrototypeIPv6Packet:
         """
         return ICMPv6EchoRequest(id=id)    
     
-    def get_payload_icmpv6_echo_request_with_dest_opt(id) -> Packet:
+    def get_l3payload_icmpv6_echo_request_with_dest_opt(id) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with destination option extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
@@ -47,7 +49,7 @@ class PrototypeIPv6Packet:
                         optdata=PrototypeIPv6Packet.EXT_HDR_DESTINATION_OPTION_DATA)]) /
                 ICMPv6EchoRequest(id=id))
         
-    def get_payload_icmpv6_echo_request_with_hop_by_hop_opt(id) -> Packet:
+    def get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(id) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with hop-by-hop extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
@@ -62,7 +64,7 @@ class PrototypeIPv6Packet:
                         optdata=PrototypeIPv6Packet.EXT_HDR_HOP_BY_HOP_DATA)]) /
                 ICMPv6EchoRequest(id=id))
 
-    def get_payload_invalid_icmpv6_with_dest_opt(id) -> Packet:
+    def get_l3payload_invalid_icmpv6_with_dest_opt(id) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with invalid type and destination option extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
@@ -77,7 +79,7 @@ class PrototypeIPv6Packet:
                         optdata=PrototypeIPv6Packet.EXT_HDR_DESTINATION_OPTION_DATA)]) /
                 ICMPv6EchoRequest(id=id, type=PrototypeIPv6Packet.ICMPV6_INVALID_TYPE))
     
-    def get_payload_dhcpv6_solicit(src_mac) -> Packet:
+    def get_l3payload_dhcpv6_solicit(src_mac) -> Packet:
         """
         Returns DHCPv6 Solicit packet with specified source MAC address.
         Does not include L2 and L3 headers, only the DHCPv6 payload.
@@ -95,7 +97,7 @@ class PrototypeIPv6Packet:
         ia_na_opt = DHCP6OptIA_NA(iaid=random.randint(0, 0xFFFFFFFF), T1=0, T2=0)
         return udp / dhcpv6 / client_id_opt / elapsed_time_opt / ia_na_opt
     
-    def get_payload_wsdiscovery() -> Packet:
+    def get_l3payload_wsdiscovery() -> Packet:
         """
         Returns WS-Discovery Probe packet.
         Does not include L2 and L3 headers, only the WS-Discovery payload.
@@ -125,7 +127,7 @@ class PrototypeIPv6Packet:
     # L3 Builders
     #
 
-    def get_llmnr(src_mac, src_ip, l4_payload) -> Packet:
+    def get_frame_llmnr_custom_payload(src_mac, src_ip, l4_payload) -> Packet:
         """
         Adds L2, L3, and L4 headers to the provided L4 payload to create a complete LLMNR query packet.
         Args:
@@ -140,7 +142,7 @@ class PrototypeIPv6Packet:
                 UDP(sport=5355, dport=5355) /
                 l4_payload)
 
-    def get_mdns(src_mac, src_ip, l4_payload) -> Packet:
+    def get_frame_mdns_custom_payload(src_mac, src_ip, l4_payload) -> Packet:
         """
         Adds L2, L3, and L4 headers to the provided L4 payload to create a complete mDNS query packet.
         Args:
@@ -155,7 +157,7 @@ class PrototypeIPv6Packet:
                 UDP(sport=5353, dport=5353) /
                 l4_payload)
 
-    def get_mldv1(src_mac, src_ip) -> Packet:
+    def get_frame_mldv1(src_mac, src_ip) -> Packet:
         """
         Builds an MLDv1 Query packet with the specified source MAC and IPv6 addresses.
         The packet is constructed with appropriate L2 and L3 headers, and includes a Router Alert option in the hop-by-hop extension header.
@@ -170,7 +172,7 @@ class PrototypeIPv6Packet:
                 IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)) /
                 ICMPv6MLQuery(mrd=1, mladdr='::'))
 
-    def get_mldv2(src_mac, src_ip) -> Packet:
+    def get_frame_mldv2(src_mac, src_ip) -> Packet:
         """
         Builds an MLDv2 Query packet with the specified source MAC and IPv6 addresses.
         The packet is constructed with appropriate L2 and L3 headers, and includes a Router Alert option in the hop-by-hop extension header.
@@ -184,4 +186,29 @@ class PrototypeIPv6Packet:
                 IPv6(src=src_ip, dst="ff02::1", hlim=1)/
                 IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)) /
                 ICMPv6MLQuery2(type=130, mladdr="::", sources=[], mrd=1, S=0, QRV=2, QQIC=125))
-        
+    
+    def get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse = 0) -> list[Packet]:
+        pkt_any = PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip,
+            LLMNRQuery(qd=DNSQR(qname=qname, qtype=255, qclass=1, unicastresponse=unicastresponse)))
+        pkt_a = PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip,
+            LLMNRQuery(qd=DNSQR(qname=qname, qtype=1, qclass=1, unicastresponse=unicastresponse)))
+        pkt_aaaa = PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip,
+                    LLMNRQuery(qd=DNSQR(qname=qname, qtype=28, qclass=1, unicastresponse=unicastresponse)))
+        return [pkt_a, pkt_aaaa, pkt_any]
+    
+    def get_frame_llmnr_ptr(src_mac, src_ip, qname, unicastresponse = 0) -> Packet:
+        return (PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip, 
+            LLMNRQuery(qd=DNSQR(qname=qname, qtype="PTR", unicastresponse=unicastresponse))))
+
+    def get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse = 0) -> list[Packet]:
+        pkt_any = (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip, 
+            DNS(rd=1, qd=DNSQR(qname=qname, qtype=255, qclass=1, unicastresponse=unicastresponse))))
+        pkt_a = (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip, 
+            DNS(rd=1, qd=DNSQR(qname=qname, qtype=1, qclass=1, unicastresponse=unicastresponse))))
+        pkt_aaaa = (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip, 
+            DNS(rd=1, qd=DNSQR(qname=qname, qtype=28, qclass=1, unicastresponse=unicastresponse))))
+        return [pkt_a, pkt_aaaa, pkt_any]
+    
+    def get_frame_mdns_ptr(src_mac, src_ip, qname, unicastresponse = 0) -> Packet:
+        return (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip,
+                    DNS(rd=1, qd=DNSQR(qname=qname, qtype="PTR", unicastresponse=unicastresponse))))
