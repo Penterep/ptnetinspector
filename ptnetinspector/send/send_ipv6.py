@@ -183,9 +183,7 @@ class SendIPv6:
                 interface_ip_addresses = Interface(interface).get_interface_ips()
                 if ipv6_address in interface_ip_addresses or ipv6_address == src_ip[:-5]:
                     return None
-                pkt = []
-                pkt.append(PrototypeIPv6Packet.get_frame_llmnr_ptr(src_mac, src_ip, query))
-                pkt.append(PrototypeIPv6Packet.get_frame_llmnr_ptr(src_mac, src_ip, query, unicastresponse=1))
+                pkt = PrototypeIPv6Packet.get_frame_llmnr_ptr(src_mac, src_ip, query)
                 response = AsyncSniffer(iface=interface)
                 response.start()
                 time.sleep(0.1)
@@ -215,7 +213,6 @@ class SendIPv6:
                 name = LLMNR.full_name_llmnr(name)
                 src_ip = Interface(interface).get_interface_link_local_list()
                 pkt = PrototypeIPv6Packet.get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, name)
-                pkt.extend(PrototypeIPv6Packet.get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, name, unicastresponse=1))
                 sendp(pkt, iface=interface, verbose=False)
 
     def IPv6_test_mdns_llmnr(ip_address, interface) -> None:

@@ -187,18 +187,18 @@ class PrototypeIPv6Packet:
                 IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)) /
                 ICMPv6MLQuery2(type=130, mladdr="::", sources=[], mrd=1, S=0, QRV=2, QQIC=125))
     
-    def get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse = 0) -> list[Packet]:
+    def get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, qname) -> list[Packet]:
         pkt_any = PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip,
-            LLMNRQuery(qd=DNSQR(qname=qname, qtype=255, qclass=1, unicastresponse=unicastresponse)))
+            LLMNRQuery(qd=DNSQR(qname=qname, qtype=255, qclass=1)))
         pkt_a = PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip,
-            LLMNRQuery(qd=DNSQR(qname=qname, qtype=1, qclass=1, unicastresponse=unicastresponse)))
+            LLMNRQuery(qd=DNSQR(qname=qname, qtype=1, qclass=1)))
         pkt_aaaa = PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip,
-                    LLMNRQuery(qd=DNSQR(qname=qname, qtype=28, qclass=1, unicastresponse=unicastresponse)))
+                    LLMNRQuery(qd=DNSQR(qname=qname, qtype=28, qclass=1)))
         return [pkt_a, pkt_aaaa, pkt_any]
     
-    def get_frame_llmnr_ptr(src_mac, src_ip, qname, unicastresponse = 0) -> Packet:
+    def get_frame_llmnr_ptr(src_mac, src_ip, qname) -> Packet:
         return (PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip, 
-            LLMNRQuery(qd=DNSQR(qname=qname, qtype="PTR", unicastresponse=unicastresponse))))
+            LLMNRQuery(qd=DNSQR(qname=qname, qtype="PTR"))))
 
     def get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse = 0) -> list[Packet]:
         pkt_any = (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip, 
