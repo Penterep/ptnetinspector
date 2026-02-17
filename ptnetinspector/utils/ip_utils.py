@@ -16,9 +16,13 @@ import netifaces
 from netaddr import IPNetwork
 from scapy.pton_ntop import inet_pton, inet_ntop
 from scapy.utils6 import in6_and, in6_or
+from scapy.all import sendp, get_if_hwaddr, Packet
+from scapy.layers.inet6 import IPv6
+from scapy.layers.l2 import Ether
 
 from ptnetinspector.utils.csv_helpers import has_additional_data
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.utils.interface import Interface
 
 
 # ============================================================================
@@ -684,3 +688,92 @@ def collect_unique_items(dictionary: dict) -> list:
         for item in value_list:
             unique_items.add(item)
     return list(unique_items)
+
+#
+# PACKET SENDING LOOPS
+#
+
+def send_ipv6_all_nodes_multicast(interface, payload) -> list[Packet]:
+    """
+    Send an IPv6 packet to the all-nodes multicast address (ff02::1) from all available IPv6 addresses on the interface.
+    Includes both global and link-local addresses. The destination MAC address is set to the corresponding multicast MAC (33:33:00:00:00:01).
+    Args:
+        interface (str): Network interface to use.
+        payload (Packet): The IPv6 payload to send.
+    Output:
+        list[Packet]: The list of packets sent.
+    """
+    return send_ipv6_from_all_addresses(interface, payload, dst_ip="ff02::1", dst_mac="33:33:00:00:00:01")    
+
+def send_ipv6_from_all_addresses(interface, payload, dst_ip, dst_mac = None) -> list[Packet]:
+    """
+    Send an IPv6 packet to the specified destination IP and MAC address from all available IPv6 addresses on the interface.
+    Includes both global and link-local addresses. If dst_mac is None, it will be determined automatically based on the destination IP.
+    Args:
+        interface (str): Network interface to use.
+        payload (Packet): The IPv6 payload to send.
+        dst_ip (str): The destination IPv6 address.
+        dst_mac (str, optional): The destination MAC address. If None, it is determined automatically.
+    Output:
+        list[Packet]: The list of packets sent.
+    """
+    packets = []
+    exist_interface = Interface(interface).check_interface()
+    if exist_interface:
+        avail_ipv6 = Interface(interface).check_available_ipv6
+        if avail_ipv6:
+            ip_addresses = Interface(interface).get_interface_ips()
+            src_mac = get_if_hwaddr(interface)            
+            for ip in ip_addresses:
+                try:
+                    ipaddress.IPv4Address(ip)
+                    continue
+                except ipaddress.AddressValueError:
+                    pass
+                try:
+                    ipaddress.IPv6Address(ip)                    
+                    src_ip = ip
+                    pkt = (Ether(src=src_mac, dst=dst_mac) /
+                            IPv6(src=src_ip, dst=dst_ip) /
+                            payload)
+                    packets.extend(sendp(pkt, iface=interface, verbose=False))
+                except ipaddress.AddressValueError:
+                    pass
+    return packets
+
+def send_ipv6_all_routers_multicast(interface, payload) -> list[Packet]:
+    """
+    Send an IPv6 packet to the all-routers multicast address (ff02::2) from all available link-local IPv6 addresses on the interface.
+    The destination MAC address is set to the corresponding multicast MAC (33:33:00:00:00:02).
+    Args:        
+        interface (str): Network interface to use.
+        payload (Packet): The IPv6 payload to send.
+    Output:
+        list[Packet]: The list of packets sent.
+    """
+    return send_ipv6_from_all_lla_addresses(interface, payload, dst_ip="ff02::2", dst_mac="33:33:00:00:00:02")
+
+def send_ipv6_from_all_lla_addresses(interface, payload, dst_ip, dst_mac = None) -> list[Packet]:    
+    """
+    Send an IPv6 packet to the specified destination IP and MAC address from all available link-local IPv6 addresses on the interface.
+    If dst_mac is None, it will be determined automatically based on the destination IP.
+    Args:
+        interface (str): Network interface to use.
+        payload (Packet): The IPv6 payload to send.
+        dst_ip (str): The destination IPv6 address.
+        dst_mac (str, optional): The destination MAC address. If None, it is determined automatically.
+    Output:
+        list[Packet]: The list of packets sent.
+    """
+    packets = []
+    exist_interface = Interface(interface).check_interface()
+    if exist_interface:
+        avail_ipv6 = Interface(interface).check_available_ipv6
+        if avail_ipv6:
+            ip_addresses = Interface(interface).get_interface_link_local_list()
+            src_mac = get_if_hwaddr(interface)
+            pkt = (Ether(src=src_mac, dst=dst_mac) /
+                IPv6(src=ip_addresses, dst=dst_ip) /
+                payload)
+            packets.extend(sendp(pkt, iface=interface, verbose=False))
+    return packets
