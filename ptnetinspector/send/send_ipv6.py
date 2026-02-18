@@ -522,11 +522,10 @@ class SendIPv6:
             if avail_ipv6:
                 ipv6_addresses = Interface(interface).get_interface_ipv6_ips()
                 for source_ipv6_addr in ipv6_addresses:
-                    ether = Ether(src=get_if_hwaddr(interface))
-                    ipv6 = IPv6(src=source_ipv6_addr, dst="ff02::fb", hlim=1)
-                    udp = UDP(sport=random.randint(49152, 65535), dport=5353)
-                    mdns = DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
-                    dns_sd = ether / ipv6 / udp / mdns
+                    src_mac = get_if_hwaddr(interface)
+                    dns_sd = []
+                    dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr))
+                    dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr, unicastresponse=1))
                     sendp(dns_sd, verbose=0, iface=interface)
 
     @staticmethod
