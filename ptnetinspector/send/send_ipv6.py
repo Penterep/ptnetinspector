@@ -30,6 +30,18 @@ from ptnetinspector.prototype.ipv6 import PrototypeIPv6Packet
 from ptnetinspector.utils.ip_utils import send_ipv6_all_nodes_multicast, send_ipv6_all_routers_multicast, send_ipv6_from_all_addresses, send_ipv6_from_all_lla_addresses
 
 class SendIPv6:
+    __ipcmpv6_sequence_number = 1
+    @staticmethod
+    def __get_next_icmpv6_id() -> int:
+        """
+        Get the next ICMPv6 identifier, incrementing the internal sequence number.
+        Returns:
+            int: The next ICMPv6 identifier.
+        """
+        current_id = SendIPv6.__ipcmpv6_sequence_number
+        SendIPv6.__ipcmpv6_sequence_number += 1
+        return current_id
+    
     @staticmethod
     def send_normal_multicast_ping(interface) -> None:
         """
