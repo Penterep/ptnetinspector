@@ -41,7 +41,7 @@ class PrototypeIPv6Packet:
         return random.randint(49152, 65535)
 
     @staticmethod
-    def get_l3payload_icmpv6_echo_request(id) -> Packet:
+    def get_l3payload_icmpv6_echo_request(id=0) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with specified ID, without any extension headers.
         Does not include L2 and L3 headers, only the ICMPv6 payload.
@@ -53,7 +53,7 @@ class PrototypeIPv6Packet:
         return ICMPv6EchoRequest(id=id)    
     
     @staticmethod
-    def get_l3payload_icmpv6_echo_request_with_dest_opt(id) -> Packet:
+    def get_l3payload_icmpv6_echo_request_with_dest_opt(id=0) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with destination option extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
@@ -69,7 +69,7 @@ class PrototypeIPv6Packet:
                 ICMPv6EchoRequest(id=id))
         
     @staticmethod
-    def get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(id) -> Packet:
+    def get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(id=0) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with hop-by-hop extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
@@ -85,7 +85,7 @@ class PrototypeIPv6Packet:
                 ICMPv6EchoRequest(id=id))
 
     @staticmethod
-    def get_l3payload_invalid_icmpv6_with_dest_opt(id) -> Packet:
+    def get_l3payload_invalid_icmpv6_with_dest_opt(id=0) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with invalid type and destination option extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
