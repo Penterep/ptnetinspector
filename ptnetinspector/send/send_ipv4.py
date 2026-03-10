@@ -19,6 +19,7 @@ from scapy.layers.l2 import Ether, ARP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 
 from ptnetinspector.entities.networks import Networks
+from ptnetinspector.prototype.prototype_ipv4 import PrototypeIPv4Packet
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.mdns import MDNS
 from ptnetinspector.entities.llmnr import LLMNR
@@ -279,6 +280,42 @@ class SendIPv4:
                 query = mac / ipv4_packet / igmp_query
 
                 sendp(query*2, verbose=0, iface=interface)
+
+    @staticmethod
+    def send_igmp_report_join(interface, aggressive = False) -> None:
+        exist_interface = Interface(interface).check_interface()
+        if exist_interface:
+            ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+            src_mac = get_if_hwaddr(interface)
+            if aggressive:
+                igmpv3_join = PrototypeIPv4Packet.get_init_igmpv3_aggressive_mode(src_mac, ipv4_addresses)
+            else:
+                igmpv3_join = PrototypeIPv4Packet.get_init_igmpv3_active_mode(src_mac, ipv4_addresses)
+            sendp(igmpv3_join*2, iface=interface, verbose=False)
+            time.sleep(0.1)
+            if aggressive:                    
+                igmpv2_join = PrototypeIPv4Packet.get_init_igmpv2_aggressive_mode(src_mac, ipv4_addresses)
+            else:
+                igmpv2_join = PrototypeIPv4Packet.get_init_igmpv2_active_mode(src_mac, ipv4_addresses)
+            sendp(igmpv2_join*2, iface=interface, verbose=False)
+
+    @staticmethod
+    def send_igmp_done_leave(interface, aggressive = False) -> None:
+        exist_interface = Interface(interface).check_interface()
+        if exist_interface:
+            ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+            src_mac = get_if_hwaddr(interface)
+            if aggressive:
+                igmpv3_leave = PrototypeIPv4Packet.get_finish_igmpv3_aggressive_mode(src_mac, ipv4_addresses)
+            else:
+                igmpv3_leave = PrototypeIPv4Packet.get_finish_igmpv3_active_mode(src_mac, ipv4_addresses)
+            sendp(igmpv3_leave*2, iface=interface, verbose=False)
+            time.sleep(0.1)
+            if aggressive:                    
+                igmpv2_leave = PrototypeIPv4Packet.get_finish_igmpv2_aggressive_mode(src_mac, ipv4_addresses)
+            else:
+                igmpv2_leave = PrototypeIPv4Packet.get_finish_igmpv2_active_mode(src_mac, ipv4_addresses)
+            sendp(igmpv2_leave*2, iface=interface, verbose=False)
 
     @staticmethod
     def send_local_icmp(address: str, interface: str, icmp_type: ICMPType = ICMPType.ECHO_REQUEST) -> None:

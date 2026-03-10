@@ -3,7 +3,7 @@ import random
 import uuid
 
 from scapy.all import Raw, Packet
-from scapy.layers.inet6 import IPv6, ICMPv6MLQuery, ICMPv6EchoRequest, IPv6ExtHdrHopByHop, RouterAlert, IPv6ExtHdrDestOpt, HBHOptUnknown, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_NA, ICMPv6MLQuery2, ICMPv6ND_RS, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, ICMPv6NDOptDstLLAddr
+from scapy.layers.inet6 import ICMPv6MLDMultAddrRec, IPv6, ICMPv6MLQuery, ICMPv6MLReport, ICMPv6MLReport2, ICMPv6MLDone, ICMPv6EchoRequest, IPv6ExtHdrHopByHop, RouterAlert, IPv6ExtHdrDestOpt, HBHOptUnknown, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_NA, ICMPv6MLQuery2, ICMPv6ND_RS, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, ICMPv6NDOptDstLLAddr
 from scapy.layers.inet import UDP
 from scapy.layers.l2 import Ether
 from scapy.layers.dhcp6 import DUID_LL, DHCP6OptElapsedTime, DHCP6OptIA_NA, DHCP6OptClientId, DHCP6_Solicit
@@ -12,12 +12,16 @@ from scapy.layers.dns import DNS, DNSQR, DNSRR
 
 class PrototypeIPv6Packet:
     # Addresses
+    ALL_NODES_IPV6_MULTICAST_IP = "ff02::1"
+    ALL_ROUTERS_IPV6_MULTICAST_IP = "ff02::2"
+    DHCPV6_ALL_SERVERS_MULTICAST_IP = "ff02::1:2"
     LLMNR_IPV6_MULTICAST_IP = "ff02::1:3"
     LLMNR_IPV6_MULTICAST_MAC = "33:33:00:01:00:03"
     MDNS_IPV6_MULTICAST_IP = "ff02::fb"
     MDNS_IPV6_MULTICAST_MAC = "33:33:00:00:00:fb"
     MLD_IPV6_MULTICAST_IP = "ff02::1"
     MLD_IPV6_MULTICAST_MAC = "33:33:00:00:00:01"
+    WS_DISCOVERY_IPV6_MULTICAST_IP = "ff02::c"
     # Extension headers
     EXT_HDR_DESTINATION_OPTION_TYPE = 128
     EXT_HDR_DESTINATION_OPTION_DATA = b''
@@ -25,6 +29,22 @@ class PrototypeIPv6Packet:
     EXT_HDR_HOP_BY_HOP_DATA = b"\x00\x00\x00"
     # ICMPv6
     ICMPV6_INVALID_TYPE = 254
+
+    # - ipv4 + ipv6 přihlašování do multicast skupin, pro aktivní a agresivní, -6 je pro IPv6 skupiny, -4 pouze IPv4 skupiny. -6 a -4 oboje. Odhlášení dle přihlášení. Použít MLDv2 i MLDv1 v IPv6 a v IPv4 použít IGMPv3 a IGMPv2.
+    # - případně prověřit jaké další multicastové skupiny se používají (ff02::c)
+    # - v případě agresivního by se měl router hlásit do skupiny všech routerů (ff02::2)
+
+    MULTICAST_GROUPS_ACTIVE = [
+        ALL_NODES_IPV6_MULTICAST_IP,
+        DHCPV6_ALL_SERVERS_MULTICAST_IP,
+        MLD_IPV6_MULTICAST_IP,
+        LLMNR_IPV6_MULTICAST_IP,
+        MDNS_IPV6_MULTICAST_IP,
+        WS_DISCOVERY_IPV6_MULTICAST_IP
+    ]
+    MULTICAST_GROUPS_AGGRESSIVE = [
+        ALL_ROUTERS_IPV6_MULTICAST_IP
+    ]
 
     # 
     # L3 Payloads
@@ -39,6 +59,76 @@ class PrototypeIPv6Packet:
             int: A random ephemeral port number.
         """
         return random.randint(49152, 65535)
+    
+    @staticmethod
+    def __get_mld_packet_headers(src_mac, src_ip) -> Packet:
+        """
+        Builds the L2 and L3 headers for MLD packets, including the Router Alert option in the hop-by-hop extension header.
+        Args:
+            src_mac: Source MAC address for the MLD packet.
+            src_ip: Source IPv6 address for the MLD packet.
+        Output:
+            Packet: Scapy packet representing the L2 and L3 headers for MLD packets.
+        """
+        return (Ether(src=src_mac, dst=PrototypeIPv6Packet.MLD_IPV6_MULTICAST_MAC) /
+                IPv6(src=src_ip, dst=PrototypeIPv6Packet.MLD_IPV6_MULTICAST_IP, hlim=1)/
+                IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)))
+    
+    @staticmethod
+    def __get_mldv1_report(src_mac, src_ip, group) -> Packet:
+        """
+        Builds an MLDv1 Report packet for the specified multicast group, with appropriate L2 and L3 headers.
+        Args:
+            src_mac: Source MAC address for the MLDv1 Report packet.
+            src_ip: Source IPv6 address for the MLDv1 Report packet.
+            group: The multicast group address to report membership for.
+        Output:
+            Packet: Scapy packet representing the MLDv1 Report for the specified multicast group.
+        """
+        return (PrototypeIPv6Packet.__get_mld_packet_headers(src_mac, src_ip) /
+                ICMPv6MLReport(mrd=1, mladdr=group))
+    
+    @staticmethod
+    def __get_mldv1_done(src_mac, src_ip, group) -> Packet:
+        """
+        Builds an MLDv1 Done packet for the specified multicast group, with appropriate L2 and L3 headers.
+        Args:
+            src_mac: Source MAC address for the MLDv1 Done packet.
+            src_ip: Source IPv6 address for the MLDv1 Done packet.
+            group: The multicast group address to report leaving for.
+        Output:
+            Packet: Scapy packet representing the MLDv1 Done for the specified multicast group.
+        """
+        return (PrototypeIPv6Packet.__get_mld_packet_headers(src_mac, src_ip) /
+                ICMPv6MLDone(mladdr=group))
+    
+    @staticmethod
+    def __get_mldv2_join(src_mac, src_ip, group) -> Packet:
+        """
+        Builds an MLDv2 Join packet for the specified multicast group, with appropriate L2 and L3 headers.
+        Args:
+            src_mac: Source MAC address for the MLDv2 Join packet.
+            src_ip: Source IPv6 address for the MLDv2 Join packet.
+            group: The multicast group address to report membership for.
+        Output:
+            Packet: Scapy packet representing the MLDv2 Join for the specified multicast group.
+        """
+        return (PrototypeIPv6Packet.__get_mld_packet_headers(src_mac, src_ip) /
+                ICMPv6MLReport2(records=[ICMPv6MLDMultAddrRec(rtype=4, dst=group)]))
+    
+    @staticmethod
+    def __get_mldv2_leave(src_mac, src_ip, group) -> Packet:
+        """
+        Builds an MLDv2 Leave packet for the specified multicast group, with appropriate L2 and L3 headers.
+        Args:
+            src_mac: Source MAC address for the MLDv2 Leave packet.
+            src_ip: Source IPv6 address for the MLDv2 Leave packet.
+            group: The multicast group address to report leaving for.
+        Output:
+            Packet: Scapy packet representing the MLDv2 Leave for the specified multicast group.
+        """
+        return (PrototypeIPv6Packet.__get_mld_packet_headers(src_mac, src_ip) /
+                ICMPv6MLReport2(records=[ICMPv6MLDMultAddrRec(rtype=3, dst=group)]))
 
     @staticmethod
     def get_l3payload_icmpv6_echo_request(id=0) -> Packet:
@@ -191,9 +281,7 @@ class PrototypeIPv6Packet:
         Output:
             Packet: Scapy packet representing the MLDv1 Query.
         """
-        return (Ether(src=src_mac, dst=PrototypeIPv6Packet.MLD_IPV6_MULTICAST_MAC) /
-                IPv6(src=src_ip, dst=PrototypeIPv6Packet.MLD_IPV6_MULTICAST_IP, hlim=1)/
-                IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)) /
+        return (PrototypeIPv6Packet.__get_mld_packet_headers(src_mac, src_ip) /
                 ICMPv6MLQuery(mrd=1, mladdr='::'))
 
     @staticmethod
@@ -207,9 +295,7 @@ class PrototypeIPv6Packet:
         Output:
             Packet: Scapy packet representing the MLDv2 Query.
         """
-        return (Ether(src=src_mac, dst=PrototypeIPv6Packet.MLD_IPV6_MULTICAST_MAC) /
-                IPv6(src=src_ip, dst=PrototypeIPv6Packet.MLD_IPV6_MULTICAST_IP, hlim=1)/
-                IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)) /
+        return (PrototypeIPv6Packet.__get_mld_packet_headers(src_mac, src_ip) /
                 ICMPv6MLQuery2(type=130, mladdr="::", sources=[], mrd=1, S=0, QRV=2, QQIC=125))
     
     @staticmethod
@@ -300,4 +386,99 @@ class PrototypeIPv6Packet:
             IPv6(src=src_ip, dst=PrototypeIPv6Packet.MDNS_IPV6_MULTICAST_IP, hlim=1) /
             UDP(sport=PrototypeIPv6Packet.__get_l4port_random(), dport=5353) /
             DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR", unicastresponse=unicastresponse)))
-        
+
+    def get_init_mldv2_active_mode(src_mac, src_ip) -> list[Packet]:
+        """
+        Subscribes to multicast groups for active scanning mode using MLDv2 Join messages.
+        Args:
+            src_mac: Source MAC address for the MLDv2 Join packets.
+            src_ip: Source IPv6 address for the MLDv2 Join packets.
+        Output:
+            list[Packet]: A list of Scapy packets representing MLDv2 Join messages for
+        """
+        return [PrototypeIPv6Packet.__get_mldv2_join(src_mac, src_ip, group) 
+                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
+    
+    def get_init_mldv1_active_mode(src_mac, src_ip) -> list[Packet]:
+        """
+        Subscribes to multicast groups for active scanning mode using MLDv1 Report messages.
+        Args:
+            src_mac: Source MAC address for the MLDv1 Report packets.
+            src_ip: Source IPv6 address for the MLDv1 Report packets.
+        Output:
+            list[Packet]: A list of Scapy packets representing MLDv1 Report messages for
+        """
+        return [PrototypeIPv6Packet.__get_mldv1_report(src_mac, src_ip, group) 
+                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
+
+    def get_finish_mldv2_active_mode(src_mac, src_ip) -> list[Packet]:
+        """
+        Unsubscribes from multicast groups for active scanning mode using MLDv2 Leave messages.
+        Args:
+            src_mac: Source MAC address for the MLDv2 Leave packets.
+            src_ip: Source IPv6 address for the MLDv2 Leave packets.
+        Output:
+            list[Packet]: A list of Scapy packets representing MLDv2 Leave messages for
+        """
+        return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, group) 
+                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
+    
+    def get_finish_mldv1_active_mode(src_mac, src_ip) -> list[Packet]:
+        """
+        Unsubscribes from multicast groups for active scanning mode using MLDv1 Done messages.
+        Args:
+            src_mac: Source MAC address for the MLDv1 Done packets.
+            src_ip: Source IPv6 address for the MLDv1 Done packets.
+        Output:
+            list[Packet]: A list of Scapy packets representing MLDv1 Done messages for
+        """
+        return [PrototypeIPv6Packet.__get_mldv1_done(src_mac, src_ip, group) 
+                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
+
+    def get_init_mldv2_aggressive_mode(src_mac, src_ip) -> list[Packet]:
+        """
+        Subscribes to multicast groups for aggressive scanning mode using MLDv2 Join messages.
+        Args:
+            src_mac: Source MAC address for the MLDv2 Join packets.
+            src_ip: Source IPv6 address for the MLDv2 Join packets.
+        Output:
+            list[Packet]: A list of Scapy packets representing MLDv2 Join messages for
+        """
+        return [PrototypeIPv6Packet.__get_mldv2_join(src_mac, src_ip, group) 
+                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE]
+    
+    def get_init_mldv1_aggressive_mode(src_mac, src_ip) -> list[Packet]:
+        """
+        Subscribes to multicast groups for aggressive scanning mode using MLDv1 Report messages.
+        Args:
+            src_mac: Source MAC address for the MLDv1 Report packets.
+            src_ip: Source IPv6 address for the MLDv1 Report packets.
+        Output:
+            list[Packet]: A list of Scapy packets representing MLDv1 Report messages for
+        """
+        return [PrototypeIPv6Packet.__get_mldv1_report(src_mac, src_ip, group) 
+                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE]
+
+    def get_finish_mldv2_aggressive_mode(src_mac, src_ip) -> list[Packet]:
+        """
+        Unsubscribes from multicast groups for aggressive scanning mode using MLDv2 Leave messages.
+        Args:
+            src_mac: Source MAC address for the MLDv2 Leave packets.
+            src_ip: Source IPv6 address for the MLDv2 Leave packets.
+        Output:
+            list[Packet]: A list of Scapy packets representing MLDv2 Leave messages for
+        """
+        return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, group) 
+                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE]
+    
+    def get_finish_mldv1_aggressive_mode(src_mac, src_ip) -> list[Packet]:
+        """
+        Unsubscribes from multicast groups for aggressive scanning mode using MLDv1 Done messages.
+        Args:
+            src_mac: Source MAC address for the MLDv1 Done packets.
+            src_ip: Source IPv6 address for the MLDv1 Done packets.
+        Output:
+            list[Packet]: A list of Scapy packets representing MLDv1 Done messages for
+        """
+        return [PrototypeIPv6Packet.__get_mldv1_done(src_mac, src_ip, group) 
+                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE]

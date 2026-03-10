@@ -402,6 +402,11 @@ class Run:
                 pkts.start()
                 time.sleep(1)
                 if ip_mode.ipv6:
+                    SendIPv6.send_MLD_report_join(interface)
+                if ip_mode.ipv4:
+                    SendIPv4.send_igmp_report_join(interface)
+                time.sleep(1)
+                if ip_mode.ipv6:                                        
                     SendIPv6.send_MLD_query(interface)
                     SendIPv6.send_normal_multicast_ping(interface)
                     SendIPv6.send_invalid_multicast_icmpv6(interface)
@@ -442,6 +447,11 @@ class Run:
                     SendIPv6.send_to_possible_IP(interface)
                     SendIPv6.send_to_test_RA_guard(interface)
                 time.sleep(1)
+                if ip_mode.ipv6:
+                    SendIPv6.send_MLD_done_leave(interface)
+                if ip_mode.ipv4:
+                    SendIPv4.send_igmp_done_leave(interface)
+                time.sleep(1)
                 pkts.stop()
                 Save.save_packets(interface, ip_mode, pkts.results)
                 finish_time = str(datetime.now())
@@ -480,19 +490,69 @@ class Run:
         Returns:
             None. Coordinates subprocesses and writes CSV artifacts.
         """
-        p1 = multiprocessing.Process(target=SendIPv6.send_RA,
-                                     args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, True, period, duration])
-        p2 = multiprocessing.Process(target=SendIPv6.react_to_NS_RS,
-                                     args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, duration])
-        p3 = multiprocessing.Process(target=Run.run_normal_mode, args=[interface, "a", ip_mode, duration])
-        p4 = multiprocessing.Process(target=Run.run_normal_mode, args=[interface, "p", ip_mode, duration])
+        # Scan jobs
+        send_ra = multiprocessing.Process(
+            target=SendIPv6.send_RA,
+            args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, True, period, duration])
+        react_to_ns_rs = multiprocessing.Process(
+            target=SendIPv6.react_to_NS_RS,
+            args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, duration])
+        active_scan = multiprocessing.Process(
+            target=Run.run_normal_mode, args=[interface, "a", ip_mode, duration])
+        passive_scan = multiprocessing.Process(
+            target=Run.run_normal_mode, args=[interface, "p", ip_mode, duration])        
 
-        p2.start()
-        p1.start()
-        p4.start()
+        # Multicast helpers
+        multicast_ipv6_subscribe = multiprocessing.Process(
+            target=SendIPv6.send_MLD_report_join, args=[interface, True])            
+        multicast_ipv6_unsubscribe = multiprocessing.Process(
+            target=SendIPv6.send_MLD_done_leave, args=[interface, True])
+        multicast_ipv4_subscribe = multiprocessing.Process(
+            target=SendIPv4.send_igmp_report_join, args=[interface, True])
+        multicast_ipv4_unsubscribe = multiprocessing.Process(
+            target=SendIPv4.send_igmp_done_leave, args=[interface, True])
+        
+        # Cleanup jobs
+        flush_router_flag_from_cache = multiprocessing.Process(target=SendIPv6.send_NA, 
+                                    args=[interface, source_mac, None, source_ip, "ff02::1", 0, 0, 1])
+
+        # Start multicast helpers
+        if ip_mode.ipv6:
+            multicast_ipv6_subscribe.start()    
+        if ip_mode.ipv4:
+            multicast_ipv4_subscribe.start()
+
+        # Join multicast helpers threads
+        if ip_mode.ipv6:
+            multicast_ipv6_subscribe.join()
+        if ip_mode.ipv4:
+            multicast_ipv4_subscribe.join()
+        
+        # Start scan jobs
+        if ip_mode.ipv6:
+            react_to_ns_rs.start()
+            send_ra.start()
+        passive_scan.start()
         time.sleep(0.5)
-        p3.start()
-        p1.join()
-        p2.join()
-        p3.join()
-        p4.join()
+        active_scan.start()
+
+        # Join scan threads
+        if ip_mode.ipv6:
+            send_ra.join()
+            react_to_ns_rs.join()
+        active_scan.join()
+        passive_scan.join()
+        
+        # Start cleanup jobs
+        if ip_mode.ipv6:
+            multicast_ipv6_unsubscribe.start()
+            flush_router_flag_from_cache.start()
+        if ip_mode.ipv4:
+            multicast_ipv4_unsubscribe.start()
+        
+        # Join cleanup threads
+        if ip_mode.ipv6:
+            multicast_ipv6_unsubscribe.join()
+            flush_router_flag_from_cache.join()
+        if ip_mode.ipv4:
+            multicast_ipv4_unsubscribe.join()

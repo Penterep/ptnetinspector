@@ -26,7 +26,7 @@ from ptnetinspector.utils.ip_utils import is_global_unicast_ipv6, has_additional
 from ptnetinspector.utils.ip_utils import generate_global_ipv6, generate_random_global_ipv6, collect_unique_items
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.ip_utils import reverse_IPadd
-from ptnetinspector.prototype.ipv6 import PrototypeIPv6Packet
+from ptnetinspector.prototype.prototype_ipv6 import PrototypeIPv6Packet
 from ptnetinspector.utils.ip_utils import send_ipv6_all_nodes_multicast, send_ipv6_all_routers_multicast, send_ipv6_from_all_addresses, send_ipv6_from_all_lla_addresses
 
 class SendIPv6:
@@ -278,6 +278,62 @@ class SendIPv6:
                 # Send MLDv1 from GUA
                 query_v1_gua = PrototypeIPv6Packet.get_frame_mldv1(src_mac, src_ip_gua)
                 sendp(query_v1_gua*2, iface=interface, verbose=False)
+
+    @staticmethod
+    def send_MLD_report_join(interface, aggressive = False) -> None:
+        """
+        Send MLD report packets to join multicast groups, optionally for aggressive mode.
+        Args:
+            interface (str): Network interface to use.
+            aggressive (bool): Whether to use aggressive mode.
+        Output:
+            None
+        """
+        exist_interface = Interface(interface).check_interface()
+        if exist_interface:
+            avail_ipv6 = Interface(interface).check_available_ipv6
+            if avail_ipv6:                
+                src_mac = get_if_hwaddr(interface)
+                ip_lla = Interface(interface).get_interface_link_local_list()
+                if aggressive:
+                    mldv2_join = PrototypeIPv6Packet.get_init_mldv2_aggressive_mode(src_mac, ip_lla)
+                else:
+                    mldv2_join = PrototypeIPv6Packet.get_init_mldv2_active_mode(src_mac, ip_lla)
+                sendp(mldv2_join*2, iface=interface, verbose=False)
+                time.sleep(0.1)
+                if aggressive:                    
+                    mldv1_report = PrototypeIPv6Packet.get_init_mldv1_aggressive_mode(src_mac, ip_lla)
+                else:
+                    mldv1_report = PrototypeIPv6Packet.get_init_mldv1_active_mode(src_mac, ip_lla)
+                sendp(mldv1_report*2, iface=interface, verbose=False)
+
+    @staticmethod
+    def send_MLD_done_leave(interface, aggressive = False) -> None:
+        """
+        Send MLD done/leave packets to leave multicast groups, optionally for aggressive mode.
+        Args:
+            interface (str): Network interface to use.
+            aggressive (bool): Whether to use aggressive mode.
+        Output:
+            None
+        """
+        exist_interface = Interface(interface).check_interface()
+        if exist_interface:
+            avail_ipv6 = Interface(interface).check_available_ipv6
+            if avail_ipv6:                
+                src_mac = get_if_hwaddr(interface)
+                ip_lla = Interface(interface).get_interface_link_local_list()
+                if aggressive:
+                    mldv2_leave = PrototypeIPv6Packet.get_finish_mldv2_aggressive_mode(src_mac, ip_lla)
+                else:
+                    mldv2_leave = PrototypeIPv6Packet.get_finish_mldv2_active_mode(src_mac, ip_lla)
+                sendp(mldv2_leave*2, iface=interface, verbose=False)
+                time.sleep(0.1)
+                if aggressive:                    
+                    mldv1_done = PrototypeIPv6Packet.get_finish_mldv1_aggressive_mode(src_mac, ip_lla)
+                else:
+                    mldv1_done = PrototypeIPv6Packet.get_finish_mldv1_active_mode(src_mac, ip_lla)
+                sendp(mldv1_done*2, iface=interface, verbose=False)
 
     @staticmethod
     def send_RS(interface) -> None:
