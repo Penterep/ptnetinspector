@@ -437,11 +437,13 @@ class Run:
                 time.sleep(2.5)
                 pkts.stop()
                 Save.save_packets(interface, ip_mode, pkts.results)
+                pkts = Sniff.scan_async(interface)
                 pkts.start()
                 Send.send_llmnr_mdns(interface, ip_mode)
                 time.sleep(1.5)
                 pkts.stop()
                 Save.save_packets(interface, ip_mode, pkts.results)
+                pkts = Sniff.scan_async(interface)
                 pkts.start()
                 if ip_mode.ipv6:
                     SendIPv6.send_to_possible_IP(interface)
