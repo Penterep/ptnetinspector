@@ -55,11 +55,11 @@ class PrototypeIPv6Packet:
         Returns a random ephemeral port number between 49152 and 65535.
         Args:
             None
-        Output:             
+        Output:
             int: A random ephemeral port number.
         """
         return random.randint(49152, 65535)
-    
+
     @staticmethod 
     def __get_hop_by_hop_option() -> Packet:
         """
@@ -102,7 +102,7 @@ class PrototypeIPv6Packet:
         return (Ether(src=src_mac) /
                 IPv6(src=src_ip, dst=dst_ip, hlim=1)/
                 IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)))
-    
+
     @staticmethod
     def __get_mldv2_packet_headers(src_mac: str|None, src_ip: str|None) -> Packet:
         """
@@ -117,7 +117,7 @@ class PrototypeIPv6Packet:
         return (Ether(src=src_mac) /
                 IPv6(src=src_ip, dst=PrototypeIPv6Packet.MLDV2_IPV6_MULTICAST_IP, hlim=1)/
                 IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)))
-    
+
     @staticmethod
     def __get_mldv1_report(src_mac: str|None, src_ip: str|None, group: str) -> Packet:
         """
@@ -131,7 +131,7 @@ class PrototypeIPv6Packet:
         """
         return (PrototypeIPv6Packet.__get_mldv1_packet_headers(src_mac, src_ip, group) /
                 ICMPv6MLReport(mrd=1, mladdr=group))
-    
+
     @staticmethod
     def __get_mldv1_done(src_mac: str|None, src_ip: str|None, group: str) -> Packet:
         """
@@ -145,7 +145,7 @@ class PrototypeIPv6Packet:
         """
         return (PrototypeIPv6Packet.__get_mldv1_packet_headers(src_mac, src_ip, PrototypeIPv6Packet.ALL_ROUTERS_IPV6_MULTICAST_IP) /
                 ICMPv6MLDone(mladdr=group))
-    
+
     @staticmethod
     def __get_mldv2_join(src_mac: str|None, src_ip: str|None, group: str|list[str]) -> Packet:
         """
@@ -165,7 +165,7 @@ class PrototypeIPv6Packet:
                 records.append(ICMPv6MLDMultAddrRec(rtype=4, dst=g))
         return (PrototypeIPv6Packet.__get_mldv2_packet_headers(src_mac, src_ip) /
             ICMPv6MLReport2(records=records))
-    
+
     @staticmethod
     def __get_mldv2_leave(src_mac: str|None, src_ip: str|None, group: str|list[str]) -> Packet:
         """
@@ -191,19 +191,19 @@ class PrototypeIPv6Packet:
         """
         Returns a hop-by-hop extension header with an unknown option to trigger an error response.
         Does not include L2 and L3 headers, only the hop-by-hop extension header.
-        Args:            
+        Args:
             None
         Output:
             Packet: Scapy packet representing a hop-by-hop extension header with an unknown option.
         """
         return PrototypeIPv6Packet.__get_hop_by_hop_option()
-    
+
     @staticmethod
     def get_l3payload_empty_destination_option() -> Packet:
         """
         Returns a destination extension header with an unknown option to trigger an error response.
         Does not include L2 and L3 headers, only the destination extension header.
-        Args:            
+        Args:
             None
         Output:
             Packet: Scapy packet representing a destination extension header with an unknown option.
@@ -220,8 +220,8 @@ class PrototypeIPv6Packet:
         Output:
             Packet: Scapy packet representing ICMPv6 Echo Request.
         """
-        return ICMPv6EchoRequest(id=id)    
-    
+        return ICMPv6EchoRequest(id=id)
+
     @staticmethod
     def get_l3payload_icmpv6_echo_request_with_dest_opt(id: int=0) -> Packet:
         """
@@ -234,7 +234,7 @@ class PrototypeIPv6Packet:
         """
         return (PrototypeIPv6Packet.__get_destination_option() /
                 ICMPv6EchoRequest(id=id))
-        
+
     @staticmethod
     def get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(id: int=0) -> Packet:
         """
@@ -260,7 +260,7 @@ class PrototypeIPv6Packet:
         """
         return (PrototypeIPv6Packet.__get_destination_option() /
                 ICMPv6EchoRequest(id=id, type=PrototypeIPv6Packet.ICMPV6_INVALID_TYPE))
-    
+
     @staticmethod
     def get_l3payload_dhcpv6_solicit(src_mac: str) -> Packet:
         """
@@ -279,7 +279,7 @@ class PrototypeIPv6Packet:
         elapsed_time_opt = DHCP6OptElapsedTime(elapsedtime=0)
         ia_na_opt = DHCP6OptIA_NA(iaid=random.randint(0, 0xFFFFFFFF), T1=0, T2=0)
         return udp / dhcpv6 / client_id_opt / elapsed_time_opt / ia_na_opt
-    
+
     @staticmethod
     def get_l3payload_wsdiscovery() -> Packet:
         """
@@ -306,7 +306,7 @@ class PrototypeIPv6Packet:
         udp = UDP(sport=PrototypeIPv6Packet.__get_l4port_random(), dport=3702)
         payload = Raw(load=soap_payload)
         return udp / payload
-            
+
     # 
     # L3 Builders
     #
@@ -368,7 +368,7 @@ class PrototypeIPv6Packet:
         """
         return (PrototypeIPv6Packet.__get_mldv2_packet_headers(src_mac, src_ip) /
                 ICMPv6MLQuery2(type=130, mladdr="::", sources=[], mrd=1, S=0, QRV=2, QQIC=125))
-    
+
     @staticmethod
     def get_frame_llmnr_bundle_a_aaaa_any(src_mac: str|None, src_ip: str|None, qname: str) -> list[Packet]:
         """
@@ -379,7 +379,7 @@ class PrototypeIPv6Packet:
             src_ip: Source IPv6 address for the LLMNR query packets.
             qname: The query name to be used in the DNS queries.
         Output:
-            list[Packet]: A list of Scapy packets representing the LLMNR queries for A        
+            list[Packet]: A list of Scapy packets representing the LLMNR queries for A
         """
         pkt_any = PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip,
             LLMNRQuery(qd=DNSQR(qname=qname, qtype=255, qclass=1)))
@@ -388,7 +388,7 @@ class PrototypeIPv6Packet:
         pkt_aaaa = PrototypeIPv6Packet.get_frame_llmnr_custom_payload(src_mac, src_ip,
                     LLMNRQuery(qd=DNSQR(qname=qname, qtype=28, qclass=1)))
         return [pkt_a, pkt_aaaa, pkt_any]
-    
+
     @staticmethod
     def get_frame_llmnr_ptr(src_mac: str|None, src_ip: str|None, qname: str) -> Packet:
         """
@@ -430,7 +430,7 @@ class PrototypeIPv6Packet:
             PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport
             ))
         return [pkt_a, pkt_aaaa, pkt_any]
-    
+
     @staticmethod
     def get_frame_mdns_ptr(src_mac: str|None, src_ip: str|None, qname: str, unicastresponse: int = 0, sport: int|None = 5353) -> Packet:
         """
@@ -447,7 +447,7 @@ class PrototypeIPv6Packet:
         return (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip,
                     DNS(rd=1, qd=DNSQR(qname=qname, qtype="PTR", unicastresponse=unicastresponse)),
                     PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport))
-    
+
     @staticmethod
     def get_frame_mdns_sd(src_mac: str|None, src_ip: str|None, unicastresponse: int = 0, sport: int|None = 5353) -> Packet:
         """
@@ -464,7 +464,7 @@ class PrototypeIPv6Packet:
             IPv6(src=src_ip, dst=PrototypeIPv6Packet.MDNS_IPV6_MULTICAST_IP, hlim=1) /
             UDP(sport=PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport, dport=5353) /
             DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR", unicastresponse=unicastresponse)))
-    
+
     @staticmethod
     def get_frame_ra(prefix_len: int, network: str, source_mac: str, source_ip: str, rpref: int, chl: int, mtu: int|None, dns: list[str]|None) -> Packet:
         layer2 = Ether(src=source_mac)
@@ -481,8 +481,8 @@ class PrototypeIPv6Packet:
             Opt_DNS = ICMPv6NDOptRDNSS(dns=dns, lifetime=1800)
             packet1 /= Opt_DNS
         packet1 /= Opt_LLAddr
-        return packet1        
-        
+        return packet1
+
     @staticmethod
     def get_frame_ra_kill(prefix_len: int, network: str, source_mac: str|None, source_ip: str|None, rpref: int, chl: int, dns: list[str]|None) -> Packet:
         layer2 = Ether(src=source_mac)
@@ -497,7 +497,14 @@ class PrototypeIPv6Packet:
             kill_packet1 /= kill_Opt_DNS
         kill_packet1 /= Opt_LLAddr
         return kill_packet1
-    
+
+    @staticmethod
+    def get_frame_na(source_mac: str, target_mac: str, source_ip: str, target_ip: str, r_flag: int, s_flag: int, o_flag: int) -> Packet:
+        return (Ether(src=source_mac, dst=target_mac) /
+            IPv6(src=source_ip, dst=target_ip) /
+            ICMPv6ND_NA(R=r_flag, S=s_flag, O=o_flag, tgt=source_ip) / 
+            ICMPv6NDOptDstLLAddr(lladdr=source_mac))
+
     @staticmethod
     def get_frame_ns(src_mac: str|None, address: str) -> Packet:
         """
@@ -524,7 +531,7 @@ class PrototypeIPv6Packet:
             list[Packet]: A list of Scapy packets representing MLDv2 Join messages for
         """
         return [PrototypeIPv6Packet.__get_mldv2_join(src_mac, src_ip, PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE)]
-    
+
     @staticmethod
     def get_init_mldv1_active_mode(src_mac: str|None, src_ip) -> list[Packet]:
         """
@@ -549,7 +556,7 @@ class PrototypeIPv6Packet:
             list[Packet]: A list of Scapy packets representing MLDv2 Leave messages for
         """
         return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE)]
-    
+
     @staticmethod
     def get_finish_mldv1_active_mode(src_mac: str|None, src_ip: str|None) -> list[Packet]:
         """
@@ -574,7 +581,7 @@ class PrototypeIPv6Packet:
             list[Packet]: A list of Scapy packets representing MLDv2 Join messages for
         """
         return [PrototypeIPv6Packet.__get_mldv2_join(src_mac, src_ip, PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE)]
-    
+
     @staticmethod
     def get_init_mldv1_aggressive_mode(src_mac: str|None, src_ip: str|None) -> list[Packet]:
         """
@@ -599,7 +606,7 @@ class PrototypeIPv6Packet:
             list[Packet]: A list of Scapy packets representing MLDv2 Leave messages for
         """
         return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE)]
-    
+
     @staticmethod
     def get_finish_mldv1_aggressive_mode(src_mac: str|None, src_ip: str|None) -> list[Packet]:
         """

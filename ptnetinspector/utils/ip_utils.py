@@ -70,7 +70,7 @@ def is_multicast_ipv4(addr: str) -> bool:
 def is_broadcast_ipv4(addr: str) -> bool:
     """Validate broadcast IPv4 address."""
     return addr in ['255.255.255.255'] or addr.endswith('.255')
-        
+
 def is_valid_ipv6(ip: str) -> bool:
     """Validate IPv6 address using regex."""
     if ip is None or isinstance(ip, (float, int)):
@@ -703,7 +703,7 @@ def send_ipv6_all_nodes_multicast(interface, payload) -> list[Packet]|None:
     Output:
         list[Packet]: The list of packets sent.
     """
-    return send_ipv6_from_all_addresses(interface, payload, dst_ip="ff02::1", dst_mac="33:33:00:00:00:01")    
+    return send_ipv6_from_all_addresses(interface, payload, dst_ip="ff02::1", dst_mac="33:33:00:00:00:01")
 
 def send_ipv6_from_all_addresses(interface, payload, dst_ip, dst_mac = None) -> list[Packet]|None:
     """
@@ -723,7 +723,7 @@ def send_ipv6_from_all_addresses(interface, payload, dst_ip, dst_mac = None) -> 
         avail_ipv6 = Interface(interface).check_available_ipv6
         if avail_ipv6:
             ip_addresses = Interface(interface).get_interface_ips()
-            src_mac = get_if_hwaddr(interface)            
+            src_mac = get_if_hwaddr(interface)
             for ip in ip_addresses:
                 try:
                     ipaddress.IPv4Address(ip)
@@ -731,7 +731,7 @@ def send_ipv6_from_all_addresses(interface, payload, dst_ip, dst_mac = None) -> 
                 except ipaddress.AddressValueError:
                     pass
                 try:
-                    ipaddress.IPv6Address(ip)                    
+                    ipaddress.IPv6Address(ip)
                     src_ip = ip
                     pkt = (Ether(src=src_mac, dst=dst_mac) /
                             IPv6(src=src_ip, dst=dst_ip) /
@@ -749,7 +749,7 @@ def send_ipv6_all_routers_multicast(interface, payload) -> list[Packet]|None:
     """
     Send an IPv6 packet to the all-routers multicast address (ff02::2) from all available link-local IPv6 addresses on the interface.
     The destination MAC address is set to the corresponding multicast MAC (33:33:00:00:00:02).
-    Args:        
+    Args:
         interface (str): Network interface to use.
         payload (Packet): The IPv6 payload to send.
     Output:
@@ -757,7 +757,7 @@ def send_ipv6_all_routers_multicast(interface, payload) -> list[Packet]|None:
     """
     return send_ipv6_from_all_lla_addresses(interface, payload, dst_ip="ff02::2", dst_mac="33:33:00:00:00:02")
 
-def send_ipv6_from_all_lla_addresses(interface, payload, dst_ip, dst_mac = None) -> list[Packet]|None:    
+def send_ipv6_from_all_lla_addresses(interface, payload, dst_ip, dst_mac = None) -> list[Packet]|None:
     """
     Send an IPv6 packet to the specified destination IP and MAC address from all available link-local IPv6 addresses on the interface.
     If dst_mac is None, it will be determined automatically based on the destination IP.

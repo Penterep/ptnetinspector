@@ -13,7 +13,7 @@ from ptnetinspector.utils.path import get_csv_path
 def get_manuf_path() -> Path:
     """
     Get the path to the manuf database file.
-    
+
     Returns:
         Path: Path to the manuf file in the data directory.
     """
@@ -80,7 +80,7 @@ def process_mac_addresses_to_vendors(mac_db: dict) -> None:
     """
     role_node_csv = get_csv_path('role_node.csv')
     vendors_csv = get_csv_path('vendors.csv')
-    
+
     # read MAC addresses from input file, removing duplicates
     unique_macs = OrderedDict()
     try:
@@ -124,7 +124,7 @@ def lookup_vendor_from_csv(mac_address: str) -> str:
         str: The vendor name or "Unknown Vendor" if not found.
     """
     vendors_csv = get_csv_path('vendors.csv')
-    
+
     try:
         with open(vendors_csv, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)

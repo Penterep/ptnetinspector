@@ -19,17 +19,17 @@ detection capabilities, scanning nodes for known security weaknesses and misconf
 This enables network administrators to proactively identify and mitigate risks.
 
 
-## Install Requirements  
+## Install Requirements 
  
-Before proceeding, it is recommended to update your system to ensure compatibility:  
-```bash  
-sudo apt update && sudo apt upgrade -y  
-```  
+Before proceeding, it is recommended to update your system to ensure compatibility: 
+```bash 
+sudo apt update && sudo apt upgrade -y 
+``` 
 
-This application requires **Python3**. Make sure it is installed, along with the `python3-venv` package, for managing virtual environments:  
-```bash  
-sudo apt install python3 python3-venv -y  
-```  
+This application requires **Python3**. Make sure it is installed, along with the `python3-venv` package, for managing virtual environments: 
+```bash 
+sudo apt install python3 python3-venv -y 
+``` 
 
 ### Installation Methods
 
@@ -52,22 +52,22 @@ pip install ptnetinspector
 
 If you want to modify the code or contribute to development:
 
-##### 1. **Create a Virtual Environment (if not already created)**  
-You can create a virtual environment with any name you prefer. Replace `<env_name>` with your chosen name in the following command:  
+##### 1. **Create a Virtual Environment (if not already created)** 
+You can create a virtual environment with any name you prefer. Replace `<env_name>` with your chosen name in the following command: 
 ```bash
 python3 -m venv <env_name>
 ```
-For example, if you want to name your virtual environment `myenv`, use:  
+For example, if you want to name your virtual environment `myenv`, use: 
 ```bash
 python3 -m venv myenv
 ```
 
-##### 2. **Activate the Virtual Environment**  
-After creating the virtual environment, activate it by specifying its name. Replace `<env_name>` with the name you used during creation:  
+##### 2. **Activate the Virtual Environment** 
+After creating the virtual environment, activate it by specifying its name. Replace `<env_name>` with the name you used during creation: 
 ```bash
 source <env_name>/bin/activate
 ```
-For instance, if the name is `myenv`, use:  
+For instance, if the name is `myenv`, use: 
 ```bash
 source myenv/bin/activate
 ```
@@ -85,12 +85,12 @@ pip install .
 
 Installing with `-e` (editable) lets you edit the source in-place and run the installed command without reinstalling.
 
-### Important Notes  
-For future use, you don’t need to reinstall the dependencies. Simply activate the created virtual environment before running the application:  
-```bash  
+### Important Notes 
+For future use, you don’t need to reinstall the dependencies. Simply activate the created virtual environment before running the application: 
+```bash 
 source myenv/bin/activate 
-```  
-By following these steps, you ensure a clean and consistent installation process while avoiding potential errors due to system-level dependency conflicts or pip management.  
+``` 
+By following these steps, you ensure a clean and consistent installation process while avoiding potential errors due to system-level dependency conflicts or pip management. 
 
 
 ## Usage

@@ -16,10 +16,10 @@ class TestInterface:
     def test_check_interface_exists(self, mock_interfaces):
         """Test checking if interface exists."""
         mock_interfaces.return_value = ['lo', 'eth0', 'wlan0']
-        
+
         iface = Interface("eth0")
         assert iface.check_interface() is True
-        
+
         iface_invalid = Interface("nonexistent")
         assert iface_invalid.check_interface() is False
 
@@ -32,10 +32,10 @@ class TestInterface:
             2: [{'addr': '192.168.1.100'}],  # AF_INET
             10: [{'addr': 'fe80::1'}]  # AF_INET6
         }
-        
+
         iface = Interface("eth0")
         ips = iface.get_interface_ips()
-        
+
         assert '192.168.1.100' in ips
         assert 'fe80::1' in ips
 
@@ -47,10 +47,10 @@ class TestInterface:
         mock_ifaddresses.return_value = {
             2: [{'addr': '192.168.1.100'}, {'addr': '10.0.0.1'}]
         }
-        
+
         iface = Interface("eth0")
         ipv4_ips = iface.get_interface_ipv4_ips()
-        
+
         assert '192.168.1.100' in ipv4_ips
         assert '10.0.0.1' in ipv4_ips
         assert len(ipv4_ips) == 2
@@ -66,10 +66,10 @@ class TestInterface:
                 {'addr': '2001:db8::1'}
             ]
         }
-        
+
         iface = Interface("eth0")
         ipv6_ips = iface.get_interface_ipv6_ips()
-        
+
         assert 'fe80::1' in ipv6_ips
         assert '2001:db8::1' in ipv6_ips
 
@@ -86,10 +86,10 @@ class TestInterface:
                 {'addr': 'fe80::abcd:ef01:2345:6789'}
             ]
         }
-        
+
         iface = Interface("eth0")
         link_local = iface.get_interface_link_local_list()
-        
+
         assert 'fe80::1' in link_local
         assert 'fe80::abcd:ef01:2345:6789' in link_local
         assert '2001:db8::1' not in link_local
@@ -101,10 +101,10 @@ class TestInterface:
             stdout="2: eth0: <BROADCAST,MULTICAST,UP> state UP",
             returncode=0
         )
-        
+
         iface = Interface("eth0")
         status = iface.check_status()
-        
+
         assert "state UP" in status
         assert status != "Interface down"
 
@@ -115,10 +115,10 @@ class TestInterface:
             stdout="2: eth0: <BROADCAST,MULTICAST> state DOWN",
             returncode=0
         )
-        
+
         iface = Interface("eth0")
         status = iface.check_status()
-        
+
         assert status == "Interface down"
 
     @patch('subprocess.check_output')
@@ -129,7 +129,7 @@ class TestInterface:
     inet6 fe80::1/64 scope link
     inet6 2001:db8::1/64 scope global
 """
-        
+
         iface = Interface("eth0")
         assert iface.check_available_ipv6() is True
 
@@ -137,10 +137,10 @@ class TestInterface:
     def test_set_ipv6_address(self, mock_run):
         """Test setting IPv6 address on interface."""
         mock_run.return_value = Mock(returncode=0)
-        
+
         iface = Interface("eth0")
         iface.set_ipv6_address("2001:db8::100")
-        
+
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         assert "ip" in args

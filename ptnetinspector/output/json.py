@@ -43,7 +43,7 @@ class Json:
     def output_property(ipver: IPMode) -> dict:
         """Extracts network properties from CSV files and adds them to the JSON object."""
         ra_file = get_csv_path("RA.csv")
-        
+
         if ipver.ipv6 and has_additional_data(ra_file):
             df = pd.read_csv(ra_file)
             for value in df['Prefix'].unique():
@@ -68,7 +68,7 @@ class Json:
             vul_file = get_csv_path("vulnerability.csv")
 
         target_codes_set = {code.upper() for code in target_codes} if target_codes else None
-        
+
         if has_additional_data(vul_file):
             try:
                 vuln_df = pd.read_csv(vul_file)
@@ -154,7 +154,7 @@ class Json:
         if not isinstance(ptjsonlib_object.json_object, dict):
             # Ensure json object is in a clean state (covers repeated calls in tests)
             ptjsonlib_object.__init__()
-        
+
         # Convert Test codes to vulnerability Codes
         target_codes_set = None
         if target_codes:
@@ -170,10 +170,10 @@ class Json:
             except Exception:
                 # If catalog load fails, treat as no filter
                 target_codes_set = None
-        
+
         # Normalize target MACs to uppercase
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
-        
+
         start_end_file = get_csv_path("start_end_mode.csv")
         delete_middle_content_csv(start_end_file)
 
@@ -192,12 +192,12 @@ class Json:
             role_node_df = pd.read_csv(role_node_file)
             addresses_df = pd.read_csv(addresses_file) if has_additional_data(addresses_file) else pd.read_csv(addresses_unfiltered_file)
             addresses_df = filter_ips_by_mode(addresses_df, ipver)
-            
+
             # Filter by target MACs if specified
             if target_macs_set:
                 role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(target_macs_set)]
                 addresses_df = addresses_df[addresses_df['MAC'].str.upper().isin(target_macs_set)]
-            
+
             all_ip = addresses_df['IP'].to_list()
             vuln_df = pd.read_csv(vulnerability_file) if has_additional_data(vulnerability_file) else None
 
@@ -239,7 +239,7 @@ class Json:
 
         ptjsonlib_object.set_status("finished")
         output_json = ptjsonlib_object.get_result_json()
-        
+
         if extract_to_json:
             output_file = get_tmp_path() / "ptnetinspector-output.json"
             with open(output_file, "w", encoding="utf-8") as f:

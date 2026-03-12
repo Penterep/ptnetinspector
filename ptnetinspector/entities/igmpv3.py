@@ -8,16 +8,16 @@ from ptnetinspector.entities.node import Node
 
 
 class IGMPv3(Node):
-    def __init__(self, mac: str, ip: str, protocol: str, rtype: str, mulip: str, sources: str):
+    def __init__(self, mac: str, ip: str, protocol: str, rtype: str, mulip: str, sources: str) -> None:
         super().__init__(mac, ip)
         self.protocol = protocol
         self.rtype = rtype
         self.mulip = mulip
         self.sources = sources
 
-    def save(self):
+    def save(self) -> None:
         csv_file = get_csv_path("IGMPv3.csv")
-        
+
         with open(csv_file, 'a+', newline='') as csvfile:
             csvfile.seek(0)
             for row in csv.DictReader(csvfile):
@@ -35,5 +35,5 @@ class IGMPv3(Node):
                 'sources': self.sources
             })
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.mac}, {self.ip}, {self.protocol}, {self.rtype}, {self.mulip}, {self.sources})"

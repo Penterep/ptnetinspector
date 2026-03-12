@@ -7,14 +7,14 @@ from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node
 
 class IGMPv1v2(Node):
-    def __init__(self, mac: str, ip: str, protocol: str, mulip: str):
+    def __init__(self, mac: str, ip: str, protocol: str, mulip: str) -> None:
         super().__init__(mac, ip)
         self.protocol = protocol
         self.mulip = mulip
 
-    def save(self):
+    def save(self) -> None:
         csv_file = get_csv_path("IGMPv1v2.csv")
-        
+
         with open(csv_file, 'a+', newline='') as csvfile:
             csvfile.seek(0)
             for row in csv.DictReader(csvfile):
@@ -30,5 +30,5 @@ class IGMPv1v2(Node):
                 'mulip': self.mulip
             })
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.mac}, {self.ip}, {self.protocol}, {self.mulip})"

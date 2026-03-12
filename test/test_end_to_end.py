@@ -20,7 +20,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_basic_args(self, mock_intf_list):
         """Test passive scan with basic arguments."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         assert args.interface == 'eth0'
@@ -31,7 +31,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_with_json(self, mock_intf_list):
         """Test passive scan with JSON output."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         assert args.j is True
@@ -41,7 +41,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_with_more_detail(self, mock_intf_list):
         """Test passive scan with more detail output."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         assert args.vv is True
@@ -51,7 +51,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_with_less_detail(self, mock_intf_list):
         """Test passive scan with less detail output."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         assert args.less is True
@@ -61,7 +61,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_ipv4_only(self, mock_intf_list):
         """Test passive scan in IPv4-only mode."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         assert args.ipv4 is True
@@ -72,7 +72,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_ipv6_only(self, mock_intf_list):
         """Test passive scan in IPv6-only mode."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         assert args.ipv6 is True
@@ -83,7 +83,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_check_addresses_by_default(self, mock_intf_list):
         """Test passive scan checks addresses by default (without -nc flag)."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         # Without -nc flag, nc should be True (default is True)
@@ -94,7 +94,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_skip_address_check(self, mock_intf_list):
         """Test passive scan skips address check with -nc flag."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         # With -nc flag, nc becomes False (store_false)
@@ -105,7 +105,7 @@ class TestPassiveScanEndToEnd:
     def test_passive_combined_options(self, mock_intf_list):
         """Test passive scan with multiple options combined."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         assert args.d == '10'
@@ -127,7 +127,7 @@ class TestActiveScanEndToEnd:
     def test_active_basic_args(self, mock_iptables, mock_intf_list):
         """Test active scan with basic arguments."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a']
         assert args.interface == 'eth0'
@@ -137,7 +137,7 @@ class TestActiveScanEndToEnd:
     def test_active_with_json(self, mock_intf_list):
         """Test active scan with JSON output."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a']
         assert args.j is True
@@ -147,7 +147,7 @@ class TestActiveScanEndToEnd:
     def test_active_with_duration(self, mock_intf_list):
         """Test active scan with custom duration."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a']
         # For active/passive scans, duration is stored in 'd', not 'duration_router'
@@ -158,7 +158,7 @@ class TestActiveScanEndToEnd:
     def test_active_ipv4_only(self, mock_intf_list):
         """Test active scan in IPv4-only mode."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a']
         assert args.ipv4 is True
@@ -168,7 +168,7 @@ class TestActiveScanEndToEnd:
     def test_active_ipv6_only(self, mock_intf_list):
         """Test active scan in IPv6-only mode."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a']
         assert args.ipv6 is True
@@ -178,7 +178,7 @@ class TestActiveScanEndToEnd:
     def test_active_with_source_mac(self, mock_intf_list):
         """Test active scan with source MAC address."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a']
         assert args.smac == '00:11:22:33:44:55'
@@ -188,7 +188,7 @@ class TestActiveScanEndToEnd:
     def test_active_with_source_ip(self, mock_intf_list):
         """Test active scan with source IP address."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a']
         assert args.sip == '192.168.1.100'
@@ -208,7 +208,7 @@ class TestAggressiveScanEndToEnd:
         """Test aggressive scan with prefix."""
         from ptnetinspector.utils.cli import parse_args
         from ptnetinspector.utils.ip_utils import is_valid_ipv6_prefix
-        
+
         args = parse_args()
         assert args.t == ['a+']
         assert args.interface == 'eth0'
@@ -220,7 +220,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_json(self, mock_intf_list):
         """Test aggressive scan with JSON output."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a+']
         assert args.prefix == '2001:db8::/64'
@@ -231,7 +231,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_duration(self, mock_intf_list):
         """Test aggressive scan with custom duration."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a+']
         # For aggressive scan, duration is stored in 'duration_router' via -da+
@@ -242,7 +242,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_source_mac(self, mock_intf_list):
         """Test aggressive scan with source MAC."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.smac == 'aa:bb:cc:dd:ee:ff'
 
@@ -251,7 +251,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_router_preference(self, mock_intf_list):
         """Test aggressive scan with router preference."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.rpref == 'High'
 
@@ -260,7 +260,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_mtu(self, mock_intf_list):
         """Test aggressive scan with custom MTU."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.mtu == '1500'
 
@@ -269,7 +269,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_period(self, mock_intf_list):
         """Test aggressive scan with custom period."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.period == '2'
 
@@ -278,7 +278,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_hop_limit(self, mock_intf_list):
         """Test aggressive scan with custom hop limit."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.chl == '64'
 
@@ -287,7 +287,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_multiple_dns(self, mock_intf_list):
         """Test aggressive scan with multiple DNS servers."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert '2001:4860:4860::8888' in args.dns
         assert '2001:4860:4860::8844' in args.dns
@@ -297,7 +297,7 @@ class TestAggressiveScanEndToEnd:
     def test_aggressive_with_nofwd(self, mock_intf_list):
         """Test aggressive scan with no-forward flag."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.nofwd is True
 
@@ -314,7 +314,7 @@ class TestEAPScanEndToEnd:
     def test_eap_basic_args(self, mock_intf_list):
         """Test 802.1x scan with basic arguments."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['802.1x']
         assert args.interface == 'eth0'
@@ -324,7 +324,7 @@ class TestEAPScanEndToEnd:
     def test_eap_with_json(self, mock_intf_list):
         """Test 802.1x scan with JSON output."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['802.1x']
         assert args.j is True
@@ -334,7 +334,7 @@ class TestEAPScanEndToEnd:
     def test_eap_with_more_detail(self, mock_intf_list):
         """Test 802.1x scan with more detail."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['802.1x']
         assert args.vv is True
@@ -344,7 +344,7 @@ class TestEAPScanEndToEnd:
     def test_eap_ipv4_only(self, mock_intf_list):
         """Test 802.1x scan in IPv4-only mode."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['802.1x']
         assert args.ipv4 is True
@@ -362,7 +362,7 @@ class TestMultipleScanModesEndToEnd:
     def test_eap_and_passive(self, mock_intf_list):
         """Test combined 802.1x and passive scan."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert '802.1x' in args.t
         assert 'p' in args.t
@@ -372,7 +372,7 @@ class TestMultipleScanModesEndToEnd:
     def test_eap_passive_and_active(self, mock_intf_list):
         """Test combined 802.1x, passive, and active scans."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert '802.1x' in args.t
         assert 'p' in args.t
@@ -383,7 +383,7 @@ class TestMultipleScanModesEndToEnd:
     def test_passive_and_active_with_json(self, mock_intf_list):
         """Test passive and active scans with JSON output."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert 'p' in args.t
         assert 'a' in args.t
@@ -402,7 +402,7 @@ class TestOutputFormatEndToEnd:
     def test_json_output_enabled(self, mock_intf_list):
         """Test JSON output flag."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.j is True
 
@@ -411,7 +411,7 @@ class TestOutputFormatEndToEnd:
     def test_delete_temp_files(self, mock_intf_list):
         """Test delete temporary files flag."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         # -n flag sets n to False (store_false with default True)
         assert args.n is False
@@ -421,7 +421,7 @@ class TestOutputFormatEndToEnd:
     def test_keep_temp_files_by_default(self, mock_intf_list):
         """Test keeping temporary files by default (without -n flag)."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         # Without -n flag, n is True (default)
         assert args.n is True
@@ -431,7 +431,7 @@ class TestOutputFormatEndToEnd:
     def test_more_detail_output(self, mock_intf_list):
         """Test more detail output flag."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.vv is True
 
@@ -440,7 +440,7 @@ class TestOutputFormatEndToEnd:
     def test_less_detail_output(self, mock_intf_list):
         """Test less detail output flag."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.less is True
 
@@ -457,7 +457,7 @@ class TestIPVersionFiltering:
     def test_ipv4_only_mode(self, mock_intf_list):
         """Test IPv4-only mode."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.ipv4 is True
         assert args.ipv6 is False
@@ -467,7 +467,7 @@ class TestIPVersionFiltering:
     def test_ipv6_only_mode(self, mock_intf_list):
         """Test IPv6-only mode."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.ipv6 is True
         assert args.ipv4 is False
@@ -477,7 +477,7 @@ class TestIPVersionFiltering:
     def test_both_ipv4_and_ipv6(self, mock_intf_list):
         """Test both IPv4 and IPv6 (default)."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.ipv4 is False
         assert args.ipv6 is False  # False means both are enabled (default)
@@ -494,7 +494,7 @@ class TestErrorHandling:
     def test_invalid_interface(self, mock_intf_list):
         """Test detection of invalid interface."""
         from ptnetinspector.utils.interface import Interface
-        
+
         iface = Interface('nonexistent')
         result = iface.check_interface()
         assert result is False
@@ -503,7 +503,7 @@ class TestErrorHandling:
     def test_invalid_scan_type_handled(self, ):
         """Test that invalid scan types are handled."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         # Invalid scan types may not raise SystemExit but are handled by parser
         # Just verify the parser doesn't crash
         try:
@@ -519,7 +519,7 @@ class TestErrorHandling:
     def test_invalid_prefix_format(self, mock_intf_list):
         """Test invalid IPv6 prefix format."""
         from ptnetinspector.utils.ip_utils import is_valid_ipv6_prefix
-        
+
         assert is_valid_ipv6_prefix('invalid::prefix') is False
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-smac', 'invalid:mac'])
@@ -527,7 +527,7 @@ class TestErrorHandling:
     def test_invalid_mac_address(self, mock_intf_list):
         """Test invalid MAC address format."""
         from ptnetinspector.utils.ip_utils import is_valid_mac
-        
+
         assert is_valid_mac('invalid:mac') is False
         assert is_valid_mac('00:11:22:33:44:55') is True
 
@@ -544,7 +544,7 @@ class TestComprehensiveScenarios:
     def test_multi_mode_scan_with_options(self, mock_intf_list):
         """Test multiple scan modes with various output options."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert '802.1x' in args.t
         assert 'p' in args.t
@@ -560,7 +560,7 @@ class TestComprehensiveScenarios:
     def test_aggressive_scan_all_options(self, mock_intf_list):
         """Test aggressive scan with all optional parameters."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['a+']
         assert args.prefix == '2001:db8::/64'
@@ -577,7 +577,7 @@ class TestComprehensiveScenarios:
     def test_passive_scan_all_options(self, mock_intf_list):
         """Test passive scan with all optional parameters."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
         assert args.t == ['p']
         assert args.d == '15'

@@ -85,7 +85,7 @@ def filter_unicast_addresses(mappings: List[AddressMapping], ip_mode: IPMode) ->
 def write_mappings(mappings: List[AddressMapping], file_path: str = None) -> None:
     if file_path is None:
         file_path = get_csv_path('addresses.csv')
-    
+
     with open(file_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['MAC', 'IP'])

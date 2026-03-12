@@ -9,14 +9,14 @@ from ptnetinspector.utils.path import get_csv_path
 class DefaultGateway:
     all_nodes = []
 
-    def __init__(self, mac: str, ip: str):
+    def __init__(self, mac: str, ip: str) -> None:
         self.mac = mac
         self.ip = ip
         DefaultGateway.all_nodes.append(self)
 
-    def save_addresses(self):
+    def save_addresses(self) -> None:
         csv_file = get_csv_path("default_gw.csv")
-        
+
         with open(csv_file, 'a+', newline='') as csvfile:
             csvfile.seek(0)
             for row in csv.DictReader(csvfile):
@@ -30,5 +30,5 @@ class DefaultGateway:
                 'MAC': self.mac
             })
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.mac}, {self.ip})"

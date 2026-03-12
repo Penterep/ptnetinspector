@@ -25,7 +25,7 @@ class TestPathUtils:
         """Test getting paths for different CSV files."""
         path1 = get_csv_path('addresses.csv')
         path2 = get_csv_path('routers.csv')
-        
+
         assert path1 != path2
         assert path1.name == 'addresses.csv'
         assert path2.name == 'routers.csv'

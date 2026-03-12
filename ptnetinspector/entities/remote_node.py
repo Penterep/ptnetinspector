@@ -9,20 +9,20 @@ from ptnetinspector.entities.node import Node
 
 class Remote_node(Node):
     all_nodes = []
-    
-    def __init__(self, smac: str, sip: str, dmac: str, dip: str):
+
+    def __init__(self, smac: str, sip: str, dmac: str, dip: str) -> None:
         # Assign to self object
         self.smac = smac
         self.sip = sip
         self.dmac = dmac
         self.dip = dip
         Remote_node.all_nodes.append(self)
-    
+
     @classmethod
-    def get_from_csv(cls):
+    def get_from_csv(cls) -> None:
         # Importing the information about nodes from tmp files
         csv_file = get_csv_path("remote_node.csv")
-        
+
         with open(csv_file, "r") as csv_file:
             reader = csv.DictReader(csv_file)
             nodes = list(reader)
@@ -35,16 +35,16 @@ class Remote_node(Node):
                     dip=node.get('dst IP')
                 )
 
-    def save_remote_node(self):
+    def save_remote_node(self) -> None:
         # Exporting addresses to csv files and avoid duplication
         csv_file = get_csv_path("remote_node.csv")
-        
+
         with open(csv_file, 'a+', newline='') as csvfile:
             csvfile.seek(0)  # move the file pointer to the beginning of the file
             for row in csv.DictReader(csvfile):
                 if row and row['src MAC'] == self.smac and row['src IP'] == self.sip and row['dst MAC'] == self.dmac and row['dst IP'] == self.dip:
                     return  # Record already exists in the file 
-                   
+
             fieldnames = ['src MAC', 'dst MAC', 'src IP', 'dst IP']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -53,6 +53,6 @@ class Remote_node(Node):
                 'dst MAC': self.dmac,
                 'dst IP': self.dip
             })
-           
-    def __repr__(self):
+
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.smac}, {self.sip}, {self.dmac}, {self.dip})"

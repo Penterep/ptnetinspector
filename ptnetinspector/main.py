@@ -433,7 +433,7 @@ def main():
 
     try:
         execute_scan(scanning_type)
-        
+
         # Print final JSON output at the end
         if json_output:
             enablePrint()
@@ -478,7 +478,7 @@ def main():
     finally:
         # Stop logging output to file
         stop_output_logging()
-        
+
         # Clean up text output file if JSON-only mode (no -vv)
         if json_output and not more_detail:
             if text_output_path.exists():

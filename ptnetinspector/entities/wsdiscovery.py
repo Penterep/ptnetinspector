@@ -68,14 +68,14 @@ def parse_wsdiscovery(packet: bytes) -> list:
 class WSDiscovery:
     all_nodes = []
 
-    def __init__(self, mac: str, ip: str):
+    def __init__(self, mac: str, ip: str) -> None:
         self.mac = mac
         self.ip = ip
         WSDiscovery.all_nodes.append(self)
 
-    def save_addresses(self):
+    def save_addresses(self) -> None:
         csv_file = get_csv_path("wsdiscovery.csv")
-        
+
         with open(csv_file, 'a+', newline='') as csvfile:
             csvfile.seek(0)
             for row in csv.DictReader(csvfile):
@@ -89,5 +89,5 @@ class WSDiscovery:
                 'MAC': self.mac
             })
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.mac}, {self.ip})"

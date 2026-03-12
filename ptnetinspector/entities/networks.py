@@ -20,7 +20,7 @@ class Networks:
         ipv6_subnets = []
 
         networks_file = get_csv_path("networks.csv")
-        
+
         with open(networks_file, 'r') as csvfile:
             reader = csv.reader(csvfile)
             next(reader)  # skip header
@@ -126,7 +126,7 @@ class Networks:
                         pass
 
         networks_file = get_csv_path("networks.csv")
-        
+
         with open(networks_file, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['network_prefix', 'prefix_length'])

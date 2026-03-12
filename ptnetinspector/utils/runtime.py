@@ -50,19 +50,19 @@ class DualWriter:
     def __init__(self, terminal, file_handle):
         self.terminal = terminal
         self.file = file_handle
-    
+
     def write(self, message):
         self.terminal.write(message)
         self.terminal.flush()
         if self.file and not self.file.closed:
             self.file.write(message)
             self.file.flush()
-    
+
     def flush(self):
         self.terminal.flush()
         if self.file and not self.file.closed:
             self.file.flush()
-    
+
     def isatty(self):
         return self.terminal.isatty()
 
@@ -178,7 +178,7 @@ def build_run_signature(
     target_macs,
 ) -> dict:
     """Construct a signature of current run parameters used for tmp reuse.
-    
+
     Note: Excludes json_output, more_detail and less_detail flags so tmp cache 
     is reused regardless of output format (-j) or verbosity level (-vv / -less).
     """
@@ -273,18 +273,18 @@ def terminate_child_processes(timeout: float = 1.0) -> None:
 
 def _check_macs_in_role_node(tmp_path: Path, target_macs: set[str]) -> bool:
     """Check if all target MACs exist in saved role_node.csv.
-    
+
     Args:
         tmp_path: Path to tmp directory containing role_node.csv
         target_macs: Set of MAC addresses (uppercase) to check
-        
+
     Returns:
         bool: True if all target MACs exist in role_node.csv, False otherwise
     """
     role_node_file = tmp_path / "role_node.csv"
     if not role_node_file.exists():
         return False
-    
+
     try:
         with open(role_node_file, 'r', newline='') as f:
             reader = csv.DictReader(f)
@@ -296,18 +296,18 @@ def _check_macs_in_role_node(tmp_path: Path, target_macs: set[str]) -> bool:
 
 def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[str]) -> bool:
     """Check if all target test codes have vulnerability data in saved vulnerability.csv.
-    
+
     Args:
         tmp_path: Path to tmp directory containing vulnerability.csv
         target_test_codes: Set of test codes (uppercase) to check
-        
+
     Returns:
         bool: True if all test codes have corresponding vulnerabilities in saved data, False otherwise
     """
     vulnerability_file = tmp_path / "vulnerability.csv"
     if not vulnerability_file.exists():
         return False
-    
+
     try:
         # Load catalog to map vuln codes to test codes
         test_catalog = load_vuln_catalog_by_test()
@@ -317,7 +317,7 @@ def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[st
                 vuln_code = entry.get("Code", "").strip().upper()
                 if vuln_code:
                     code_to_test[vuln_code] = test_code
-        
+
         # Read saved vulnerability data and collect test codes found
         with open(vulnerability_file, 'r', newline='') as f:
             reader = csv.DictReader(f)
@@ -327,7 +327,7 @@ def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[st
                 test_code = code_to_test.get(vuln_code, '')
                 if test_code:
                     saved_test_codes.add(test_code.upper())
-        
+
         # Check if all target test codes are in saved data
         return target_test_codes.issubset(saved_test_codes)
     except Exception:
@@ -336,15 +336,15 @@ def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[st
 
 def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None = None) -> bool:
     """Check if saved tmp data can be reused for current run.
-    
+
     Args:
         current_sig: Current run signature with parameters
         saved_sig: Saved run signature from previous run
         tmp_path: Path to tmp directory (needed for MAC and test code validation)
-        
+
     Returns:
         bool: True if tmp data can be reused, False if fresh scan needed
-    
+
     Rules for reuse:
     - All core parameters must match (interface, scan types, modes, durations, etc.)
     - target_macs:
@@ -364,16 +364,16 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
         "duration_passive", "duration_aggressive", "prefix_len", "network",
         "smac", "sip", "rpref", "period", "chl", "mtu", "dns", "nofwd"
     }
-    
+
     # Check exact match for core parameters
     for key in must_match_keys:
         if current_sig.get(key) != saved_sig.get(key):
             return False
-    
+
     # Check target_macs with corrected logic
     current_macs = set(current_sig.get("target_macs", []))
     saved_macs = set(saved_sig.get("target_macs", []))
-    
+
     if saved_macs and not current_macs:
         # Previous run HAD target, current run has NO target
         # Cannot reuse: saved data only has filtered devices, not all devices
@@ -388,11 +388,11 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
         if not current_macs.issubset(saved_macs):
             return False
     # else: neither has targets (both full scans), can reuse
-    
+
     # Check target_codes with corrected logic (same pattern as target_macs)
     current_codes = set(current_sig.get("target_codes", []))
     saved_codes = set(saved_sig.get("target_codes", []))
-    
+
     if saved_codes and not current_codes:
         # Previous run HAD test filter, current run has NO test filter
         # Cannot reuse: saved data only has filtered tests, not all tests
@@ -407,7 +407,7 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
         if not current_codes.issubset(saved_codes):
             return False
     # else: neither has test filters (both run all tests), can reuse
-    
+
     return True
 
 
@@ -425,7 +425,7 @@ def prepare_tmp_files(
     less_detail: bool = False,
 ) -> bool:
     """Prepare tmp folder scoped to interface; return True if existing data should be reused.
-    
+
     Args:
         interface (str): Network interface name (e.g. 'eth0'). Scopes tmp folder to tmp/<interface>/.
         retention_seconds (float): Age threshold in seconds; files older are discarded.
@@ -437,7 +437,7 @@ def prepare_tmp_files(
         write_run_signature_fn (Callable): Function to write run_params.json.
         load_run_signature_fn (Callable): Function to load run_params.json.
         required_files (Iterable[str]): List of required file names.
-        
+
     Returns:
         bool: True if existing cached data can be reused, False if fresh scan needed.
     """
@@ -575,7 +575,7 @@ def handle_output(
     # Skip all non-JSON output if -j is used without -vv
     if _suppress_non_json:
         return
-    
+
     if (not json_output) or more_detail:
         Non_json.output_general(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs)
         Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs)

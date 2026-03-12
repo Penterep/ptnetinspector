@@ -6,18 +6,14 @@ MLD/Multicast, etc.) that complement passive capture in active/aggressive modes.
 import ipaddress
 import csv
 import time
-import random
-import uuid
-import socket
 import sys
 
 from scapy.all import *
-from scapy.layers.dhcp6 import DUID_LL, DHCP6OptElapsedTime, DHCP6OptIA_NA, DHCP6OptClientId, DHCP6_Solicit
-from scapy.layers.dns import DNS, DNSQR, DNSRR
+from scapy.layers.dns import DNS, DNSRR
 from scapy.layers.inet import UDP
-from scapy.layers.inet6 import IPv6, ICMPv6MLQuery, ICMPv6EchoRequest, IPv6ExtHdrHopByHop, RouterAlert, IPv6ExtHdrDestOpt, HBHOptUnknown, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_NA, ICMPv6MLQuery2, ICMPv6ND_RS, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, ICMPv6NDOptDstLLAddr
+from scapy.layers.inet6 import IPv6, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_RS
 from scapy.layers.l2 import Ether
-from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
+from scapy.layers.llmnr import LLMNRResponse
 
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.mdns import MDNS
@@ -41,7 +37,7 @@ class SendIPv6:
         current_id = SendIPv6.__icmpv6_echo_request_sequence_number
         SendIPv6.__icmpv6_echo_request_sequence_number += 1
         return current_id
-    
+
     @staticmethod
     def send_empty_ipv6_hbh(interface: str) -> None:
         """
@@ -53,7 +49,7 @@ class SendIPv6:
         """
         send_ipv6_all_nodes_multicast(interface, 
             PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop())
-        
+
     def send_empty_ipv6_dest_opt(interface: str) -> None:
         """
         Send an empty IPv6 packet with a Destination option to ff02::1.
@@ -159,7 +155,7 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            avail_ipv6 = Interface(interface).check_available_ipv6
+            avail_ipv6 = Interface(interface).check_available_ipv6()
             if avail_ipv6:
                 src_mac = get_if_hwaddr(interface)
                 query = reverse_IPadd(ipv6_address)
@@ -167,7 +163,7 @@ class SendIPv6:
                 interface_ip_addresses = Interface(interface).get_interface_ips()
                 if ipv6_address in interface_ip_addresses or ipv6_address == src_ip[:-5]:
                     return None
-                pkt = []                
+                pkt = []
                 pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query))
                 pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1))
                 ans, uans = srp(pkt, multi=True, timeout=0.3, iface=interface, verbose=False)
@@ -195,7 +191,7 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            avail_ipv6 = Interface(interface).check_available_ipv6
+            avail_ipv6 = Interface(interface).check_available_ipv6()
             if avail_ipv6:
                 src_mac = get_if_hwaddr(interface)
                 query_name = MDNS.full_name_MDNS(query_name)
@@ -216,7 +212,7 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            avail_ipv6 = Interface(interface).check_available_ipv6
+            avail_ipv6 = Interface(interface).check_available_ipv6()
             if avail_ipv6:
                 src_mac = get_if_hwaddr(interface)
                 query = reverse_IPadd(ipv6_address)
@@ -248,7 +244,7 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            avail_ipv6 = Interface(interface).check_available_ipv6
+            avail_ipv6 = Interface(interface).check_available_ipv6()
             if avail_ipv6:
                 src_mac = get_if_hwaddr(interface)
                 name = LLMNR.full_name_llmnr(name)
@@ -287,9 +283,9 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            avail_ipv6 = Interface(interface).check_available_ipv6
-            if avail_ipv6:                
-                src_mac = get_if_hwaddr(interface)                
+            avail_ipv6 = Interface(interface).check_available_ipv6()
+            if avail_ipv6:
+                src_mac = get_if_hwaddr(interface)
                 ip_lla = Interface(interface).get_interface_link_local_list()
                 src_ip_gua = Interface(interface).get_interface_global_unicast_list()
                 # Send MLDv2 from LLA
@@ -320,8 +316,8 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            avail_ipv6 = Interface(interface).check_available_ipv6
-            if avail_ipv6:                
+            avail_ipv6 = Interface(interface).check_available_ipv6()
+            if avail_ipv6:
                 src_mac = get_if_hwaddr(interface)
                 ip_lla = Interface(interface).get_interface_link_local_list()
                 if aggressive:
@@ -330,7 +326,7 @@ class SendIPv6:
                     mldv2_join = PrototypeIPv6Packet.get_init_mldv2_active_mode(src_mac, ip_lla)
                 sendp(mldv2_join*2, iface=interface, verbose=False)
                 time.sleep(0.1)
-                if aggressive:                    
+                if aggressive:
                     mldv1_report = PrototypeIPv6Packet.get_init_mldv1_aggressive_mode(src_mac, ip_lla)
                 else:
                     mldv1_report = PrototypeIPv6Packet.get_init_mldv1_active_mode(src_mac, ip_lla)
@@ -348,8 +344,8 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            avail_ipv6 = Interface(interface).check_available_ipv6
-            if avail_ipv6:                
+            avail_ipv6 = Interface(interface).check_available_ipv6()
+            if avail_ipv6:
                 src_mac = get_if_hwaddr(interface)
                 ip_lla = Interface(interface).get_interface_link_local_list()
                 if aggressive:
@@ -358,7 +354,7 @@ class SendIPv6:
                     mldv2_leave = PrototypeIPv6Packet.get_finish_mldv2_active_mode(src_mac, ip_lla)
                 sendp(mldv2_leave*2, iface=interface, verbose=False)
                 time.sleep(0.1)
-                if aggressive:                    
+                if aggressive:
                     mldv1_done = PrototypeIPv6Packet.get_finish_mldv1_aggressive_mode(src_mac, ip_lla)
                 else:
                     mldv1_done = PrototypeIPv6Packet.get_finish_mldv1_active_mode(src_mac, ip_lla)
@@ -376,7 +372,7 @@ class SendIPv6:
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
             send_ipv6_all_routers_multicast(interface,
-                ICMPv6ND_RS() / ICMPv6NDOptSrcLLAddr(lladdr=get_if_hwaddr(interface)))        
+                ICMPv6ND_RS() / ICMPv6NDOptSrcLLAddr(lladdr=get_if_hwaddr(interface)))
 
     @staticmethod
     def send_RA(interface: str, prefix_len: int, network: str, source_mac: str, source_ip: str, rpref: int, chl: int, mtu: int, dns: list[str]|None, aggressive_mode: bool, period: float|None, duration: float) -> None:
@@ -453,9 +449,7 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            layer2 = Ether(src=source_mac, dst=target_mac)
-            layer3 = IPv6(src=source_ip, dst=target_ip)
-            packet1 = layer2 / layer3 / ICMPv6ND_NA(R=r_flag, S=s_flag, O=o_flag, tgt=source_ip) / ICMPv6NDOptDstLLAddr(lladdr=source_mac)
+            packet1 = PrototypeIPv6Packet.get_frame_na(source_mac, target_mac, source_ip, target_ip, r_flag, s_flag, o_flag)
             sendp(packet1, verbose=False, iface=interface)
 
     @staticmethod
@@ -492,7 +486,7 @@ class SendIPv6:
         src_mac = get_if_hwaddr(interface)
         mac_ips_global = {}
         csv_file = get_csv_path("addresses.csv")
-        
+
         with open(csv_file, 'r') as csvfile:
             reader = csv.reader(csvfile)
             headers = next(reader)
@@ -596,7 +590,7 @@ class SendIPv6:
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
             send_ipv6_from_all_addresses(interface, 
-                PrototypeIPv6Packet.get_l3payload_wsdiscovery(), dst_ip=PrototypeIPv6Packet.WS_DISCOVERY_IPV6_MULTICAST_IP),                
+                PrototypeIPv6Packet.get_l3payload_wsdiscovery(), dst_ip=PrototypeIPv6Packet.WS_DISCOVERY_IPV6_MULTICAST_IP),
 
     @staticmethod
     def send_dns_sd_probe(interface: str) -> None:
@@ -609,7 +603,7 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            avail_ipv6 = Interface(interface).check_available_ipv6
+            avail_ipv6 = Interface(interface).check_available_ipv6()
             if avail_ipv6:
                 ipv6_addresses = Interface(interface).get_interface_ipv6_ips()
                 for source_ipv6_addr in ipv6_addresses:
@@ -644,7 +638,7 @@ def generate_more_possible_IP(interface: str) -> dict | None:
     mac_ips = {}
     mac_ips_global_old = {}
     prefix_list = []
-    
+
     csv_file = get_csv_path("addresses.csv")
     with open(csv_file, 'r') as csvfile:
         reader = csv.reader(csvfile)
@@ -667,7 +661,7 @@ def generate_more_possible_IP(interface: str) -> dict | None:
                     mac_ips_global_old[mac].append(ip)
             except ValueError:
                 pass
-    
+
     ra_csv_file = get_csv_path("RA.csv")
     if has_additional_data(ra_csv_file):
         with open(ra_csv_file, 'r') as csvfile:
@@ -677,7 +671,7 @@ def generate_more_possible_IP(interface: str) -> dict | None:
             for row in reader:
                 if row[prefix_index] not in prefix_list:
                     prefix_list.append(row[prefix_index])
-    
+
     flag_error = 0
     if prefix_list != []:
         for mac, ip_ll in mac_ips.items():

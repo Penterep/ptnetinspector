@@ -48,7 +48,7 @@ def load_vuln_catalog_by_test() -> dict[str, list[dict[str, str]]]:
             test_code = row.get("Test", "").strip().upper()
             if not test_code:
                 continue
-            
+
             entry = {
                 "ID": row.get("ID", "").strip(),
                 "Mode": row.get("Mode", "").strip(),
@@ -57,7 +57,7 @@ def load_vuln_catalog_by_test() -> dict[str, list[dict[str, str]]]:
                 "Description": row.get("Description", "").strip(),
                 "Test": test_code,
             }
-            
+
             if test_code not in test_index:
                 test_index[test_code] = []
             test_index[test_code].append(entry)

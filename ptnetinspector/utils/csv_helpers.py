@@ -268,7 +268,7 @@ def read_role_node_csv(filename):
             except (ValueError, KeyError):
                 continue
     return dict(sorted(result.items()))
-    
+
 def delete_middle_content_csv(filename: str) -> None:
     """
     If the CSV file has more than 3 rows, keeps only the first and last row, removing the middle content.
@@ -326,7 +326,7 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
         reader = csv.reader(f)
         header = next(reader)
         rows = list(reader)
-    
+
     # Create a dictionary to track rows by their key (all columns except Label)
     row_dict = {}
     for row in rows:
@@ -335,7 +335,7 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
         # Key is all columns except the last one (Label)
         key = tuple(row[:-1])
         label = row[-1]
-        
+
         # If key exists, keep the row with Label='1'
         if key in row_dict:
             existing_label = row_dict[key][-1]
@@ -344,10 +344,10 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
                 row_dict[key] = row
         else:
             row_dict[key] = row
-    
+
     # Get unique rows from dictionary
     unique_rows = list(row_dict.values())
-    
+
     # Deduplicate by code: keep row with longest description for same ID, Mode, IPver, Code
     code_dict = {}
     for row in unique_rows:
@@ -355,7 +355,7 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
             continue
         # Key: ID, Mode, IPver, Code
         code_key = (row[0], row[2], row[3], row[4])
-        
+
         if code_key in code_dict:
             existing_row = code_dict[code_key]
             existing_desc_len = len(existing_row[5])
@@ -365,10 +365,10 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
                 code_dict[code_key] = row
         else:
             code_dict[code_key] = row
-    
+
     # Get deduplicated rows
     deduplicated_rows = list(code_dict.values())
-    
+
     # Separate numeric and network rows
     numeric_rows = []
     network_rows = []
@@ -377,12 +377,12 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
             numeric_rows.append(row)
         else:
             network_rows.append(row)
-    
+
     # Sort rows
     numeric_rows.sort(key=lambda r: (int(r[0]), r[3], r[4], r[5]))
     network_rows.sort(key=lambda r: (r[4], r[5]))
     sorted_rows = numeric_rows + network_rows
-    
+
     # Write back to file
     with open(filepath, 'w', newline='') as f:
         writer = csv.writer(f)
@@ -406,13 +406,13 @@ def remove_duplicates_from_csv(input_csv: str) -> None:
 def delete_contents_except_headers(csv_path: str) -> None:
     """
     Remove all rows except the header from a CSV file.
-    
+
     Args:
         csv_path (str): Path to the CSV file.
-    
+
     Output:
         None
-        
+
     Description:
         Keeps only the header row in the CSV file.
     """

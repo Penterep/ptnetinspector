@@ -293,7 +293,7 @@ class SendIPv4:
                 igmpv3_join = PrototypeIPv4Packet.get_init_igmpv3_active_mode(src_mac, ipv4_addresses)
             sendp(igmpv3_join*2, iface=interface, verbose=False)
             time.sleep(0.1)
-            if aggressive:                    
+            if aggressive:
                 igmpv2_join = PrototypeIPv4Packet.get_init_igmpv2_aggressive_mode(src_mac, ipv4_addresses)
             else:
                 igmpv2_join = PrototypeIPv4Packet.get_init_igmpv2_active_mode(src_mac, ipv4_addresses)
@@ -311,7 +311,7 @@ class SendIPv4:
                 igmpv3_leave = PrototypeIPv4Packet.get_finish_igmpv3_active_mode(src_mac, ipv4_addresses)
             sendp(igmpv3_leave*2, iface=interface, verbose=False)
             time.sleep(0.1)
-            if aggressive:                    
+            if aggressive:
                 igmpv2_leave = PrototypeIPv4Packet.get_finish_igmpv2_aggressive_mode(src_mac, ipv4_addresses)
             else:
                 igmpv2_leave = PrototypeIPv4Packet.get_finish_igmpv2_active_mode(src_mac, ipv4_addresses)

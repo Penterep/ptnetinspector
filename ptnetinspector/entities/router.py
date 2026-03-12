@@ -9,8 +9,8 @@ from ptnetinspector.entities.node import Node
 
 class Router(Node):
     all_nodes = []
-    
-    def __init__(self, mac: str, ip: str, M: str, O: str, H: str, A: str, L: str, Preference: str, Router_lft: str, Reachable_time: str, Retrans_time: str, DNS: str, MTU: str, Prefix: str, Valid_lft: str, Preferred_lft: str):      
+
+    def __init__(self, mac: str, ip: str, M: str, O: str, H: str, A: str, L: str, Preference: str, Router_lft: str, Reachable_time: str, Retrans_time: str, DNS: str, MTU: str, Prefix: str, Valid_lft: str, Preferred_lft: str) -> None:
         # Assign to self object
         self.mac = mac
         self.ip = ip
@@ -35,10 +35,10 @@ class Router(Node):
         Router.all_nodes.append(self)
 
     @classmethod
-    def get_RA_from_csv(cls):
+    def get_RA_from_csv(cls) -> None:
         # Importing the information about nodes from tmp files
         csv_file = get_csv_path("RA.csv")
-        
+
         with open(csv_file, "r") as csv_file:
             reader = csv.DictReader(csv_file)
             nodes = list(reader)
@@ -64,10 +64,10 @@ class Router(Node):
                 )
 
     @staticmethod
-    def save_router_address(mac):
+    def save_router_address(mac: str) -> None:
         # Function to save router MAC address to a CSV file
         csv_file = get_csv_path("routers.csv")
-        
+
         with open(csv_file, 'a+', newline='') as csvfile:
             csvfile.seek(0)
             # Check if the IP and MAC addresses already exist in the file
@@ -77,16 +77,16 @@ class Router(Node):
 
             # IP and MAC not found, save them to the file
             csv.writer(csvfile).writerow([mac])
-    
-    def save_RA(self):
+
+    def save_RA(self) -> None:
         csv_file = get_csv_path("RA.csv")
-        
+
         with open(csv_file, 'a+', newline='') as csvfile:
             csvfile.seek(0)  # move the file pointer to the beginning of the file
             for row in csv.DictReader(csvfile):
                 if row and row['MAC'] == self.mac and row['IP'] == self.ip and row['M'] == self.M and row['O'] == self.O and row['A'] == self.A and row['Preference'] == self.Preference and row['Prefix'] == self.Prefix:
                     return  # Record already exists in the file
-                
+
             fieldnames = ['MAC', 'IP', 'M', 'O', 'H', 'A', 'L', 'Preference', 'Router_lft', 'Reachable_time',
                         'Retrans_time', 'DNS', 'MTU', 'Prefix', 'Valid_lft', 'Preferred_lft']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -109,5 +109,5 @@ class Router(Node):
                 'Preferred_lft': self.Preferred_lft
             })
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.mac}, {self.ip}, {self.M}, {self.O}, {self.H}, {self.A}, {self.L}, {self.Preference}, {self.Router_lft}, {self.Reachable_time}, {self.Retrans_time}, {self.DNS}, {self.MTU}, {self.Prefix}, {self.Valid_lft}, {self.Preferred_lft})"

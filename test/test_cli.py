@@ -63,16 +63,16 @@ class TestCLIParsing:
         """Test blocking and enabling print output."""
         # Test that blockPrint actually blocks output
         print("Before block")
-        
+
         blockPrint()
         print("During block - should not appear")
-        
+
         enablePrint()
         print("After enable")
-        
+
         # Capture the output
         captured = capsys.readouterr()
-        
+
         # Verify blocking worked
         assert "Before block" in captured.out
         assert "During block" not in captured.out

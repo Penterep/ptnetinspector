@@ -16,9 +16,9 @@ class TestTargetCodeValidation:
         target_codes = ["PTV-NET-IDENT-MDNS-PTR", "PTV-NET-IDENT-LLMNR-PTR"]
         list_error = []
         list_warning = []
-        
+
         result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
-        
+
         assert result is not None
         assert "PTV-NET-IDENT-MDNS-PTR" in result
         assert "PTV-NET-IDENT-LLMNR-PTR" in result
@@ -30,7 +30,7 @@ class TestTargetCodeValidation:
         target_codes = ["PTV-NET-IDENT-MDNS-PTR", "INVALID-CODE-XYZ"]
         list_error = []
         list_warning = []
-        
+
         result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
         assert result is None
         assert len(list_error) >= 1
@@ -41,7 +41,7 @@ class TestTargetCodeValidation:
         target_codes = ["INVALID-CODE-1", "INVALID-CODE-2"]
         list_error = []
         list_warning = []
-        
+
         result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
         assert result is None
         assert len(list_error) >= 1
@@ -52,9 +52,9 @@ class TestTargetCodeValidation:
         target_codes = []
         list_error = []
         list_warning = []
-        
+
         result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
-        
+
         assert result is None
 
     def test_validate_target_codes_none(self):
@@ -62,9 +62,9 @@ class TestTargetCodeValidation:
         target_codes = None
         list_error = []
         list_warning = []
-        
+
         result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
-        
+
         assert result is None
 
     def test_validate_target_codes_case_insensitive(self):
@@ -72,9 +72,9 @@ class TestTargetCodeValidation:
         target_codes = ["ptv-net-ident-mdns-ptr", "PTV-NET-IDENT-LLMNR-PTR"]
         list_error = []
         list_warning = []
-        
+
         result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
-        
+
         assert result is not None
         # Both should be uppercase in result
         assert "PTV-NET-IDENT-MDNS-PTR" in result
