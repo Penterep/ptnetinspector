@@ -119,7 +119,7 @@ class PrototypeIPv4Packet:
             Packet: Scapy packet representing the complete LLMNR query with L2, L3, and L4 headers.
         """
         return (Ether(src=src_mac) /
-                IP(src=src_ip, dst=PrototypeIPv4Packet.LLMNR_IPV4_MULTICAST_IP, hlim=1) /
+            IP(src=src_ip, dst=PrototypeIPv4Packet.LLMNR_IPV4_MULTICAST_IP, ttl=1) /
                 UDP(sport=PrototypeL4.get_l4port_random() if sport is None else sport, dport=PrototypeL4.LLMNR_PORT) /
                 l4_payload)
 
@@ -179,7 +179,7 @@ class PrototypeIPv4Packet:
             Packet: Scapy packet representing the WS-Discovery Probe.
         """
         return (Ether(src=src_mac) /
-                IP(src=src_ip, dst=PrototypeIPv4Packet.WS_DISCOVERY_IPV4_MULTICAST_IP, hlim=1) /
+            IP(src=src_ip, dst=PrototypeIPv4Packet.WS_DISCOVERY_IPV4_MULTICAST_IP, ttl=1) /
                 PrototypeL4.get_l3payload_wsdiscovery(message_id))
 
     @staticmethod
