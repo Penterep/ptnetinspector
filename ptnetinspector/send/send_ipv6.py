@@ -141,6 +141,8 @@ class SendIPv6:
                 pkt = []                
                 pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query))
                 pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1))
+                pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query, sport=None))
+                pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1, sport=None))
                 ans, uans = srp(pkt, multi=True, timeout=0.3, iface=interface, verbose=False)
                 if ans:
                     try:
@@ -173,6 +175,8 @@ class SendIPv6:
                 src_ip = Interface(interface).get_interface_link_local_list()
                 pkt = PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, query_name)
                 pkt.extend(PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, query_name, unicastresponse=1))
+                pkt = PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, query_name, sport=None)
+                pkt.extend(PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, query_name, unicastresponse=1, sport=None))
                 sendp(pkt, iface=interface, verbose=False)
 
     @staticmethod
@@ -594,6 +598,8 @@ class SendIPv6:
                     dns_sd = []
                     dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr))
                     dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr, unicastresponse=1))
+                    dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr, sport=None))
+                    dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr, unicastresponse=1, sport=None))
                     sendp(dns_sd, verbose=0, iface=interface)
 
     @staticmethod

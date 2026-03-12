@@ -240,7 +240,7 @@ class PrototypeIPv6Packet:
     # L3 Builders
     #
     @staticmethod
-    def get_frame_llmnr_custom_payload(src_mac, src_ip, l4_payload) -> Packet:
+    def get_frame_llmnr_custom_payload(src_mac, src_ip, l4_payload, sport=None) -> Packet:
         """
         Adds L2, L3, and L4 headers to the provided L4 payload to create a complete LLMNR query packet.
         Args:
@@ -252,10 +252,10 @@ class PrototypeIPv6Packet:
         """
         return (Ether(src=src_mac, dst=PrototypeIPv6Packet.LLMNR_IPV6_MULTICAST_MAC) /
                 IPv6(src=src_ip, dst=PrototypeIPv6Packet.LLMNR_IPV6_MULTICAST_IP, hlim=1) /
-                UDP(sport=5355, dport=5355) /
+                UDP(sport=PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport, dport=5355) /
                 l4_payload)
     @staticmethod
-    def get_frame_mdns_custom_payload(src_mac, src_ip, l4_payload) -> Packet:
+    def get_frame_mdns_custom_payload(src_mac, src_ip, l4_payload, sport=5353) -> Packet:
         """
         Adds L2, L3, and L4 headers to the provided L4 payload to create a complete mDNS query packet.
         Args:
@@ -267,7 +267,7 @@ class PrototypeIPv6Packet:
         """
         return (Ether(src=src_mac, dst=PrototypeIPv6Packet.MDNS_IPV6_MULTICAST_MAC) /
                 IPv6(src=src_ip, dst=PrototypeIPv6Packet.MDNS_IPV6_MULTICAST_IP, hlim=1) /
-                UDP(sport=5353, dport=5353) /
+                UDP(sport=sport, dport=5353) /
                 l4_payload)
 
     @staticmethod
@@ -334,7 +334,7 @@ class PrototypeIPv6Packet:
             LLMNRQuery(qd=DNSQR(qname=qname, qtype="PTR"))))
 
     @staticmethod
-    def get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse = 0) -> list[Packet]:
+    def get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse = 0, sport=5353) -> list[Packet]:
         """
         Builds a bundle of mDNS query packets for A, AAAA, and ANY record types with the specified source MAC and IPv6 addresses, and query name.
         Each packet is constructed with appropriate L2 and L3 headers, and includes a DNS query for the specified query name with the respective record type (A, AAAA, ANY).
@@ -347,15 +347,21 @@ class PrototypeIPv6Packet:
             list[Packet]: A list of Scapy packets representing the mDNS queries for A, AAAA, and ANY record types.
         """
         pkt_any = (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip, 
-            DNS(rd=1, qd=DNSQR(qname=qname, qtype=255, qclass=1, unicastresponse=unicastresponse))))
+            DNS(rd=1, qd=DNSQR(qname=qname, qtype=255, qclass=1, unicastresponse=unicastresponse)),
+            PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport
+            ))
         pkt_a = (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip, 
-            DNS(rd=1, qd=DNSQR(qname=qname, qtype=1, qclass=1, unicastresponse=unicastresponse))))
+            DNS(rd=1, qd=DNSQR(qname=qname, qtype=1, qclass=1, unicastresponse=unicastresponse)),
+            PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport
+            ))
         pkt_aaaa = (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip, 
-            DNS(rd=1, qd=DNSQR(qname=qname, qtype=28, qclass=1, unicastresponse=unicastresponse))))
+            DNS(rd=1, qd=DNSQR(qname=qname, qtype=28, qclass=1, unicastresponse=unicastresponse)),
+            PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport
+            ))
         return [pkt_a, pkt_aaaa, pkt_any]
     
     @staticmethod
-    def get_frame_mdns_ptr(src_mac, src_ip, qname, unicastresponse = 0) -> Packet:
+    def get_frame_mdns_ptr(src_mac, src_ip, qname, unicastresponse = 0, sport=5353) -> Packet:
         """
         Builds an mDNS PTR query packet with the specified source MAC and IPv6 addresses, and query name.
         The packet is constructed with appropriate L2 and L3 headers, and includes a DNS query for the specified query name with PTR record type.
@@ -368,10 +374,11 @@ class PrototypeIPv6Packet:
             Packet: Scapy packet representing the mDNS PTR query.
         """
         return (PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, src_ip,
-                    DNS(rd=1, qd=DNSQR(qname=qname, qtype="PTR", unicastresponse=unicastresponse))))
+                    DNS(rd=1, qd=DNSQR(qname=qname, qtype="PTR", unicastresponse=unicastresponse)),
+                    PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport))
     
     @staticmethod
-    def get_frame_mdns_sd(src_mac, src_ip, unicastresponse = 0) -> Packet:
+    def get_frame_mdns_sd(src_mac, src_ip, unicastresponse = 0, sport=5353) -> Packet:
         """
         Builds an mDNS Service Discovery packet with the specified source MAC and IPv6 addresses.
         The packet is constructed with appropriate L2 and L3 headers, and includes a DNS query for the _services._dns-sd._udp.local. domain.
@@ -384,7 +391,7 @@ class PrototypeIPv6Packet:
         """
         return (Ether(src=src_mac, dst=PrototypeIPv6Packet.MDNS_IPV6_MULTICAST_MAC) /
             IPv6(src=src_ip, dst=PrototypeIPv6Packet.MDNS_IPV6_MULTICAST_IP, hlim=1) /
-            UDP(sport=PrototypeIPv6Packet.__get_l4port_random(), dport=5353) /
+            UDP(sport=PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport, dport=5353) /
             DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR", unicastresponse=unicastresponse)))
 
     def get_init_mldv2_active_mode(src_mac, src_ip) -> list[Packet]:
