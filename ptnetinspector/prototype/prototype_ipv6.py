@@ -1,5 +1,5 @@
 
-from enum import Enum
+from enum import IntEnum
 import random
 import socket
 import uuid
@@ -17,7 +17,7 @@ from scapy.utils6 import in6_getnsma
 from ptnetinspector.prototype.prototype_l7 import *
 from ptnetinspector.prototype.prototype_l4 import *
 
-class MLDV2_RType(Enum):
+class MLDV2_RType(IntEnum):
     MODE_IS_INCLUDE = 1
     MODE_IS_EXCLUDE = 2
     CHANGE_TO_INCLUDE_MODE = 3
