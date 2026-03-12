@@ -113,8 +113,14 @@ class PrototypeIPv6Packet:
         Output:
             Packet: Scapy packet representing the MLDv2 Join for the specified multicast group.
         """
+        records = []
+        if type(group) is str:
+            records.append(ICMPv6MLDMultAddrRec(rtype=4, dst=group))
+        elif type(group) is list:
+            for g in group:
+                records.append(ICMPv6MLDMultAddrRec(rtype=4, dst=g))
         return (PrototypeIPv6Packet.__get_mld_packet_headers(src_mac, src_ip) /
-                ICMPv6MLReport2(records=[ICMPv6MLDMultAddrRec(rtype=4, dst=group)]))
+            ICMPv6MLReport2(records=records))
     
     @staticmethod
     def __get_mldv2_leave(src_mac, src_ip, group) -> Packet:
@@ -127,8 +133,14 @@ class PrototypeIPv6Packet:
         Output:
             Packet: Scapy packet representing the MLDv2 Leave for the specified multicast group.
         """
+        records = []
+        if type(group) is str:
+            records.append(ICMPv6MLDMultAddrRec(rtype=3, dst=group))
+        elif type(group) is list:
+            for g in group:
+                records.append(ICMPv6MLDMultAddrRec(rtype=3, dst=g))
         return (PrototypeIPv6Packet.__get_mld_packet_headers(src_mac, src_ip) /
-                ICMPv6MLReport2(records=[ICMPv6MLDMultAddrRec(rtype=3, dst=group)]))
+            ICMPv6MLReport2(records=records))
 
     @staticmethod
     def get_l3payload_icmpv6_echo_request(id=0) -> Packet:
@@ -394,6 +406,7 @@ class PrototypeIPv6Packet:
             UDP(sport=PrototypeIPv6Packet.__get_l4port_random() if sport is None else sport, dport=5353) /
             DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR", unicastresponse=unicastresponse)))
 
+    @staticmethod
     def get_init_mldv2_active_mode(src_mac, src_ip) -> list[Packet]:
         """
         Subscribes to multicast groups for active scanning mode using MLDv2 Join messages.
@@ -406,6 +419,7 @@ class PrototypeIPv6Packet:
         return [PrototypeIPv6Packet.__get_mldv2_join(src_mac, src_ip, group) 
                 for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
     
+    @staticmethod
     def get_init_mldv1_active_mode(src_mac, src_ip) -> list[Packet]:
         """
         Subscribes to multicast groups for active scanning mode using MLDv1 Report messages.
@@ -418,6 +432,7 @@ class PrototypeIPv6Packet:
         return [PrototypeIPv6Packet.__get_mldv1_report(src_mac, src_ip, group) 
                 for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
 
+    @staticmethod
     def get_finish_mldv2_active_mode(src_mac, src_ip) -> list[Packet]:
         """
         Unsubscribes from multicast groups for active scanning mode using MLDv2 Leave messages.
@@ -430,6 +445,7 @@ class PrototypeIPv6Packet:
         return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, group) 
                 for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
     
+    @staticmethod
     def get_finish_mldv1_active_mode(src_mac, src_ip) -> list[Packet]:
         """
         Unsubscribes from multicast groups for active scanning mode using MLDv1 Done messages.
@@ -442,6 +458,7 @@ class PrototypeIPv6Packet:
         return [PrototypeIPv6Packet.__get_mldv1_done(src_mac, src_ip, group) 
                 for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
 
+    @staticmethod
     def get_init_mldv2_aggressive_mode(src_mac, src_ip) -> list[Packet]:
         """
         Subscribes to multicast groups for aggressive scanning mode using MLDv2 Join messages.
@@ -454,6 +471,7 @@ class PrototypeIPv6Packet:
         return [PrototypeIPv6Packet.__get_mldv2_join(src_mac, src_ip, group) 
                 for group in PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE]
     
+    @staticmethod
     def get_init_mldv1_aggressive_mode(src_mac, src_ip) -> list[Packet]:
         """
         Subscribes to multicast groups for aggressive scanning mode using MLDv1 Report messages.
@@ -466,6 +484,7 @@ class PrototypeIPv6Packet:
         return [PrototypeIPv6Packet.__get_mldv1_report(src_mac, src_ip, group) 
                 for group in PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE]
 
+    @staticmethod
     def get_finish_mldv2_aggressive_mode(src_mac, src_ip) -> list[Packet]:
         """
         Unsubscribes from multicast groups for aggressive scanning mode using MLDv2 Leave messages.
@@ -478,6 +497,7 @@ class PrototypeIPv6Packet:
         return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, group) 
                 for group in PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE]
     
+    @staticmethod
     def get_finish_mldv1_aggressive_mode(src_mac, src_ip) -> list[Packet]:
         """
         Unsubscribes from multicast groups for aggressive scanning mode using MLDv1 Done messages.
