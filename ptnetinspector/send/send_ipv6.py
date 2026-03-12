@@ -11,7 +11,7 @@ import sys
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSRR
 from scapy.layers.inet import UDP
-from scapy.layers.inet6 import IPv6, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_RS
+from scapy.layers.inet6 import IPv6, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_RS, ICMPv6MLQuery, ICMPv6MLQuery2
 from scapy.layers.l2 import Ether
 from scapy.layers.llmnr import LLMNRResponse
 
@@ -22,7 +22,8 @@ from ptnetinspector.utils.ip_utils import is_global_unicast_ipv6, has_additional
 from ptnetinspector.utils.ip_utils import generate_global_ipv6, generate_random_global_ipv6, collect_unique_items
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.ip_utils import reverse_IPadd
-from ptnetinspector.prototype.prototype_ipv6 import PrototypeIPv6Packet
+from ptnetinspector.prototype.prototype_ipv6 import PrototypeIPv6Packet, MLDV2_RType
+from ptnetinspector.prototype.prototype_l4 import PrototypeL4
 from ptnetinspector.utils.ip_utils import send_ipv6_all_nodes_multicast, send_ipv6_all_routers_multicast, send_ipv6_from_all_addresses, send_ipv6_from_all_lla_addresses
 
 class SendIPv6:
@@ -417,6 +418,14 @@ class SendIPv6:
                     id=SendIPv6.__get_next_icmpv6_echo_request_id()
                 ), ips, mac)
             send_ipv6_from_all_addresses(interface,
+                PrototypeIPv6Packet.get_l3payload_empty_destination_option(), ips, mac)
+            send_ipv6_from_all_addresses(interface,
+                PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop(), ips, mac)
+            send_ipv6_from_all_addresses(interface,
+                PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request(
+                    id=SendIPv6.__get_next_icmpv6_echo_request_id()
+                ), ips, mac)
+            send_ipv6_from_all_addresses(interface,
                 PrototypeIPv6Packet.get_l3payload_invalid_icmpv6_with_dest_opt(
                     id=SendIPv6.__get_next_icmpv6_echo_request_id()
                 ),ips,mac)
@@ -512,27 +521,33 @@ class SendIPv6:
             layer2 = Ether(src=src_mac)
             for mac, ips in mac_ips_global.items():
                 if ips != []:
-                    layer3 = IPv6(src=sip, dst=ips)
-                    pkt1 = (layer2 / layer3 / 
+                    layer3 = IPv6(src=sip, dst=ips)                    
+                    multicast_ping = (layer2 / layer3 / 
                         PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request(
                             id=SendIPv6.__get_next_icmpv6_echo_request_id()
                         ))
-                    pkt2 = (layer2 / layer3 / 
+                    empty_dest_opt = (layer2 / layer3 / 
+                        PrototypeIPv6Packet.get_l3payload_empty_destination_option())
+                    empty_hop_by_hop_opt = (layer2 / layer3 / 
+                        PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop())
+                    invalid = (layer2 / layer3 / 
                         PrototypeIPv6Packet.get_l3payload_invalid_icmpv6_with_dest_opt(
                             id=SendIPv6.__get_next_icmpv6_echo_request_id()
                         ))
-                    pkt3 = (layer2 / layer3 / 
+                    multicast_ping_dest_opt = (layer2 / layer3 / 
                         PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_dest_opt(
                             id=SendIPv6.__get_next_icmpv6_echo_request_id()
                         ))
-                    pkt4 = (layer2 / layer3 / 
+                    multicast_ping_hop_by_hop_opt = (layer2 / layer3 / 
                         PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(
                             id=SendIPv6.__get_next_icmpv6_echo_request_id()
                         ))
-                    sendp(pkt1, iface=interface, verbose=False)
-                    sendp(pkt2, iface=interface, verbose=False)
-                    sendp(pkt3, iface=interface, verbose=False)
-                    sendp(pkt4, iface=interface, verbose=False)
+                    sendp(multicast_ping, iface=interface, verbose=False)
+                    sendp(empty_dest_opt, iface=interface, verbose=False)
+                    sendp(empty_hop_by_hop_opt, iface=interface, verbose=False)
+                    sendp(invalid, iface=interface, verbose=False)
+                    sendp(multicast_ping_dest_opt, iface=interface, verbose=False)
+                    sendp(multicast_ping_hop_by_hop_opt, iface=interface, verbose=False)
 
     @staticmethod
     def send_ns(address: str, interface: str, wait_for_rsp: bool = False, rsp_timeout: float|None = 0.1) -> None | SndRcvList:
@@ -587,10 +602,27 @@ class SendIPv6:
         Output:
             None
         """
+        packets = []
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            send_ipv6_from_all_addresses(interface, 
-                PrototypeIPv6Packet.get_l3payload_wsdiscovery(), dst_ip=PrototypeIPv6Packet.WS_DISCOVERY_IPV6_MULTICAST_IP),
+            avail_ipv6 = Interface(interface).check_available_ipv6
+            if avail_ipv6:
+                ip_addresses = Interface(interface).get_interface_ips()
+                src_mac = get_if_hwaddr(interface)
+                for ip in ip_addresses:
+                    try:
+                        ipaddress.IPv4Address(ip)
+                        continue
+                    except ipaddress.AddressValueError:
+                        pass
+                    try:
+                        ipaddress.IPv6Address(ip)
+                        src_ip = ip
+                        packets.append(PrototypeIPv6Packet.get_frame_wsdiscovery(src_mac, src_ip))
+                    except ipaddress.AddressValueError:
+                        pass
+                if len(packets) != 0:
+                    sendp(packets, iface=interface, verbose=False)
 
     @staticmethod
     def send_dns_sd_probe(interface: str) -> None:
@@ -624,7 +656,58 @@ class SendIPv6:
         """
         send_ipv6_from_all_lla_addresses(interface,
             PrototypeIPv6Packet.get_l3payload_dhcpv6_solicit(get_if_hwaddr(interface)), dst_ip=PrototypeIPv6Packet.DHCPV6_ALL_SERVERS_MULTICAST_IP)
+        
+    def react_to_mld_queries(mode: str, interface: str, duration: float|None) -> None:
+        """
+        React to MLD Query packets by sending MLD join reports.
 
+        Behavior:
+            1) Sends reports immediately at startup.
+            2) Sends reports whenever an MLD query is received.
+            3) Sends reports periodically at least once every 10 seconds.
+
+        Args:
+            mode (str): Active mode selector ("a" or "a+").
+            interface (str): Network interface to use.
+            duration (float | None): Total run time in seconds; None means run indefinitely.
+        Output:
+            None
+        """
+        interval_s = 10.0
+
+        def send_reports() -> None:
+            if mode == "a+":
+                SendIPv6.send_MLD_report_join(interface, aggressive=True)
+            if mode == "a" or mode == "a+":
+                SendIPv6.send_MLD_report_join(interface)
+
+        def custom_action(packet) -> None:
+            if ICMPv6MLQuery in packet or ICMPv6MLQuery2 in packet:
+                send_reports()
+
+        build_filter = "ip6"
+        start_time = time.time()
+
+        # Always announce membership at startup.
+        send_reports()
+
+        try:
+            while True:
+                if duration is None:
+                    sniff_timeout = interval_s
+                else:
+                    elapsed = time.time() - start_time
+                    remaining = duration - elapsed
+                    if remaining <= 0:
+                        break
+                    sniff_timeout = min(interval_s, remaining)
+
+                sniff(iface=interface, filter=build_filter, prn=custom_action, timeout=sniff_timeout)
+
+                # Re-announce membership periodically even without incoming queries.
+                send_reports()
+        except KeyboardInterrupt:
+            sys.exit(0)
 
 def generate_more_possible_IP(interface: str) -> dict | None:
     """

@@ -6,6 +6,7 @@ that complement passive capture in active/aggressive modes.
 import ipaddress
 import random
 import time
+import sys
 import uuid
 from enum import Enum
 
@@ -19,7 +20,8 @@ from scapy.layers.l2 import Ether, ARP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 
 from ptnetinspector.entities.networks import Networks
-from ptnetinspector.prototype.prototype_ipv4 import PrototypeIPv4Packet
+from ptnetinspector.prototype.prototype_ipv4 import PrototypeIPv4Packet, IGMP_Type, IGMPV3_RType
+from ptnetinspector.prototype.prototype_l4 import PrototypeL4
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.mdns import MDNS
 from ptnetinspector.entities.llmnr import LLMNR
@@ -34,24 +36,19 @@ class ICMPType(Enum):
 
 class SendIPv4:
     @staticmethod
-    def send_reverse_ipv4_MDNS(ip_address, interface):
+    def send_reverse_ipv4_MDNS(ip_address: str, interface: str) -> str | None:
         # Function to send an IPv4 mDNS PTR query and save the response to get the local name
         # Checking the existence of the interface
         exist_interface = Interface(interface).check_interface()
-
         if exist_interface:
             src_ip = get_if_addr(interface)
             if ip_address != src_ip:
                 src_mac = get_if_hwaddr(interface)
                 # Define the IPv4 address to query
                 query = reverse_IPadd(ip_address)
-
-                # Create an mDNS PTR query packet
-                pkt = (Ether(src=src_mac, dst="01:00:5e:00:00:fb") /
-                       IP(src=src_ip, dst="224.0.0.251", ttl=1) /
-                       UDP(sport=5353, dport=5353) /
-                       DNS(rd=1, qd=DNSQR(qname=query, qtype=12)))
-
+                pkt = []
+                pkt.append(PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, src_ip, query))
+                pkt.append(PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1))
                 # Send the mDNS packet
                 ans, uans = srp(pkt, multi=True, timeout=0.3, iface=interface, verbose=False)
                 if ans:
@@ -67,50 +64,32 @@ class SendIPv4:
                 return None
 
     @staticmethod
-    def send_mDNS_ipv4(query_name, interface):
+    def send_mDNS_ipv4(query_name: str, interface: str) -> None:
         # Function to send an IPv4 mDNS query after getting the name
         # Checking the existence of the interface
         exist_interface = Interface(interface).check_interface()
-
         if exist_interface:
             src_ip = get_if_addr(interface)
             src_mac = get_if_hwaddr(interface)
             # Create the IPv4 and UDP packets and send the mDNS query
             query_name = MDNS.full_name_MDNS(query_name)
-            pkt_any = (Ether(src=src_mac, dst="01:00:5e:00:00:fb") /
-                       IP(src=src_ip, dst='224.0.0.251', ttl=1) /
-                       UDP(sport=5353, dport=5353) /
-                       DNS(rd=1, qd=DNSQR(qname=query_name, qtype=255, qclass=1)))
-            pkt_a = (Ether(src=src_mac, dst="01:00:5e:00:00:fb") /
-                     IP(src=src_ip, dst='224.0.0.251', ttl=1) /
-                     UDP(sport=5353, dport=5353) /
-                     DNS(rd=1, qd=DNSQR(qname=query_name, qtype=1, qclass=1)))
-            pkt_aaaa = (Ether(src=src_mac, dst="01:00:5e:00:00:fb") /
-                        IP(src=src_ip, dst='224.0.0.251', ttl=1) /
-                        UDP(sport=5353, dport=5353) /
-                        DNS(rd=1, qd=DNSQR(qname=query_name, qtype=28, qclass=1)))
-            pkt = [pkt_a, pkt_aaaa, pkt_any]
+            pkt = PrototypeIPv4Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, query_name)
+            pkt.extend(PrototypeIPv4Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, query_name, unicastresponse=1))
             sendp(pkt, iface=interface, verbose=False)
 
     @staticmethod
-    def send_reverse_ipv4_llmnr(ip_address, interface):
+    def send_reverse_ipv4_llmnr(ip_address: str, interface: str) -> str | None:
         # Function to send an IPv4 LLMNR PTR query and save the response to get the local name
         # Checking the existence of the interface
         exist_interface = Interface(interface).check_interface()
-
         if exist_interface:
             src_ip = get_if_addr(interface)
             if ip_address != src_ip:
                 src_mac = get_if_hwaddr(interface)
                 # Define the IPv4 address to query
                 query = reverse_IPadd(ip_address)
-
                 # Create an LLMNR PTR query packet
-                pkt = (Ether(src=src_mac, dst="01:00:5e:00:00:fc") /
-                       IP(src=src_ip, dst="224.0.0.252", ttl=1) /
-                       UDP(sport=5355, dport=5355) /
-                       LLMNRQuery(qd=DNSQR(qname=query, qtype="PTR")))
-
+                pkt = PrototypeIPv4Packet.get_frame_llmnr_ptr(src_mac, src_ip, query)
                 response = AsyncSniffer(iface=interface)
                 response.start()
                 time.sleep(0.1)
@@ -124,36 +103,19 @@ class SendIPv4:
                         return packet[DNSRR].rdata.decode("utf-8")
 
     @staticmethod
-    def send_llmnr_ipv4(name, interface):
+    def send_llmnr_ipv4(name: str, interface: str) -> None:
         # Checking the existence of the interface
         exist_interface = Interface(interface).check_interface()
-
         if exist_interface:
             src_ip = get_if_addr(interface)
             src_mac = get_if_hwaddr(interface)
             # Create the IPv4 and UDP packets and send the LLMNR query
             name = LLMNR.full_name_llmnr(name)
-
-            pkt_any = (Ether(src=src_mac, dst="01:00:5e:00:00:fc") /
-                       IP(src=src_ip, dst="224.0.0.252", ttl=1) /
-                       UDP(sport=53550, dport=5355) /
-                       DNS(rd=1, qd=DNSQR(qname=name, qtype=255, qclass=1)))
-
-            pkt_a = (Ether(src=src_mac, dst="01:00:5e:00:00:fc") /
-                     IP(src=src_ip, dst="224.0.0.252", ttl=1) /
-                     UDP(sport=53550, dport=5355) /
-                     DNS(rd=1, qd=DNSQR(qname=name, qtype=1, qclass=1)))
-
-            pkt_aaaa = (Ether(src=src_mac, dst="01:00:5e:00:00:fc") /
-                        IP(src=src_ip, dst="224.0.0.252", ttl=1) /
-                        UDP(sport=53550, dport=5355) /
-                        DNS(rd=1, qd=DNSQR(qname=name, qtype=28, qclass=1)))
-
-            pkt = [pkt_a, pkt_aaaa, pkt_any]
+            pkt = PrototypeIPv4Packet.get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, name)
             sendp(pkt, iface=interface, verbose=False)
 
     @staticmethod
-    def IPv4_test_mdns_llmnr(ip_address, interface):
+    def IPv4_test_mdns_llmnr(ip_address: str, interface: str) -> None:
         # This function runs various tests on an IPv4 address, including reverse LLMNR, mDNS, and regular LLMNR
         if get_if_addr(interface) == "0.0.0.0":
             return
@@ -182,16 +144,10 @@ class SendIPv4:
             rsp_timeout (float): Timeout for the response. Defaults to 0.1 seconds.
         """
         try:
-            arp_request = ARP(pdst=address)
-            ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-
-            pkt = ether / arp_request
-
+            pkt = PrototypeIPv4Packet.get_frame_arp(address)
             if wait_for_rsp:
                 return srp(pkt, iface=interface, verbose=0, timeout=rsp_timeout)[0]
-
             sendp(pkt, verbose=0, iface=interface)
-
         except Exception:
             pass
 
@@ -221,33 +177,15 @@ class SendIPv4:
         Args:
             interface (str): The network interface to use
         """
+        packets = []
         exist_interface = Interface(interface).check_interface()
-
         if exist_interface:
+            src_mac = get_if_hwaddr(interface)
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
-
             for source_ipv4_addr in ipv4_addresses:
-                message_id = str(uuid.uuid4())
-
-                soap_payload = f"""<?xml version="1.0" ?>
-<s:Envelope xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery" xmlns:s="http://www.w3.org/2003/05/soap-envelope">
-\t<s:Header>
-\t\t<a:Action>http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe</a:Action>
-\t\t<a:MessageID>urn:uuid:{message_id}</a:MessageID>
-\t\t<a:To>urn:schemas-xmlsoap-org:ws:2005:04:discovery</a:To>
-\t</s:Header>
-\t<s:Body>
-\t\t<d:Probe/>
-\t</s:Body>
-</s:Envelope>
-"""
-                ether = Ether(src=get_if_hwaddr(interface))
-                ipv4 = IP(src=source_ipv4_addr, dst="239.255.255.250", ttl=1)
-                udp = UDP(sport=random.randint(49152, 65535), dport=3702)
-                payload = Raw(load=soap_payload)
-                wsd_packet = ether / ipv4 / udp / payload
-
-                sendp(wsd_packet, verbose=0, iface=interface)
+                packets.append(PrototypeIPv4Packet.get_frame_wsdiscovery(src_mac, source_ipv4_addr))
+            if len(packets) != 0:
+                sendp(packets, verbose=0, iface=interface)
 
     @staticmethod
     def send_igmp_membership_query(version: int, interface: str, spec_group: str = "0.0.0.0") -> None:
@@ -263,22 +201,9 @@ class SendIPv4:
 
         if exist_interface:
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
-
+            src_mac = get_if_hwaddr(interface)
             for source_ipv4_addr in ipv4_addresses:
-
-                mac = Ether(src=get_if_hwaddr(interface), dst="01:00:5e:00:00:01")
-                ipv4_packet = IP(src=source_ipv4_addr, dst="224.0.0.1", ttl=1)
-
-                match version:
-                    case 1:
-                        igmp_query = IGMP(type=0x11, mrcode=0, gaddr=spec_group)
-                    case 2:
-                        igmp_query = IGMP(type=0x11, mrcode=2, gaddr=spec_group)
-                    case 3:
-                        igmp_query = IGMPv3(type=0x11, mrcode=2) / IGMPv3mq(gaddr=spec_group)
-
-                query = mac / ipv4_packet / igmp_query
-
+                query = PrototypeIPv4Packet.get_igmp_query_general(version, src_mac, source_ipv4_addr, spec_group)
                 sendp(query*2, verbose=0, iface=interface)
 
     @staticmethod
@@ -361,7 +286,6 @@ class SendIPv4:
             icmp_type (ICMPType): The ICMP type. Defaults to ICMPType.ECHO_REQUEST
         """
         exist_interface = Interface(interface).check_interface()
-
         if exist_interface:
             for network in Networks.get_ipv4_subnets():
                 SendIPv4.send_local_icmp(str(network.broadcast_address), interface, icmp_type)
@@ -418,3 +342,56 @@ class SendIPv4:
 
             dhcp_discover = ether / ip / udp / bootp / dhcp
             sendp(dhcp_discover, iface=interface, verbose=0)
+
+    def react_to_igmp_queries(mode: str, interface: str, duration: float|None) -> None:
+        """
+        React to IGMP Membership Query packets by sending join reports.
+
+        Behavior:
+            1) Sends reports immediately at startup.
+            2) Sends reports whenever an IGMP query is received.
+            3) Sends reports periodically at least once every 10 seconds.
+
+        Args:
+            mode (str): Active mode selector ("a" or "a+").
+            interface (str): Network interface to use.
+            duration (float | None): Total run time in seconds; None means run indefinitely.
+        Output:
+            None
+        """
+        interval_s = 10.0
+
+        def send_reports() -> None:
+            if mode == "a+":
+                SendIPv4.send_igmp_report_join(interface, aggressive=True)
+            if mode == "a" or mode == "a+":
+                SendIPv4.send_igmp_report_join(interface)
+
+        def custom_action(packet) -> None:
+            if (IGMP in packet and packet[IGMP].type == IGMP_Type.GROUP_MEMBERSHIP_QUERY.value) or \
+               (IGMPv3 in packet and packet[IGMPv3].type == IGMP_Type.GROUP_MEMBERSHIP_QUERY.value):
+                send_reports()
+
+        build_filter = "ip"
+        start_time = time.time()
+
+        # Always announce membership at startup.
+        send_reports()
+
+        try:
+            while True:
+                if duration is None:
+                    sniff_timeout = interval_s
+                else:
+                    elapsed = time.time() - start_time
+                    remaining = duration - elapsed
+                    if remaining <= 0:
+                        break
+                    sniff_timeout = min(interval_s, remaining)
+
+                sniff(iface=interface, filter=build_filter, prn=custom_action, timeout=sniff_timeout)
+
+                # Re-announce membership periodically even without incoming queries.
+                send_reports()
+        except KeyboardInterrupt:
+            sys.exit(0)
