@@ -1,14 +1,14 @@
-from enum import Enum
+from enum import IntEnum
 
 from scapy.all import Raw, Packet
 from scapy.layers.dns import DNS, DNSQR
 
 from ptnetinspector.prototype.prototype_l4 import *
 
-class DNS_QType(Enum):
+class DNS_QType(IntEnum):
     A = 1
     AAAA = 28
-    PTR = "PTR"
+    PTR = 12
     ANY = 255
 
 class PrototypeL7:
