@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 import random
 
 from scapy.all import Packet
@@ -12,13 +12,13 @@ from scapy.layers.dns import DNS, DNSQR
 from ptnetinspector.prototype.prototype_l7 import *
 from ptnetinspector.prototype.prototype_l4 import *
 
-class IGMP_Type(Enum):
+class IGMP_Type(IntEnum):
     GROUP_MEMBERSHIP_QUERY = 17
     V1_MEMBERSHIP_REPORT = 18
     V2_MEMBERSHIP_REPORT = 22
     LEAVE_GROUP = 23
 
-class IGMPV3_RType(Enum):
+class IGMPV3_RType(IntEnum):
     MODE_IS_INCLUDE = 1
     MODE_IS_EXCLUDE = 2
     CHANGE_TO_INCLUDE_MODE = 3
