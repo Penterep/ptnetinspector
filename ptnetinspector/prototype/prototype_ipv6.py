@@ -352,7 +352,7 @@ class PrototypeIPv6Packet:
         Output:
             Packet: Scapy packet representing the MLDv1 Query.
         """
-        return (PrototypeIPv6Packet.__get_mldv1_packet_headers(src_mac, src_ip) /
+        return (PrototypeIPv6Packet.__get_mldv1_packet_headers(src_mac, src_ip, PrototypeIPv6Packet.ALL_NODES_IPV6_MULTICAST_IP) /
                 ICMPv6MLQuery(mrd=1, mladdr='::'))
 
     @staticmethod
