@@ -54,6 +54,9 @@ class PrototypeIPv6Packet:
         DHCPV6_ALL_SERVERS_MULTICAST_IP,
         ALL_ROUTERS_IPV6_MULTICAST_IP
     ]
+    MULTICAST_GROUPS_KEEP = [
+        ALL_NODES_IPV6_MULTICAST_IP
+    ]
 
     # 
     # L3 Payloads
@@ -563,7 +566,10 @@ class PrototypeIPv6Packet:
         Output:
             list[Packet]: A list of Scapy packets representing MLDv2 Leave messages for
         """
-        return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE)]
+        multicast_groups = PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE.copy()
+        for keep in PrototypeIPv6Packet.MULTICAST_GROUPS_KEEP:
+            multicast_groups.remove(keep)
+        return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, multicast_groups)]
 
     @staticmethod
     def get_finish_mldv1_active_mode(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> list[Packet]:
@@ -575,8 +581,11 @@ class PrototypeIPv6Packet:
         Output:
             list[Packet]: A list of Scapy packets representing MLDv1 Done messages for
         """
+        multicast_groups = PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE.copy()
+        for keep in PrototypeIPv6Packet.MULTICAST_GROUPS_KEEP:
+            multicast_groups.remove(keep)
         return [PrototypeIPv6Packet.__get_mldv1_done(src_mac, src_ip, group) 
-                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE]
+                for group in multicast_groups]
 
     @staticmethod
     def get_init_mldv2_aggressive_mode(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> list[Packet]:
@@ -613,7 +622,10 @@ class PrototypeIPv6Packet:
         Output:
             list[Packet]: A list of Scapy packets representing MLDv2 Leave messages for
         """
-        return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE)]
+        multicast_groups = PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE.copy()
+        for keep in PrototypeIPv6Packet.MULTICAST_GROUPS_KEEP:
+            multicast_groups.remove(keep)
+        return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, multicast_groups)]
 
     @staticmethod
     def get_finish_mldv1_aggressive_mode(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> list[Packet]:
@@ -625,5 +637,8 @@ class PrototypeIPv6Packet:
         Output:
             list[Packet]: A list of Scapy packets representing MLDv1 Done messages for
         """
+        multicast_groups = PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE.copy()
+        for keep in PrototypeIPv6Packet.MULTICAST_GROUPS_KEEP:
+            multicast_groups.remove(keep)
         return [PrototypeIPv6Packet.__get_mldv1_done(src_mac, src_ip, group) 
-                for group in PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE]
+                for group in multicast_groups]

@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import Enum
 import random
 
 from scapy.all import Packet
@@ -12,13 +12,13 @@ from scapy.layers.dns import DNS, DNSQR
 from ptnetinspector.prototype.prototype_l7 import *
 from ptnetinspector.prototype.prototype_l4 import *
 
-class IGMP_Type(IntEnum):
+class IGMP_Type(Enum):
     GROUP_MEMBERSHIP_QUERY = 17
     V1_MEMBERSHIP_REPORT = 18
     V2_MEMBERSHIP_REPORT = 22
     LEAVE_GROUP = 23
 
-class IGMPV3_RType(IntEnum):
+class IGMPV3_RType(Enum):
     MODE_IS_INCLUDE = 1
     MODE_IS_EXCLUDE = 2
     CHANGE_TO_INCLUDE_MODE = 3
@@ -41,11 +41,14 @@ class PrototypeIPv4Packet:
         IGMPV3_IPV4_MULTICAST_IP,
         MDNS_IPV4_MULTICAST_IP,
         LLMNR_IPV4_MULTICAST_IP,
-        WS_DISCOVERY_IPV4_MULTICAST_IP,
+        WS_DISCOVERY_IPV4_MULTICAST_IP
     ]
     MULTICAST_GROUPS_AGGRESSIVE = [
         DHCPV4_ALL_SERVERS_MULTICAST_IP,
         ALL_ROUTERS_IPV4_MULTICAST_IP
+    ]
+    MULTICAST_GROUPS_KEEP = [
+        ALL_NODES_IPV4_MULTICAST_IP
     ]
 
     # 
@@ -119,7 +122,7 @@ class PrototypeIPv4Packet:
             Packet: Scapy packet representing the complete LLMNR query with L2, L3, and L4 headers.
         """
         return (Ether(src=src_mac) /
-            IP(src=src_ip, dst=PrototypeIPv4Packet.LLMNR_IPV4_MULTICAST_IP, ttl=1) /
+                IP(src=src_ip, dst=PrototypeIPv4Packet.LLMNR_IPV4_MULTICAST_IP, hlim=1) /
                 UDP(sport=PrototypeL4.get_l4port_random() if sport is None else sport, dport=PrototypeL4.LLMNR_PORT) /
                 l4_payload)
 
@@ -179,7 +182,7 @@ class PrototypeIPv4Packet:
             Packet: Scapy packet representing the WS-Discovery Probe.
         """
         return (Ether(src=src_mac) /
-            IP(src=src_ip, dst=PrototypeIPv4Packet.WS_DISCOVERY_IPV4_MULTICAST_IP, ttl=1) /
+                IP(src=src_ip, dst=PrototypeIPv4Packet.WS_DISCOVERY_IPV4_MULTICAST_IP, hlim=1) /
                 PrototypeL4.get_l3payload_wsdiscovery(message_id))
 
     @staticmethod
@@ -329,7 +332,10 @@ class PrototypeIPv4Packet:
         Output:
             list[Packet]: List containing the IGMPv3 Membership Report signalling departure from all active-mode groups.
         """
-        return [PrototypeIPv4Packet.__get_igmpv3_leave(src_mac, src_ip, PrototypeIPv4Packet.MULTICAST_GROUPS_ACTIVE)]
+        multicast_groups = PrototypeIPv4Packet.MULTICAST_GROUPS_ACTIVE.copy()
+        for keep in PrototypeIPv4Packet.MULTICAST_GROUPS_KEEP:
+            multicast_groups.remove(keep)
+        return [PrototypeIPv4Packet.__get_igmpv3_leave(src_mac, src_ip, multicast_groups)]
 
     @staticmethod
     def get_finish_igmpv2_active_mode(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> list[Packet]:
@@ -341,8 +347,11 @@ class PrototypeIPv4Packet:
         Output:
             list[Packet]: List of IGMPv2 Leave Group packets, one per active-mode group.
         """
+        multicast_groups = PrototypeIPv4Packet.MULTICAST_GROUPS_ACTIVE.copy()
+        for keep in PrototypeIPv4Packet.MULTICAST_GROUPS_KEEP:
+            multicast_groups.remove(keep)
         return [PrototypeIPv4Packet.__get_igmpv2_leave(src_mac, src_ip, group) 
-                for group in PrototypeIPv4Packet.MULTICAST_GROUPS_ACTIVE]
+                for group in multicast_groups]
 
     @staticmethod
     def get_init_igmpv3_aggressive_mode(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> list[Packet]:
@@ -379,7 +388,10 @@ class PrototypeIPv4Packet:
         Output:
             list[Packet]: List containing the IGMPv3 Membership Report signalling departure from all aggressive-mode groups.
         """
-        return [PrototypeIPv4Packet.__get_igmpv3_leave(src_mac, src_ip, PrototypeIPv4Packet.MULTICAST_GROUPS_AGGRESSIVE)]
+        multicast_groups = PrototypeIPv4Packet.MULTICAST_GROUPS_AGGRESSIVE.copy()
+        for keep in PrototypeIPv4Packet.MULTICAST_GROUPS_KEEP:
+            multicast_groups.remove(keep)
+        return [PrototypeIPv4Packet.__get_igmpv3_leave(src_mac, src_ip, multicast_groups)]
 
     @staticmethod
     def get_finish_igmpv2_aggressive_mode(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> list[Packet]:
@@ -391,5 +403,8 @@ class PrototypeIPv4Packet:
         Output:
             list[Packet]: List of IGMPv2 Leave Group packets, one per aggressive-mode group.
         """
+        multicast_groups = PrototypeIPv4Packet.MULTICAST_GROUPS_AGGRESSIVE.copy()
+        for keep in PrototypeIPv4Packet.MULTICAST_GROUPS_KEEP:
+            multicast_groups.remove(keep)
         return [PrototypeIPv4Packet.__get_igmpv2_leave(src_mac, src_ip, group) 
-                for group in PrototypeIPv4Packet.MULTICAST_GROUPS_AGGRESSIVE]
+                for group in multicast_groups]
