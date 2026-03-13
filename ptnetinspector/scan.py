@@ -528,18 +528,18 @@ class Run:
 
         # Start multicast helpers
         if ip_mode.ipv6:
-            multicast_ipv6_subscribe.start()
+            #multicast_ipv6_subscribe.start()
             multicast_ipv6_responder.start()
         if ip_mode.ipv4:
-            multicast_ipv4_subscribe.start()
+            #multicast_ipv4_subscribe.start()
             multicast_ipv4_responder.start()
 
         # Join multicast helpers threads
         if ip_mode.ipv6:
-            multicast_ipv6_subscribe.join()
+            #multicast_ipv6_subscribe.join()
             multicast_ipv6_responder.join()
         if ip_mode.ipv4:
-            multicast_ipv4_subscribe.join()
+            #multicast_ipv4_subscribe.join()
             multicast_ipv4_responder.join()
 
         # Start scan jobs
