@@ -387,7 +387,7 @@ class SendIPv6:
         """
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
-            packet1 = PrototypeIPv6Packet.get_frame_ra(interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns)
+            packet1 = PrototypeIPv6Packet.get_frame_ra(prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns)
             if aggressive_mode and period is not None:
                 kill_packet1 = PrototypeIPv6Packet.get_frame_ra_kill(prefix_len, network, source_mac, source_ip, rpref, chl, dns)
                 start_time = time.time()
