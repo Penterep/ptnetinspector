@@ -334,7 +334,8 @@ class PrototypeIPv4Packet:
         """
         multicast_groups = PrototypeIPv4Packet.MULTICAST_GROUPS_ACTIVE.copy()
         for keep in PrototypeIPv4Packet.MULTICAST_GROUPS_KEEP:
-            multicast_groups.remove(keep)
+            if keep in multicast_groups:
+                multicast_groups.remove(keep)
         return [PrototypeIPv4Packet.__get_igmpv3_leave(src_mac, src_ip, multicast_groups)]
 
     @staticmethod
@@ -349,7 +350,8 @@ class PrototypeIPv4Packet:
         """
         multicast_groups = PrototypeIPv4Packet.MULTICAST_GROUPS_ACTIVE.copy()
         for keep in PrototypeIPv4Packet.MULTICAST_GROUPS_KEEP:
-            multicast_groups.remove(keep)
+            if keep in multicast_groups:
+                multicast_groups.remove(keep)
         return [PrototypeIPv4Packet.__get_igmpv2_leave(src_mac, src_ip, group) 
                 for group in multicast_groups]
 
@@ -390,7 +392,8 @@ class PrototypeIPv4Packet:
         """
         multicast_groups = PrototypeIPv4Packet.MULTICAST_GROUPS_AGGRESSIVE.copy()
         for keep in PrototypeIPv4Packet.MULTICAST_GROUPS_KEEP:
-            multicast_groups.remove(keep)
+            if keep in multicast_groups:
+                multicast_groups.remove(keep)
         return [PrototypeIPv4Packet.__get_igmpv3_leave(src_mac, src_ip, multicast_groups)]
 
     @staticmethod
@@ -405,6 +408,7 @@ class PrototypeIPv4Packet:
         """
         multicast_groups = PrototypeIPv4Packet.MULTICAST_GROUPS_AGGRESSIVE.copy()
         for keep in PrototypeIPv4Packet.MULTICAST_GROUPS_KEEP:
-            multicast_groups.remove(keep)
+            if keep in multicast_groups:
+                multicast_groups.remove(keep)
         return [PrototypeIPv4Packet.__get_igmpv2_leave(src_mac, src_ip, group) 
                 for group in multicast_groups]

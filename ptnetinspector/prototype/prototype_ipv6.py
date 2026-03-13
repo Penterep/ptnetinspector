@@ -568,7 +568,8 @@ class PrototypeIPv6Packet:
         """
         multicast_groups = PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE.copy()
         for keep in PrototypeIPv6Packet.MULTICAST_GROUPS_KEEP:
-            multicast_groups.remove(keep)
+            if keep in multicast_groups:
+                multicast_groups.remove(keep)
         return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, multicast_groups)]
 
     @staticmethod
@@ -583,7 +584,8 @@ class PrototypeIPv6Packet:
         """
         multicast_groups = PrototypeIPv6Packet.MULTICAST_GROUPS_ACTIVE.copy()
         for keep in PrototypeIPv6Packet.MULTICAST_GROUPS_KEEP:
-            multicast_groups.remove(keep)
+            if keep in multicast_groups:
+                multicast_groups.remove(keep)
         return [PrototypeIPv6Packet.__get_mldv1_done(src_mac, src_ip, group) 
                 for group in multicast_groups]
 
@@ -624,7 +626,8 @@ class PrototypeIPv6Packet:
         """
         multicast_groups = PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE.copy()
         for keep in PrototypeIPv6Packet.MULTICAST_GROUPS_KEEP:
-            multicast_groups.remove(keep)
+            if keep in multicast_groups:
+                multicast_groups.remove(keep)
         return [PrototypeIPv6Packet.__get_mldv2_leave(src_mac, src_ip, multicast_groups)]
 
     @staticmethod
@@ -639,6 +642,7 @@ class PrototypeIPv6Packet:
         """
         multicast_groups = PrototypeIPv6Packet.MULTICAST_GROUPS_AGGRESSIVE.copy()
         for keep in PrototypeIPv6Packet.MULTICAST_GROUPS_KEEP:
-            multicast_groups.remove(keep)
+            if keep in multicast_groups:
+                multicast_groups.remove(keep)
         return [PrototypeIPv6Packet.__get_mldv1_done(src_mac, src_ip, group) 
                 for group in multicast_groups]
