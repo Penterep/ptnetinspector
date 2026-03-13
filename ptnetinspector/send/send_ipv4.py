@@ -375,9 +375,6 @@ class SendIPv4:
         build_filter = "ip"
         start_time = time.time()
 
-        # Always announce membership at startup.
-        send_reports()
-
         try:
             while True:
                 if duration is None:
