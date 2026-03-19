@@ -674,6 +674,7 @@ class SendIPv6:
         """
         interval_s = 10.0
         poll_interval_s = 0.5
+        local_mac = get_if_hwaddr(interface)
         # Do not transmit at responder startup; active/aggressive managers already do explicit joins.
         last_report_at = time.time()
 
@@ -690,6 +691,8 @@ class SendIPv6:
                 send_reports()
 
         def custom_action(packet) -> None:
+            if Ether in packet and packet[Ether].src == local_mac:
+                return
             if ICMPv6MLQuery in packet or ICMPv6MLQuery2 in packet:
                 send_reports()
 

@@ -372,6 +372,7 @@ class SendIPv4:
         """
         interval_s = 10.0
         poll_interval_s = 0.5
+        local_mac = get_if_hwaddr(interface)
         # Do not transmit at responder startup; active/aggressive managers already do explicit joins.
         last_report_at = time.time()
 
@@ -388,6 +389,8 @@ class SendIPv4:
                 send_reports()
 
         def custom_action(packet) -> None:
+            if Ether in packet and packet[Ether].src == local_mac:
+                return
             if (IGMP in packet and packet[IGMP].type == IGMP_Type.GROUP_MEMBERSHIP_QUERY.value) or \
                (IGMPv3 in packet and packet[IGMPv3].type == IGMP_Type.GROUP_MEMBERSHIP_QUERY.value):
                 send_reports()
