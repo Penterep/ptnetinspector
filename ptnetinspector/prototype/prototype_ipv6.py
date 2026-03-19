@@ -44,7 +44,6 @@ class PrototypeIPv6Packet:
     RA_LIFETIME = 1800
 
     MULTICAST_GROUPS_ACTIVE = [
-        ALL_NODES_IPV6_MULTICAST_IP,
         MLDV2_IPV6_MULTICAST_IP,
         LLMNR_IPV6_MULTICAST_IP,
         MDNS_IPV6_MULTICAST_IP,
@@ -55,7 +54,7 @@ class PrototypeIPv6Packet:
         ALL_ROUTERS_IPV6_MULTICAST_IP
     ]
     MULTICAST_GROUPS_KEEP = [
-        ALL_NODES_IPV6_MULTICAST_IP
+        
     ]
 
     # 
@@ -204,7 +203,7 @@ class PrototypeIPv6Packet:
                 IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)))
 
     @staticmethod
-    def __get_mldv2_packet_headers(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> Packet:
+    def __get_mldv2_packet_headers(src_mac: str|list[str]|None, src_ip: str|list[str]|None, dst_ip: str|list[str]) -> Packet:
         """
         Builds the L2 and L3 headers for MLD packets, including the Router Alert option in the hop-by-hop extension header.
         Args:
@@ -215,7 +214,7 @@ class PrototypeIPv6Packet:
             Packet: Scapy packet representing the L2 and L3 headers for MLD packets.
         """
         return (Ether(src=src_mac) /
-                IPv6(src=src_ip, dst=PrototypeIPv6Packet.MLDV2_IPV6_MULTICAST_IP, hlim=1) /
+                IPv6(src=src_ip, dst=dst_ip, hlim=1) /
                 IPv6ExtHdrHopByHop(options=RouterAlert(otype=5, optlen=2, value=0)))
 
     @staticmethod
@@ -263,7 +262,7 @@ class PrototypeIPv6Packet:
         elif type(group) is list:
             for g in group:
                 records.append(ICMPv6MLDMultAddrRec(rtype=MLDV2_RType.CHANGE_TO_EXCLUDE_MODE, dst=g))
-        return (PrototypeIPv6Packet.__get_mldv2_packet_headers(src_mac, src_ip) /
+        return (PrototypeIPv6Packet.__get_mldv2_packet_headers(src_mac, src_ip, PrototypeIPv6Packet.MLDV2_IPV6_MULTICAST_IP) /
             ICMPv6MLReport2(records=records))
 
     @staticmethod
@@ -283,7 +282,7 @@ class PrototypeIPv6Packet:
         elif type(group) is list:
             for g in group:
                 records.append(ICMPv6MLDMultAddrRec(rtype=MLDV2_RType.CHANGE_TO_INCLUDE_MODE, dst=g))
-        return (PrototypeIPv6Packet.__get_mldv2_packet_headers(src_mac, src_ip) /
+        return (PrototypeIPv6Packet.__get_mldv2_packet_headers(src_mac, src_ip, PrototypeIPv6Packet.MLDV2_IPV6_MULTICAST_IP) /
             ICMPv6MLReport2(records=records))
 
     @staticmethod
@@ -343,7 +342,7 @@ class PrototypeIPv6Packet:
         Output:
             Packet: Scapy packet representing the MLDv2 Query.
         """
-        return (PrototypeIPv6Packet.__get_mldv2_packet_headers(src_mac, src_ip) /
+        return (PrototypeIPv6Packet.__get_mldv2_packet_headers(src_mac, src_ip, PrototypeIPv6Packet.ALL_NODES_IPV6_MULTICAST_IP) /
                 ICMPv6MLQuery2(type=130, mladdr="::", sources=[], mrd=1, S=0, QRV=2, QQIC=125))
 
     @staticmethod

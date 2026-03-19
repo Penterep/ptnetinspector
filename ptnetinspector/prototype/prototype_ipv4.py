@@ -36,8 +36,7 @@ class PrototypeIPv4Packet:
     LLMNR_IPV4_MULTICAST_IP = "224.0.0.252"
     WS_DISCOVERY_IPV4_MULTICAST_IP = "239.255.255.250"
 
-    MULTICAST_GROUPS_ACTIVE = [
-        ALL_NODES_IPV4_MULTICAST_IP,
+    MULTICAST_GROUPS_ACTIVE = [        
         IGMPV3_IPV4_MULTICAST_IP,
         MDNS_IPV4_MULTICAST_IP,
         LLMNR_IPV4_MULTICAST_IP,
@@ -48,7 +47,7 @@ class PrototypeIPv4Packet:
         ALL_ROUTERS_IPV4_MULTICAST_IP
     ]
     MULTICAST_GROUPS_KEEP = [
-        ALL_NODES_IPV4_MULTICAST_IP
+        
     ]
 
     # 
@@ -279,8 +278,14 @@ class PrototypeIPv4Packet:
         Output:
             Packet: Scapy packet representing the IGMPv3 Membership Report.
         """
+        records = []
+        if type(group) is str:
+            records.append(IGMPv3gr(rtype=IGMPV3_RType.MODE_IS_EXCLUDE, maddr=group))
+        elif type(group) is list:
+            for g in group:
+                records.append(IGMPv3gr(rtype=IGMPV3_RType.MODE_IS_EXCLUDE, maddr=g))
         return (PrototypeIPv4Packet.__get_igmpv3_packet_headers(src_mac, src_ip) /
-                IGMPv3() / IGMPv3mr(records=[IGMPv3gr(rtype=IGMPV3_RType.MODE_IS_EXCLUDE, maddr=group)]))
+                IGMPv3() / IGMPv3mr(records=records))
 
     @staticmethod
     def __get_igmpv3_leave(src_mac: str|list[str]|None, src_ip: str|list[str]|None, group: str|list[str]) -> Packet:
@@ -294,8 +299,14 @@ class PrototypeIPv4Packet:
         Output:
             Packet: Scapy packet representing the IGMPv3 Membership Report signalling group departure.
         """
+        records = []
+        if type(group) is str:
+            records.append(IGMPv3gr(rtype=IGMPV3_RType.MODE_IS_INCLUDE, maddr=group))
+        elif type(group) is list:
+            for g in group:
+                records.append(IGMPv3gr(rtype=IGMPV3_RType.MODE_IS_INCLUDE, maddr=g))
         return (PrototypeIPv4Packet.__get_igmpv3_packet_headers(src_mac, src_ip) /
-                IGMPv3() / IGMPv3mr(records=[IGMPv3gr(rtype=IGMPV3_RType.MODE_IS_INCLUDE, maddr=group)]))
+                IGMPv3() / IGMPv3mr(records=records))
 
     @staticmethod
     def get_init_igmpv3_active_mode(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> list[Packet]:

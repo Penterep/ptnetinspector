@@ -441,13 +441,13 @@ class Run:
                     SendIPv6.send_RS(interface)
                 if ip_mode.ipv4:
                     SendIPv4.send_igmp_membership_query(3, interface)
-                    SendIPv4.send_igmp_membership_query(3, interface, "224.0.0.1")
+                    #SendIPv4.send_igmp_membership_query(3, interface, "224.0.0.1")
                     time.sleep(1)
                     SendIPv4.send_igmp_membership_query(2, interface)
-                    SendIPv4.send_igmp_membership_query(2, interface, "224.0.0.1")
+                    #SendIPv4.send_igmp_membership_query(2, interface, "224.0.0.1")
                     time.sleep(1)
                     SendIPv4.send_igmp_membership_query(1, interface)
-                    SendIPv4.send_igmp_membership_query(1, interface, "224.0.0.1")
+                    #SendIPv4.send_igmp_membership_query(1, interface, "224.0.0.1")
                     for icmp_type in ICMPType:
                         if icmp_type == ICMPType.ROUTER_SOLICITATION:
                             SendIPv4.send_local_icmp("224.0.0.2", interface, icmp_type)
