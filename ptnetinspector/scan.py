@@ -375,6 +375,16 @@ class Run:
         Returns:
             None. Writes CSV artifacts and updates derived files.
         """
+        def stop_responder(process, stop_event, graceful_timeout=2.0):
+            if process is None:
+                return
+            if stop_event is not None:
+                stop_event.set()
+            process.join(timeout=graceful_timeout)
+            if process.is_alive():
+                process.terminate()
+                process.join()
+
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
             start_time = str(datetime.now())
@@ -398,6 +408,10 @@ class Run:
                 Save.save_packets(interface, ip_mode, pkts)
 
             if mode == "a":
+                multicast_ipv6_responder = None
+                multicast_ipv4_responder = None
+                multicast_ipv6_stop_event = None
+                multicast_ipv4_stop_event = None
                 pkts = Sniff.scan_async(interface)
                 pkts.start()
                 time.sleep(1)
@@ -406,6 +420,16 @@ class Run:
                 if ip_mode.ipv4:
                     SendIPv4.send_igmp_report_join(interface)
                 time.sleep(1)
+                if ip_mode.ipv6:
+                    multicast_ipv6_stop_event = multiprocessing.Event()
+                    multicast_ipv6_responder = multiprocessing.Process(
+                        target=SendIPv6.react_to_mld_queries, args=["a", interface, None, multicast_ipv6_stop_event])
+                    multicast_ipv6_responder.start()
+                if ip_mode.ipv4:
+                    multicast_ipv4_stop_event = multiprocessing.Event()
+                    multicast_ipv4_responder = multiprocessing.Process(
+                        target=SendIPv4.react_to_igmp_queries, args=["a", interface, None, multicast_ipv4_stop_event])
+                    multicast_ipv4_responder.start()
                 if ip_mode.ipv6:
                     SendIPv6.send_MLD_query(interface)
                     SendIPv6.send_normal_multicast_ping(interface)
@@ -451,6 +475,8 @@ class Run:
                     SendIPv6.send_to_possible_IP(interface)
                     SendIPv6.send_to_test_RA_guard(interface)
                 time.sleep(1)
+                stop_responder(multicast_ipv6_responder, multicast_ipv6_stop_event)
+                stop_responder(multicast_ipv4_responder, multicast_ipv4_stop_event)
                 if ip_mode.ipv6:
                     SendIPv6.send_MLD_done_leave(interface)
                 if ip_mode.ipv4:
@@ -494,6 +520,16 @@ class Run:
         Returns:
             None. Coordinates subprocesses and writes CSV artifacts.
         """
+        def stop_responder(process, stop_event, graceful_timeout=2.0):
+            if process is None:
+                return
+            if stop_event is not None:
+                stop_event.set()
+            process.join(timeout=graceful_timeout)
+            if process.is_alive():
+                process.terminate()
+                process.join()
+
         # Scan jobs
         send_ra = multiprocessing.Process(
             target=SendIPv6.send_RA,
@@ -507,40 +543,38 @@ class Run:
             target=Run.run_normal_mode, args=[interface, "p", ip_mode, duration])
 
         # Multicast helpers
+        multicast_ipv6_responder = None
+        multicast_ipv4_responder = None
+        multicast_ipv6_stop_event = None
+        multicast_ipv4_stop_event = None
         if ip_mode.ipv6:
-            multicast_ipv6_subscribe = multiprocessing.Process(
-                target=SendIPv6.send_MLD_report_join, args=[interface, True])
+            multicast_ipv6_stop_event = multiprocessing.Event()
             multicast_ipv6_unsubscribe = multiprocessing.Process(
                 target=SendIPv6.send_MLD_done_leave, args=[interface, True])
             multicast_ipv6_responder = multiprocessing.Process(
-                target=SendIPv6.react_to_mld_queries, args=["a+", interface, duration])
+                target=SendIPv6.react_to_mld_queries, args=["a+", interface, duration, multicast_ipv6_stop_event])
         if ip_mode.ipv4:
-            multicast_ipv4_subscribe = multiprocessing.Process(
-                target=SendIPv4.send_igmp_report_join, args=[interface, True])
+            multicast_ipv4_stop_event = multiprocessing.Event()
             multicast_ipv4_unsubscribe = multiprocessing.Process(
                 target=SendIPv4.send_igmp_done_leave, args=[interface, True])
             multicast_ipv4_responder = multiprocessing.Process(
-                target=SendIPv4.react_to_igmp_queries, args=["a+", interface, duration])
+                target=SendIPv4.react_to_igmp_queries, args=["a+", interface, duration, multicast_ipv4_stop_event])
 
         # Cleanup jobs
         flush_router_flag_from_cache = multiprocessing.Process(target=SendIPv6.send_NA, 
             args=[interface, source_mac, None, source_ip, "ff02::1", 0, 0, 1])
 
-        # Start multicast helpers
+        # Force multicast joins for aggressive mode, then keep responders running.
         if ip_mode.ipv6:
-            #multicast_ipv6_subscribe.start()
+            SendIPv6.send_MLD_report_join(interface, True)
+        if ip_mode.ipv4:
+            SendIPv4.send_igmp_report_join(interface, True)
+
+        # Start multicast responders
+        if ip_mode.ipv6:
             multicast_ipv6_responder.start()
         if ip_mode.ipv4:
-            #multicast_ipv4_subscribe.start()
             multicast_ipv4_responder.start()
-
-        # Join multicast helpers threads
-        if ip_mode.ipv6:
-            #multicast_ipv6_subscribe.join()
-            multicast_ipv6_responder.join()
-        if ip_mode.ipv4:
-            #multicast_ipv4_subscribe.join()
-            multicast_ipv4_responder.join()
 
         # Start scan jobs
         if ip_mode.ipv6:
@@ -556,6 +590,10 @@ class Run:
             react_to_ns_rs.join()
         active_scan.join()
         passive_scan.join()
+
+        # Stop multicast responders after scan workload is done.
+        stop_responder(multicast_ipv6_responder, multicast_ipv6_stop_event)
+        stop_responder(multicast_ipv4_responder, multicast_ipv4_stop_event)
 
         # Start cleanup jobs
         if ip_mode.ipv6:

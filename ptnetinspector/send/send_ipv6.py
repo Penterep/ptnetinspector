@@ -657,7 +657,7 @@ class SendIPv6:
         send_ipv6_from_all_lla_addresses(interface,
             PrototypeIPv6Packet.get_l3payload_dhcpv6_solicit(get_if_hwaddr(interface)), dst_ip=PrototypeIPv6Packet.DHCPV6_ALL_SERVERS_MULTICAST_IP)
         
-    def react_to_mld_queries(mode: str, interface: str, duration: float|None) -> None:
+    def react_to_mld_queries(mode: str, interface: str, duration: float|None, stop_event=None) -> None:
         """
         React to MLD Query packets by sending MLD join reports.
 
@@ -674,11 +674,12 @@ class SendIPv6:
             None
         """
         interval_s = 10.0
+        poll_interval_s = 0.5
 
         def send_reports() -> None:
             if mode == "a+":
                 SendIPv6.send_MLD_report_join(interface, aggressive=True)
-            if mode == "a" or mode == "a+":
+            elif mode == "a":
                 SendIPv6.send_MLD_report_join(interface)
 
         def custom_action(packet) -> None:
@@ -690,16 +691,24 @@ class SendIPv6:
 
         try:
             while True:
+                if stop_event is not None and stop_event.is_set():
+                    break
+
                 if duration is None:
-                    sniff_timeout = interval_s
+                    sniff_timeout = poll_interval_s if stop_event is not None else interval_s
                 else:
                     elapsed = time.time() - start_time
                     remaining = duration - elapsed
                     if remaining <= 0:
                         break
                     sniff_timeout = min(interval_s, remaining)
+                    if stop_event is not None:
+                        sniff_timeout = min(sniff_timeout, poll_interval_s)
 
                 sniff(iface=interface, filter=build_filter, prn=custom_action, timeout=sniff_timeout)
+
+                if stop_event is not None and stop_event.is_set():
+                    break
 
                 # Re-announce membership periodically even without incoming queries.
                 send_reports()

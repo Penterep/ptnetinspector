@@ -170,3 +170,5 @@ cython_debug/
 .vscode/
 !tmp/ports_*.csv
 tmp/*
+
+**/.$*.drawio.bkp

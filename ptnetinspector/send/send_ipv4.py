@@ -35,6 +35,18 @@ class ICMPType(Enum):
 
 
 class SendIPv4:
+    __icmp_echo_request_sequence_number = 1
+    @staticmethod
+    def __get_next_icmp_echo_request_id() -> int:
+        """
+        Get the next ICMP Echo Request identifier, incrementing the internal sequence number.
+        Returns:
+            int: The next ICMPv6 Echo Request identifier.
+        """
+        current_id = SendIPv4.__icmp_echo_request_sequence_number
+        SendIPv4.__icmp_echo_request_sequence_number += 1
+        return current_id
+
     @staticmethod
     def send_reverse_ipv4_MDNS(ip_address: str, interface: str) -> str | None:
         # Function to send an IPv4 mDNS PTR query and save the response to get the local name
@@ -253,7 +265,7 @@ class SendIPv4:
             icmp_type (ICMPType): The ICMP type. Defaults to ICMPType.ECHO_REQUEST
         """
         exist_interface = Interface(interface).check_interface()
-        id_query = 111
+        id_query = SendIPv4.__get_next_icmp_echo_request_id()
 
         if ipaddress.ip_address(address).is_multicast:
             if icmp_type == ICMPType.ROUTER_SOLICITATION:
@@ -343,7 +355,7 @@ class SendIPv4:
             dhcp_discover = ether / ip / udp / bootp / dhcp
             sendp(dhcp_discover, iface=interface, verbose=0)
 
-    def react_to_igmp_queries(mode: str, interface: str, duration: float|None) -> None:
+    def react_to_igmp_queries(mode: str, interface: str, duration: float|None, stop_event=None) -> None:
         """
         React to IGMP Membership Query packets by sending join reports.
 
@@ -360,11 +372,12 @@ class SendIPv4:
             None
         """
         interval_s = 10.0
+        poll_interval_s = 0.5
 
         def send_reports() -> None:
             if mode == "a+":
                 SendIPv4.send_igmp_report_join(interface, aggressive=True)
-            if mode == "a" or mode == "a+":
+            elif mode == "a":
                 SendIPv4.send_igmp_report_join(interface)
 
         def custom_action(packet) -> None:
@@ -377,16 +390,24 @@ class SendIPv4:
 
         try:
             while True:
+                if stop_event is not None and stop_event.is_set():
+                    break
+
                 if duration is None:
-                    sniff_timeout = interval_s
+                    sniff_timeout = poll_interval_s if stop_event is not None else interval_s
                 else:
                     elapsed = time.time() - start_time
                     remaining = duration - elapsed
                     if remaining <= 0:
                         break
                     sniff_timeout = min(interval_s, remaining)
+                    if stop_event is not None:
+                        sniff_timeout = min(sniff_timeout, poll_interval_s)
 
                 sniff(iface=interface, filter=build_filter, prn=custom_action, timeout=sniff_timeout)
+
+                if stop_event is not None and stop_event.is_set():
+                    break
 
                 # Re-announce membership periodically even without incoming queries.
                 send_reports()
