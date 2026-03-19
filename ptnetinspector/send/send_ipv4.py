@@ -360,9 +360,8 @@ class SendIPv4:
         React to IGMP Membership Query packets by sending join reports.
 
         Behavior:
-            1) Sends reports immediately at startup.
-            2) Sends reports whenever an IGMP query is received.
-            3) Sends reports periodically at least once every 10 seconds.
+            1) Sends reports whenever an IGMP query is received.
+            2) Sends watchdog periodic reports only if no report was sent in the last 10 seconds.
 
         Args:
             mode (str): Active mode selector ("a" or "a+").
@@ -373,12 +372,20 @@ class SendIPv4:
         """
         interval_s = 10.0
         poll_interval_s = 0.5
+        # Do not transmit at responder startup; active/aggressive managers already do explicit joins.
+        last_report_at = time.time()
 
         def send_reports() -> None:
+            nonlocal last_report_at
             if mode == "a+":
                 SendIPv4.send_igmp_report_join(interface, aggressive=True)
             elif mode == "a":
                 SendIPv4.send_igmp_report_join(interface)
+            last_report_at = time.time()
+
+        def send_watchdog_report_if_due() -> None:
+            if time.time() - last_report_at >= interval_s:
+                send_reports()
 
         def custom_action(packet) -> None:
             if (IGMP in packet and packet[IGMP].type == IGMP_Type.GROUP_MEMBERSHIP_QUERY.value) or \
@@ -409,7 +416,7 @@ class SendIPv4:
                 if stop_event is not None and stop_event.is_set():
                     break
 
-                # Re-announce membership periodically even without incoming queries.
-                send_reports()
+                # Re-announce only when there was no report in the last interval.
+                send_watchdog_report_if_due()
         except KeyboardInterrupt:
             sys.exit(0)
