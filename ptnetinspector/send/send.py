@@ -150,10 +150,15 @@ class Send:
                     except:
                         pass
 
+        if ip_mode.ipv6:
+            SendIPv6.probe_ipv6_interesting_addresses(ipaddress.IPv6Network("fe80::/64"), interface)
+
         for network in networks:
             if isinstance(network, ipaddress.IPv4Network) and ip_mode.ipv4:
                 SendIPv4.probe_ipv4_interesting_addresses(network, interface)
             elif isinstance(network, ipaddress.IPv6Network) and ip_mode.ipv6:
+                if network == ipaddress.IPv6Network("fe80::/64"):
+                    continue
                 SendIPv6.probe_ipv6_interesting_addresses(network, interface)
 
     @staticmethod

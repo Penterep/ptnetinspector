@@ -175,6 +175,7 @@ class SendIPv4:
         # skip if network has less than 4 addresses
         if network.num_addresses >= 4:
             # first usable address
+            SendIPv4.send_arp_request(str(network.network_address), interface)
             first_addr = network.network_address + 1
             SendIPv4.send_arp_request(str(first_addr), interface)
             # last usable address

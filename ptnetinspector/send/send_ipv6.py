@@ -550,11 +550,11 @@ class SendIPv6:
                     sendp(multicast_ping_hop_by_hop_opt, iface=interface, verbose=False)
 
     @staticmethod
-    def send_ns(address: str, interface: str, wait_for_rsp: bool = False, rsp_timeout: float|None = 0.1) -> None | SndRcvList:
+    def send_ns(address: str|list[str], interface: str, wait_for_rsp: bool = False, rsp_timeout: float|None = 0.1) -> None | SndRcvList:
         """
         Send an ICMPv6 Neighbor Solicitation to an IPv6 address.
         Args:
-            address (str): The IPv6 address.
+            address (str|list[str]): The IPv6 address or list of addresses.
             interface (str): The network interface to use.
             wait_for_rsp (bool): Whether to wait for a response.
             rsp_timeout (float|None): Timeout for the response.
@@ -565,31 +565,99 @@ class SendIPv6:
         if exist_interface:
             avail_ipv6 = Interface(interface).check_available_ipv6()
             if avail_ipv6:
-                src_mac = get_if_hwaddr(interface)
+                src_mac = get_if_hwaddr(interface)   
                 pkt = PrototypeIPv6Packet.get_frame_ns(src_mac, address)
                 if wait_for_rsp:
-                    return srp(pkt, iface=interface, verbose=0, timeout=rsp_timeout)[0]
-                sendp(pkt, verbose=0, iface=interface)
+                    return srp(pkt * 2, iface=interface, verbose=0, timeout=rsp_timeout)[0]
+                sendp(pkt * 2, verbose=0, iface=interface)
 
     @staticmethod
-    def probe_ipv6_interesting_addresses(network: ipaddress.IPv6Network, interface: str) -> None:
+    def probe_ipv6_interesting_addresses(network: ipaddress.IPv6Network, interface: str, probe_bits: int = 8, batch_size: int = 64, end_wildcard: bool = False) -> None:
         """
         Probe ::0 and ::1 addresses in IPv6 network.
         Args:
             network (ipaddress.IPv6Network): The network to probe.
             interface (str): The network interface to use.
+            probe_bits (int): Number of low bits to brute-force from the network start.
+            batch_size (int): Number of NS probes sent per batch.
+            end_wildcard (bool): Whether to also brute-force low bits from the network end.
         Output:
             None
         """
-        try:
+        try:            
+            IPV6_PROBE_MAX_TARGETS = 1024
+            if batch_size <= 0:
+                raise ValueError("batch_size must be > 0")
+
+            def iter_probe_addresses_from_low_bits(network: ipaddress.IPv6Network, low_bits: int):
+                host_bits = 128 - network.prefixlen
+
+                if low_bits < 0:
+                    raise ValueError("low_bits musí být >= 0")
+                # Treat probe_bits as a maximum; clamp for narrow prefixes (e.g. /128).
+                effective_low_bits = min(low_bits, host_bits)
+
+                total = 1 << effective_low_bits
+                total = min(total, IPV6_PROBE_MAX_TARGETS)
+
+                base = int(network.network_address)
+                for i in range(total):
+                    yield ipaddress.IPv6Address(base | i)
+
+            def iter_probe_addresses_from_end_bits(network: ipaddress.IPv6Network, low_bits: int):
+                host_bits = 128 - network.prefixlen
+
+                if low_bits < 0:
+                    raise ValueError("low_bits musí být >= 0")
+                effective_low_bits = min(low_bits, host_bits)
+
+                total = 1 << effective_low_bits
+                total = min(total, IPV6_PROBE_MAX_TARGETS)
+
+                end = int(network.broadcast_address)
+                start = end - (total - 1)
+                for value in range(start, end + 1):
+                    yield ipaddress.IPv6Address(value)
+
+            def send_ns_batched(addresses: list[str]) -> None:
+                for idx in range(0, len(addresses), batch_size):
+                    SendIPv6.send_ns(addresses[idx:idx + batch_size], interface)
+
+            network_targets: list[str] = []
+            seen_targets: set[str] = set()
+
+            def add_target(address: ipaddress.IPv6Address) -> None:
+                address_str = str(address)
+                if address_str not in seen_targets:
+                    seen_targets.add(address_str)
+                    network_targets.append(address_str)
+
+            for addr in iter_probe_addresses_from_low_bits(network, probe_bits):
+                if not addr in network:
+                    break
+                add_target(addr)
+
+            add_target(network.broadcast_address)
+
+            if end_wildcard:
+                for addr in iter_probe_addresses_from_end_bits(network, probe_bits):
+                    if not addr in network:
+                        break
+                    add_target(addr)
+
+            if network_targets:
+                send_ns_batched(network_targets)
+            return
+
             SendIPv6.send_ns('fe80::0', interface)
-            SendIPv6.send_ns('fe80::1', interface)
+            SendIPv6.send_ns('fe80::1', interface)            
             first_addr = network.network_address
             SendIPv6.send_ns(str(first_addr), interface)
             last_bits = network.network_address.packed[:-1] + bytes([network.network_address.packed[-1] | 1])
             second_addr = ipaddress.IPv6Address(last_bits)
             if second_addr in network:
                 SendIPv6.send_ns(str(second_addr), interface)
+            SendIPv6.send_ns(str(network.broadcast_address), interface)
         except:
             return
 

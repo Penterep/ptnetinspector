@@ -510,19 +510,29 @@ class PrototypeIPv6Packet:
             ICMPv6NDOptDstLLAddr(lladdr=source_mac))
 
     @staticmethod
-    def get_frame_ns(src_mac: str|None, address: str) -> Packet:
+    def get_frame_ns(src_mac: str|None, address: str|list[str]) -> Packet|list[Packet]:
         """
         Builds an IPv6 Neighbor Solicitation packet for the specified address.
         Args:
             src_mac: Source MAC address for the Neighbor Solicitation packet.
             address: Target IPv6 address for the Neighbor Solicitation packet.
         Output:
-            Packet: Scapy packet representing the Neighbor Solicitation.
+            Packet | list[Packet]: Scapy packet(s) representing the Neighbor Solicitation(s).
         """
-        return (Ether(src=src_mac) /
-            IPv6(dst=inet_ntop(socket.AF_INET6, in6_getnsma(inet_pton(socket.AF_INET6, address)))) /
-            ICMPv6ND_NS(tgt=address) /
-            ICMPv6NDOptSrcLLAddr(lladdr=src_mac))
+        if isinstance(address, str):
+            return (Ether(src=src_mac) /
+                    IPv6(dst=inet_ntop(socket.AF_INET6, in6_getnsma(inet_pton(socket.AF_INET6, address)))) /
+                    ICMPv6ND_NS(tgt=address) /
+                    ICMPv6NDOptSrcLLAddr(lladdr=src_mac))
+        else:
+            # Handle list of addresses
+            packets = []
+            for addr in address:
+                packets.append((Ether(src=src_mac) /
+                                IPv6(dst=inet_ntop(socket.AF_INET6, in6_getnsma(inet_pton(socket.AF_INET6, addr)))) /
+                                ICMPv6ND_NS(tgt=addr) /
+                                ICMPv6NDOptSrcLLAddr(lladdr=src_mac)))
+            return packets
 
     @staticmethod
     def get_frame_wsdiscovery(src_mac: str|list[str]|None, src_ip: str|list[str]|None, message_id: str|None = None) -> Packet:
