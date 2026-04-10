@@ -1,9 +1,4 @@
 """Tests for target-scan code filtering (-ts argument)."""
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
-import pytest
-
 from ptnetinspector.utils.cli import _validate_target_codes
 from ptnetinspector.send.send import IPMode
 
@@ -13,28 +8,29 @@ class TestTargetCodeValidation:
 
     def test_validate_target_codes_all_valid(self):
         """Test validation with all valid codes."""
-        target_codes = ["PTV-NET-IDENT-MDNS-PTR", "PTV-NET-IDENT-LLMNR-PTR"]
+        target_codes = ["4-MDNS", "4-LLMNR"]
         list_error = []
         list_warning = []
 
-        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
+        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), False, False, list_error, list_warning)
 
         assert result is not None
-        assert "PTV-NET-IDENT-MDNS-PTR" in result
-        assert "PTV-NET-IDENT-LLMNR-PTR" in result
+        normalized_codes = result[0]
+        assert "4-MDNS" in normalized_codes
+        assert "4-LLMNR" in normalized_codes
         assert len(list_error) == 0
         # Some warnings might exist but not about validation
 
     def test_validate_target_codes_mixed_valid_invalid(self):
         """Test validation with mix of valid and invalid codes."""
-        target_codes = ["PTV-NET-IDENT-MDNS-PTR", "INVALID-CODE-XYZ"]
+        target_codes = ["4-MDNS", "INVALID-CODE-XYZ"]
         list_error = []
         list_warning = []
 
-        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
+        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), False, False, list_error, list_warning)
         assert result is None
         assert len(list_error) >= 1
-        assert any("Unknown target vulnerability code" in err or "Unknown target vulnerability code" in err for err in list_error)
+        assert any("Unknown target Test code" in err for err in list_error)
 
     def test_validate_target_codes_all_invalid(self):
         """Test validation with all invalid codes."""
@@ -42,10 +38,10 @@ class TestTargetCodeValidation:
         list_error = []
         list_warning = []
 
-        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
+        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), False, False, list_error, list_warning)
         assert result is None
         assert len(list_error) >= 1
-        assert any("Unknown target vulnerability code" in err or "Unknown target vulnerability code" in err for err in list_error)
+        assert any("Unknown target Test code" in err for err in list_error)
 
     def test_validate_target_codes_empty(self):
         """Test validation with empty target codes."""
@@ -53,7 +49,7 @@ class TestTargetCodeValidation:
         list_error = []
         list_warning = []
 
-        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
+        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), False, False, list_error, list_warning)
 
         assert result is None
 
@@ -63,19 +59,20 @@ class TestTargetCodeValidation:
         list_error = []
         list_warning = []
 
-        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
+        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), False, False, list_error, list_warning)
 
         assert result is None
 
     def test_validate_target_codes_case_insensitive(self):
         """Test that code validation is case-insensitive."""
-        target_codes = ["ptv-net-ident-mdns-ptr", "PTV-NET-IDENT-LLMNR-PTR"]
+        target_codes = ["4-mdns", "4-llmnr"]
         list_error = []
         list_warning = []
 
-        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), list_error, list_warning)
+        result = _validate_target_codes(target_codes, ["a"], IPMode(True, True), False, False, list_error, list_warning)
 
         assert result is not None
-        # Both should be uppercase in result
-        assert "PTV-NET-IDENT-MDNS-PTR" in result
-        assert "PTV-NET-IDENT-LLMNR-PTR" in result
+        normalized_codes = result[0]
+        # Both should be uppercase in normalized output
+        assert "4-MDNS" in normalized_codes
+        assert "4-LLMNR" in normalized_codes

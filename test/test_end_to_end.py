@@ -201,7 +201,7 @@ class TestActiveScanEndToEnd:
 class TestAggressiveScanEndToEnd:
     """End-to-end tests for aggressive scan mode."""
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     @patch('ptnetinspector.utils.interface.IptablesRule.check', return_value=False)
     def test_aggressive_basic_with_prefix(self, mock_iptables, mock_intf_list):
@@ -212,10 +212,10 @@ class TestAggressiveScanEndToEnd:
         args = parse_args()
         assert args.t == ['a+']
         assert args.interface == 'eth0'
-        assert args.prefix == '2001:db8::/64'
+        assert args.prefix == '2000:6675:7272:7900::/64'
         assert is_valid_ipv6_prefix(args.prefix) is True
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', '-j'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', '-j'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_with_json(self, mock_intf_list):
         """Test aggressive scan with JSON output."""
@@ -223,7 +223,7 @@ class TestAggressiveScanEndToEnd:
 
         args = parse_args()
         assert args.t == ['a+']
-        assert args.prefix == '2001:db8::/64'
+        assert args.prefix == '2000:6675:7272:7900::/64'
         assert args.j is True
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', 'fd00::/64', '-da+', '60'])
@@ -237,7 +237,7 @@ class TestAggressiveScanEndToEnd:
         # For aggressive scan, duration is stored in 'duration_router' via -da+
         assert args.duration_router == '60'
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', '-smac', 'aa:bb:cc:dd:ee:ff'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', '-smac', 'aa:bb:cc:dd:ee:ff'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_with_source_mac(self, mock_intf_list):
         """Test aggressive scan with source MAC."""
@@ -246,7 +246,7 @@ class TestAggressiveScanEndToEnd:
         args = parse_args()
         assert args.smac == 'aa:bb:cc:dd:ee:ff'
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', '-rpref', 'High'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', '-rpref', 'High'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_with_router_preference(self, mock_intf_list):
         """Test aggressive scan with router preference."""
@@ -255,7 +255,7 @@ class TestAggressiveScanEndToEnd:
         args = parse_args()
         assert args.rpref == 'High'
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', '-mtu', '1500'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', '-mtu', '1500'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_with_mtu(self, mock_intf_list):
         """Test aggressive scan with custom MTU."""
@@ -264,7 +264,7 @@ class TestAggressiveScanEndToEnd:
         args = parse_args()
         assert args.mtu == '1500'
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', '-period', '2'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', '-period', '2'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_with_period(self, mock_intf_list):
         """Test aggressive scan with custom period."""
@@ -273,7 +273,7 @@ class TestAggressiveScanEndToEnd:
         args = parse_args()
         assert args.period == '2'
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', '-chl', '64'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', '-chl', '64'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_with_hop_limit(self, mock_intf_list):
         """Test aggressive scan with custom hop limit."""
@@ -282,7 +282,7 @@ class TestAggressiveScanEndToEnd:
         args = parse_args()
         assert args.chl == '64'
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', '-dns', '2001:4860:4860::8888', '2001:4860:4860::8844'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', '-dns', '2001:4860:4860::8888', '2001:4860:4860::8844'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_with_multiple_dns(self, mock_intf_list):
         """Test aggressive scan with multiple DNS servers."""
@@ -292,7 +292,7 @@ class TestAggressiveScanEndToEnd:
         assert '2001:4860:4860::8888' in args.dns
         assert '2001:4860:4860::8844' in args.dns
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', '-nofwd'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', '-nofwd'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_with_nofwd(self, mock_intf_list):
         """Test aggressive scan with no-forward flag."""
@@ -406,25 +406,23 @@ class TestOutputFormatEndToEnd:
         args = parse_args()
         assert args.j is True
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-n'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-tmpret', '60'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_delete_temp_files(self, mock_intf_list):
-        """Test delete temporary files flag."""
+        """Test temporary retention flag."""
         from ptnetinspector.utils.cli import parse_args
 
         args = parse_args()
-        # -n flag sets n to False (store_false with default True)
-        assert args.n is False
+        assert args.tmp_retention == 60.0
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_keep_temp_files_by_default(self, mock_intf_list):
-        """Test keeping temporary files by default (without -n flag)."""
+        """Test default temporary retention."""
         from ptnetinspector.utils.cli import parse_args
 
         args = parse_args()
-        # Without -n flag, n is True (default)
-        assert args.n is True
+        assert args.tmp_retention == 1800.0
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-vv'])
     @patch('netifaces.interfaces', return_value=['eth0'])
@@ -550,11 +548,11 @@ class TestComprehensiveScenarios:
         assert 'p' in args.t
         assert 'a' in args.t
         assert args.j is True
-        assert args.more is True
+        assert args.vv is True
         assert args.ipv4 is True
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64', 
-                        '-smac', 'aa:bb:cc:dd:ee:ff', '-sip', '2001:db8::1', 
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64', 
+                        '-smac', 'aa:bb:cc:dd:ee:ff', '-sip', '2000:6675:7272:7900::1', 
                         '-rpref', 'High', '-mtu', '1280', '-da+', '120', '-j', '-vv'])
     @patch('netifaces.interfaces', return_value=['eth0'])
     def test_aggressive_scan_all_options(self, mock_intf_list):
@@ -563,14 +561,14 @@ class TestComprehensiveScenarios:
 
         args = parse_args()
         assert args.t == ['a+']
-        assert args.prefix == '2001:db8::/64'
+        assert args.prefix == '2000:6675:7272:7900::/64'
         assert args.smac == 'aa:bb:cc:dd:ee:ff'
-        assert args.sip == '2001:db8::1'
+        assert args.sip == '2000:6675:7272:7900::1'
         assert args.rpref == 'High'
         assert args.mtu == '1280'
         assert args.duration_router == '120'  # -da+ sets duration_router
         assert args.j is True
-        assert args.more is True
+        assert args.vv is True
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-d', '15', '-less', '-6'])
     @patch('netifaces.interfaces', return_value=['eth0'])

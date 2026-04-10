@@ -1,5 +1,6 @@
 """Tests for Interface class."""
 import pytest
+import netifaces
 from unittest.mock import Mock, patch, MagicMock
 from ptnetinspector.utils.interface import Interface
 
@@ -29,8 +30,8 @@ class TestInterface:
         """Test getting interface IP addresses."""
         mock_interfaces.return_value = ['eth0']
         mock_ifaddresses.return_value = {
-            2: [{'addr': '192.168.1.100'}],  # AF_INET
-            10: [{'addr': 'fe80::1'}]  # AF_INET6
+            netifaces.AF_INET: [{'addr': '192.168.1.100'}],
+            netifaces.AF_INET6: [{'addr': 'fe80::1'}]
         }
 
         iface = Interface("eth0")
@@ -45,7 +46,7 @@ class TestInterface:
         """Test getting IPv4 addresses only."""
         mock_interfaces.return_value = ['eth0']
         mock_ifaddresses.return_value = {
-            2: [{'addr': '192.168.1.100'}, {'addr': '10.0.0.1'}]
+            netifaces.AF_INET: [{'addr': '192.168.1.100'}, {'addr': '10.0.0.1'}]
         }
 
         iface = Interface("eth0")
@@ -61,9 +62,9 @@ class TestInterface:
         """Test getting IPv6 addresses only."""
         mock_interfaces.return_value = ['eth0']
         mock_ifaddresses.return_value = {
-            10: [
+            netifaces.AF_INET6: [
                 {'addr': 'fe80::1%eth0'},
-                {'addr': '2001:db8::1'}
+                {'addr': '2000:6675:7272:7900::1'}
             ]
         }
 
@@ -71,7 +72,7 @@ class TestInterface:
         ipv6_ips = iface.get_interface_ipv6_ips()
 
         assert 'fe80::1' in ipv6_ips
-        assert '2001:db8::1' in ipv6_ips
+        assert '2000:6675:7272:7900::1' in ipv6_ips
 
     @patch('netifaces.interfaces')
     @patch('netifaces.ifaddresses')
@@ -79,10 +80,10 @@ class TestInterface:
         """Test getting link-local IPv6 addresses."""
         mock_interfaces.return_value = ['eth0']
         mock_ifaddresses.return_value = {
-            2: [{'addr': '192.168.1.100'}],
-            10: [
+            netifaces.AF_INET: [{'addr': '192.168.1.100'}],
+            netifaces.AF_INET6: [
                 {'addr': 'fe80::1'},
-                {'addr': '2001:db8::1'},
+                {'addr': '2000:6675:7272:7900::1'},
                 {'addr': 'fe80::abcd:ef01:2345:6789'}
             ]
         }
@@ -92,7 +93,7 @@ class TestInterface:
 
         assert 'fe80::1' in link_local
         assert 'fe80::abcd:ef01:2345:6789' in link_local
-        assert '2001:db8::1' not in link_local
+        assert '2000:6675:7272:7900::1' not in link_local
 
     @patch('subprocess.run')
     def test_check_status_up(self, mock_run):
@@ -127,7 +128,7 @@ class TestInterface:
         mock_check_output.return_value = """
 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
     inet6 fe80::1/64 scope link
-    inet6 2001:db8::1/64 scope global
+    inet6 2000:6675:7272:7900::1/64 scope global
 """
 
         iface = Interface("eth0")
@@ -139,11 +140,11 @@ class TestInterface:
         mock_run.return_value = Mock(returncode=0)
 
         iface = Interface("eth0")
-        iface.set_ipv6_address("2001:db8::100")
+        iface.set_ipv6_address("2000:6675:7272:7900::100")
 
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         assert "ip" in args
         assert "addr" in args
         assert "add" in args
-        assert "2001:db8::100/64" in args
+        assert "2000:6675:7272:7900::100/64" in args

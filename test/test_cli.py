@@ -23,13 +23,13 @@ class TestCLIParsing:
         assert args.interface == 'eth0'
         assert args.j is True
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2001:db8::/64'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-prefix', '2000:6675:7272:7900::/64'])
     def test_parse_args_aggressive_with_prefix(self):
         """Test parsing aggressive scan with prefix."""
         args = parse_args()
         assert args.t == ['a+']
         assert args.interface == 'eth0'
-        assert args.prefix == '2001:db8::/64'
+        assert args.prefix == '2000:6675:7272:7900::/64'
 
     @patch('sys.argv', ['ptnetinspector', '-t', '802.1x', 'p', '-i', 'eth0'])
     def test_parse_args_multiple_modes(self):
@@ -39,11 +39,11 @@ class TestCLIParsing:
         assert 'p' in args.t
         assert args.interface == 'eth0'
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-dns', '2001:db8::1', '2001:db8::2'])
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a+', '-i', 'eth0', '-dns', '2000:6675:7272:7900::1', '2000:6675:7272:7900::2'])
     def test_parse_args_multiple_dns(self):
         """Test parsing multiple DNS servers."""
         args = parse_args()
-        assert args.dns == ['2001:db8::1', '2001:db8::2']
+        assert args.dns == ['2000:6675:7272:7900::1', '2000:6675:7272:7900::2']
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0', '-4'])
     def test_parse_args_ipv4_only(self):
