@@ -335,7 +335,7 @@ def get_help() -> list:
             ["      ptnetinspector -ts 4-MDNS 6-LLMNR -i eth0 -j"],
             ["      ptnetinspector -ts 6-MLDV1 -i eth0"],
             ["      ptnetinspector -ts 6-OUTRANGE -i eth0"],
-            ["      ptnetinspector -ts 6-FAKERA -i eth0 -prefix 2001:db8::/64 -dns 2001:4860:4860::8888 (FAKERA requires prefix and DNS)"],
+            ["      ptnetinspector -ts 6-FAKERA -i eth0 -prefix 2000:6675:7272:7900::/64 -dns 2001:4860:4860::8888 (FAKERA requires prefix and DNS)"],
         ]}
     ]
 
