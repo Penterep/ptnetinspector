@@ -36,10 +36,10 @@ class TestIPv6Validation:
     """Test IPv6 address validation."""
 
     def test_valid_ipv6(self):
-        assert is_valid_ipv6("2001:db8::1") is True
+        assert is_valid_ipv6("2000:6675:7272:7900::1") is True
         assert is_valid_ipv6("fe80::1") is True
         assert is_valid_ipv6("::1") is True
-        assert is_valid_ipv6("2001:0db8:0000:0000:0000:0000:0000:0001") is True
+        assert is_valid_ipv6("2000:6675:7272:7900:0000:0000:0000:0001") is True
 
     def test_invalid_ipv6(self):
         assert is_valid_ipv6("not:valid:ipv6") is False
@@ -50,18 +50,18 @@ class TestIPv6Validation:
     def test_link_local_ipv6(self):
         assert is_link_local_ipv6("fe80::1") is True
         assert is_link_local_ipv6("fe80::abcd:ef01:2345:6789") is True
-        assert is_link_local_ipv6("2001:db8::1") is False
+        assert is_link_local_ipv6("2000:6675:7272:7900::1") is False
         assert is_link_local_ipv6("192.168.1.1") is False
 
     def test_global_unicast_ipv6(self):
-        assert is_global_unicast_ipv6("2001:db8::1") is True
+        assert is_global_unicast_ipv6("2000:6675:7272:7900::1") is True
         assert is_global_unicast_ipv6("fe80::1") is False
         assert is_global_unicast_ipv6("ff02::1") is False  # Multicast
 
     def test_ipv6_ula(self):
         assert is_ipv6_ula("fd00::1") is True
         assert is_ipv6_ula("fc00::1") is True
-        assert is_ipv6_ula("2001:db8::1") is False
+        assert is_ipv6_ula("2000:6675:7272:7900::1") is False
         assert is_ipv6_ula("fe80::1") is False
 
 
@@ -69,17 +69,17 @@ class TestIPv6Prefix:
     """Test IPv6 prefix validation."""
 
     def test_valid_prefix(self):
-        assert is_valid_ipv6_prefix("2001:db8::/32") is True
+        assert is_valid_ipv6_prefix("2000:6675:7272:7900::/64") is True
         assert is_valid_ipv6_prefix("fe80::/64") is True
         assert is_valid_ipv6_prefix("::1/128") is True
 
     def test_invalid_prefix(self):
         assert is_valid_ipv6_prefix("not-a-prefix") is False
-        assert is_valid_ipv6_prefix("2001:db8::/129") is False
+        assert is_valid_ipv6_prefix("2000:6675:7272:7900::/129") is False
 
     def test_prefix_generation(self):
-        assert check_ipv6_addresses_generated_from_prefix("2001:db8::1", "2001:db8::/32") is True
-        assert check_ipv6_addresses_generated_from_prefix("2001:db8::1", "2001:abc::/32") is False
+        assert check_ipv6_addresses_generated_from_prefix("2000:6675:7272:7900::1", "2000:6675:7272:7900::/64") is True
+        assert check_ipv6_addresses_generated_from_prefix("2000:6675:7272:7900::1", "2000:6675:7272:7901::/64") is False
         assert check_ipv6_addresses_generated_from_prefix("fe80::1", "fe80::/64") is True
 
 
