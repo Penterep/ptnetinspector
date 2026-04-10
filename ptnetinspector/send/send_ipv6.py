@@ -49,8 +49,9 @@ class SendIPv6:
             None
         """
         send_ipv6_all_nodes_multicast(interface, 
-            PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop())
+            PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop(multicast=True))
 
+    @staticmethod
     def send_empty_ipv6_dest_opt(interface: str) -> None:
         """
         Send an empty IPv6 packet with a Destination option to ff02::1.
@@ -60,7 +61,7 @@ class SendIPv6:
             None
         """
         send_ipv6_all_nodes_multicast(interface, 
-            PrototypeIPv6Packet.get_l3payload_empty_destination_option())
+            PrototypeIPv6Packet.get_l3payload_empty_destination_option(multicast=True))
 
     @staticmethod
     def send_normal_multicast_ping(interface: str) -> None:
@@ -86,7 +87,7 @@ class SendIPv6:
         """
         send_ipv6_all_nodes_multicast(interface, 
             PrototypeIPv6Packet.get_l3payload_invalid_icmpv6_with_dest_opt(
-                id=SendIPv6.__get_next_icmpv6_echo_request_id()))
+                id=SendIPv6.__get_next_icmpv6_echo_request_id(), multicast=True))
 
     @staticmethod
     def send_invalid_multicast_ping(interface: str) -> None:
@@ -99,7 +100,7 @@ class SendIPv6:
         """
         send_ipv6_all_nodes_multicast(interface, 
             PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_dest_opt(
-                id=SendIPv6.__get_next_icmpv6_echo_request_id()))
+                id=SendIPv6.__get_next_icmpv6_echo_request_id(), multicast=True))
 
     @staticmethod
     def send_invalid_ipv6_hbh(interface: str) -> None:
@@ -112,7 +113,7 @@ class SendIPv6:
         """
         send_ipv6_all_nodes_multicast(interface,
             PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(
-                id=SendIPv6.__get_next_icmpv6_echo_request_id()))
+                id=SendIPv6.__get_next_icmpv6_echo_request_id(), multicast=True))
 
     @staticmethod
     def send_multicast_ping_router(interface: str) -> None:
@@ -418,24 +419,24 @@ class SendIPv6:
                     id=SendIPv6.__get_next_icmpv6_echo_request_id()
                 ), ips, mac)
             send_ipv6_from_all_addresses(interface,
-                PrototypeIPv6Packet.get_l3payload_empty_destination_option(), ips, mac)
+                PrototypeIPv6Packet.get_l3payload_empty_destination_option(multicast=False), ips, mac)
             send_ipv6_from_all_addresses(interface,
-                PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop(), ips, mac)
+                PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop(multicast=False), ips, mac)
             send_ipv6_from_all_addresses(interface,
                 PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request(
                     id=SendIPv6.__get_next_icmpv6_echo_request_id()
                 ), ips, mac)
             send_ipv6_from_all_addresses(interface,
                 PrototypeIPv6Packet.get_l3payload_invalid_icmpv6_with_dest_opt(
-                    id=SendIPv6.__get_next_icmpv6_echo_request_id()
+                    id=SendIPv6.__get_next_icmpv6_echo_request_id(), multicast=False
                 ),ips,mac)
             send_ipv6_from_all_addresses(interface,
                 PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_dest_opt(
-                    id=SendIPv6.__get_next_icmpv6_echo_request_id()
+                    id=SendIPv6.__get_next_icmpv6_echo_request_id(), multicast=False
                 ), ips, mac)
             send_ipv6_from_all_addresses(interface,
                 PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(
-                    id=SendIPv6.__get_next_icmpv6_echo_request_id()
+                    id=SendIPv6.__get_next_icmpv6_echo_request_id(), multicast=False
                 ), ips, mac)
         for mac, ips in possible_global_IP.items():
             if ips != []:
@@ -527,20 +528,23 @@ class SendIPv6:
                             id=SendIPv6.__get_next_icmpv6_echo_request_id()
                         ))
                     empty_dest_opt = (layer2 / layer3 / 
-                        PrototypeIPv6Packet.get_l3payload_empty_destination_option())
+                        PrototypeIPv6Packet.get_l3payload_empty_destination_option(multicast=False))
                     empty_hop_by_hop_opt = (layer2 / layer3 / 
-                        PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop())
+                        PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop(multicast=False))
                     invalid = (layer2 / layer3 / 
                         PrototypeIPv6Packet.get_l3payload_invalid_icmpv6_with_dest_opt(
-                            id=SendIPv6.__get_next_icmpv6_echo_request_id()
+                            id=SendIPv6.__get_next_icmpv6_echo_request_id(),
+                            multicast=False
                         ))
                     multicast_ping_dest_opt = (layer2 / layer3 / 
                         PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_dest_opt(
-                            id=SendIPv6.__get_next_icmpv6_echo_request_id()
+                            id=SendIPv6.__get_next_icmpv6_echo_request_id(),
+                            multicast=False
                         ))
                     multicast_ping_hop_by_hop_opt = (layer2 / layer3 / 
                         PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(
-                            id=SendIPv6.__get_next_icmpv6_echo_request_id()
+                            id=SendIPv6.__get_next_icmpv6_echo_request_id(),
+                            multicast=False
                         ))
                     sendp(multicast_ping, iface=interface, verbose=False)
                     sendp(empty_dest_opt, iface=interface, verbose=False)

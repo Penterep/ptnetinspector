@@ -35,9 +35,11 @@ class PrototypeIPv6Packet:
     MLDV2_IPV6_MULTICAST_IP = "ff02::16"
     WS_DISCOVERY_IPV6_MULTICAST_IP = "ff02::c"
     # Extension headers
-    EXT_HDR_DESTINATION_OPTION_TYPE = 128
+    EXT_HDR_DESTINATION_OPTION_TYPE_MULTICAST = 128
+    EXT_HDR_DESTINATION_OPTION_TYPE_UNICAST = 192
     EXT_HDR_DESTINATION_OPTION_DATA = b''
-    EXT_HDR_HOP_BY_HOP_TYPE = 128
+    EXT_HDR_HOP_BY_HOP_TYPE_MULTICAST = 128
+    EXT_HDR_HOP_BY_HOP_TYPE_UNICAST = 192
     EXT_HDR_HOP_BY_HOP_DATA = b"\x00\x00\x00\x00"
     # ICMPv6
     ICMPV6_INVALID_TYPE = 254
@@ -62,28 +64,29 @@ class PrototypeIPv6Packet:
     #
 
     @staticmethod
-    def get_l3payload_empty_hop_by_hop() -> Packet:
+    def get_l3payload_empty_hop_by_hop(multicast: bool = False) -> Packet:
         """
         Returns a hop-by-hop extension header with an unknown option to trigger an error response.
         Does not include L2 and L3 headers, only the hop-by-hop extension header.
         Args:
-            None
+            multicast: Whether to use the multicast or unicast option type for the hop-by-hop option.
+        
         Output:
             Packet: Scapy packet representing a hop-by-hop extension header with an unknown option.
         """
-        return PrototypeIPv6Packet.__get_hop_by_hop_option()
+        return PrototypeIPv6Packet.__get_hop_by_hop_option(multicast)
 
     @staticmethod
-    def get_l3payload_empty_destination_option() -> Packet:
+    def get_l3payload_empty_destination_option(multicast: bool = False) -> Packet:
         """
         Returns a destination extension header with an unknown option to trigger an error response.
         Does not include L2 and L3 headers, only the destination extension header.
         Args:
-            None
+            multicast: Whether to use the multicast or unicast option type for the destination option.
         Output:
             Packet: Scapy packet representing a destination extension header with an unknown option.
         """
-        return PrototypeIPv6Packet.__get_destination_option()
+        return PrototypeIPv6Packet.__get_destination_option(multicast)
 
     @staticmethod
     def get_l3payload_icmpv6_echo_request(id: int=0) -> Packet:
@@ -98,42 +101,45 @@ class PrototypeIPv6Packet:
         return ICMPv6EchoRequest(id=id)
 
     @staticmethod
-    def get_l3payload_icmpv6_echo_request_with_dest_opt(id: int = 0) -> Packet:
+    def get_l3payload_icmpv6_echo_request_with_dest_opt(id: int = 0, multicast: bool = False) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with destination option extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
         Args:
             id: Identifier field for the ICMPv6 Echo Request.
+            multicast: Whether to use the multicast or unicast option type for the destination option.
         Output:
             Packet: Scapy packet representing ICMPv6 Echo Request with destination option.
         """
-        return (PrototypeIPv6Packet.__get_destination_option() /
+        return (PrototypeIPv6Packet.__get_destination_option(multicast) /
                 ICMPv6EchoRequest(id=id))
 
     @staticmethod
-    def get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(id: int = 0) -> Packet:
+    def get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(id: int = 0, multicast: bool = False) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with hop-by-hop extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
         Args:
             id: Identifier field for the ICMPv6 Echo Request.
+            multicast: Whether to use the multicast or unicast option type for the hop-by-hop option.
         Output:
             Packet: Scapy packet representing ICMPv6 Echo Request with hop-by-hop option.
         """
-        return (PrototypeIPv6Packet.__get_hop_by_hop_option() /
+        return (PrototypeIPv6Packet.__get_hop_by_hop_option(multicast) /
                 ICMPv6EchoRequest(id=id))
 
     @staticmethod
-    def get_l3payload_invalid_icmpv6_with_dest_opt(id: int = 0) -> Packet:
+    def get_l3payload_invalid_icmpv6_with_dest_opt(id: int = 0, multicast: bool = False) -> Packet:
         """
         Returns ICMPv6 Echo Request packet with invalid type and destination option extension header.
         Does not include L2 and L3 headers, only the ICMPv6 payload with extension header.
         Args:
             id: Identifier field for the ICMPv6 Echo Request.
+            multicast: Whether to use the multicast or unicast option type for the destination option.
         Output:
             Packet: Scapy packet representing ICMPv6 Echo Request with invalid type and destination option.
         """
-        return (PrototypeIPv6Packet.__get_destination_option() /
+        return (PrototypeIPv6Packet.__get_destination_option(multicast) /
                 ICMPv6EchoRequest(id=id, type=PrototypeIPv6Packet.ICMPV6_INVALID_TYPE))
 
     @staticmethod
@@ -160,31 +166,31 @@ class PrototypeIPv6Packet:
     # L3 Builders
     #
     @staticmethod 
-    def __get_hop_by_hop_option() -> Packet:
+    def __get_hop_by_hop_option(multicast: bool = False) -> Packet:
         """
         Builds a hop-by-hop extension header with an unknown option to trigger an error response.
         Args:
-            None
+            multicast: Whether to use the multicast or unicast option type for the hop-by-hop option.
         Output:
             Packet: Scapy packet representing a hop-by-hop extension header with an unknown option.
         """
         return (IPv6ExtHdrHopByHop(
                     options=[HBHOptUnknown(
-                        otype=PrototypeIPv6Packet.EXT_HDR_HOP_BY_HOP_TYPE, 
+                        otype=PrototypeIPv6Packet.EXT_HDR_HOP_BY_HOP_TYPE_MULTICAST if multicast else PrototypeIPv6Packet.EXT_HDR_HOP_BY_HOP_TYPE_UNICAST,
                         optdata=PrototypeIPv6Packet.EXT_HDR_HOP_BY_HOP_DATA)]))
 
     @staticmethod
-    def __get_destination_option() -> Packet:
+    def __get_destination_option(multicast: bool = False) -> Packet:
         """
         Builds a destination extension header with an unknown option to trigger an error response.
         Args:
-            None
+            multicast: Whether to use the multicast or unicast option type for the destination option.
         Output:
             Packet: Scapy packet representing a destination extension header with an unknown option.
         """
         return (IPv6ExtHdrDestOpt( 
                     options=[HBHOptUnknown(
-                        otype=PrototypeIPv6Packet.EXT_HDR_DESTINATION_OPTION_TYPE,
+                        otype=PrototypeIPv6Packet.EXT_HDR_DESTINATION_OPTION_TYPE_MULTICAST if multicast else PrototypeIPv6Packet.EXT_HDR_DESTINATION_OPTION_TYPE_UNICAST,
                         optdata=PrototypeIPv6Packet.EXT_HDR_DESTINATION_OPTION_DATA)]))
 
     @staticmethod
