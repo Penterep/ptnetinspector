@@ -652,16 +652,6 @@ class SendIPv6:
             if network_targets:
                 send_ns_batched(network_targets)
             return
-
-            SendIPv6.send_ns('fe80::0', interface)
-            SendIPv6.send_ns('fe80::1', interface)            
-            first_addr = network.network_address
-            SendIPv6.send_ns(str(first_addr), interface)
-            last_bits = network.network_address.packed[:-1] + bytes([network.network_address.packed[-1] | 1])
-            second_addr = ipaddress.IPv6Address(last_bits)
-            if second_addr in network:
-                SendIPv6.send_ns(str(second_addr), interface)
-            SendIPv6.send_ns(str(network.broadcast_address), interface)
         except:
             return
 
