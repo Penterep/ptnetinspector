@@ -260,7 +260,14 @@ class Json:
         return False
 
     @staticmethod
-    def output_object(extract_to_json: bool = True, mode: str = None, target_codes: set[str] | None = None, ipver: IPMode | None = None, target_macs: set[str] | None = None) -> dict:
+    def output_object(
+        extract_to_json: bool = True,
+        mode: str = None,
+        target_codes: set[str] | None = None,
+        ipver: IPMode | None = None,
+        target_macs: set[str] | None = None,
+        target_ips: set[str] | None = None,
+    ) -> dict:
         """Build and return the final JSON report from CSV artifacts.
 
         Args:
@@ -269,6 +276,7 @@ class Json:
             target_codes: Optional set of Test codes to include; mapped to vuln codes.
             ipver: Optional IPMode to filter addresses by IP family.
             target_macs: Optional set of target MAC addresses to filter devices.
+            target_ips: Optional set of target IP addresses to filter addresses.
         Returns:
             dict: JSON structure (stringified when written to file).
         """
@@ -297,12 +305,15 @@ class Json:
 
         # Normalize target MACs to uppercase
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
+        target_ips_set = {str(ip).strip() for ip in target_ips} if target_ips else None
+        has_target_filter = bool(target_macs_set or target_ips_set)
 
         start_end_file = get_csv_path("start_end_mode.csv")
         delete_middle_content_csv(start_end_file)
 
         Json.output_property(ipver)
-        Json.output_vul_net(mode, target_codes=target_codes_set)
+        if not has_target_filter:
+            Json.output_vul_net(mode, target_codes=target_codes_set)
 
         if not extract_to_json:
             return ptjsonlib_object.get_result_json()
@@ -323,10 +334,16 @@ class Json:
                 role_node_df = role_node_df[role_node_df['MAC'].str.upper() != scanner_mac]
                 addresses_df = addresses_df[addresses_df['MAC'].str.upper() != scanner_mac]
 
-            # Filter by target MACs if specified
-            if target_macs_set:
-                role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(target_macs_set)]
-                addresses_df = addresses_df[addresses_df['MAC'].str.upper().isin(target_macs_set)]
+            # Filter by targets (MAC and/or IP) if specified.
+            if has_target_filter:
+                address_mask = pd.Series(False, index=addresses_df.index)
+                if target_macs_set:
+                    address_mask = address_mask | addresses_df['MAC'].str.upper().isin(target_macs_set)
+                if target_ips_set:
+                    address_mask = address_mask | addresses_df['IP'].astype(str).isin(target_ips_set)
+                addresses_df = addresses_df[address_mask]
+                selected_macs = set(addresses_df['MAC'].astype(str).str.upper().unique().tolist())
+                role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(selected_macs)]
 
             all_ip = addresses_df['IP'].to_list()
             vuln_ip_df = pd.read_csv(vulnerability_ip_file) if has_additional_data(vulnerability_ip_file) else None
@@ -369,6 +386,8 @@ class Json:
                             continue
                         code_val = str(ip_row.get('Code', '')).strip().upper()
                         if target_codes_set and code_val and code_val not in target_codes_set:
+                            continue
+                        if target_ips_set and ip_val not in target_ips_set:
                             continue
                         if ip_val not in ip_addresses and Json._ip_matches_mode(ip_val, ipver):
                             ip_addresses.append(ip_val)

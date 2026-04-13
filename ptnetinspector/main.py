@@ -79,6 +79,7 @@ display_logo(args.j, args.vv)
     target_codes,
     tmp_retention,
     target_macs,
+    target_ips,
 ) = parameter_control(
     args.interface,
     args.j,
@@ -101,7 +102,7 @@ display_logo(args.j, args.vv)
     args.nofwd,
     args.target_codes,
     args.tmp_retention,
-    args.target_macs,
+    args.targets,
 )
 
 # Determine lock verbosity: suppress if -j and not -vv
@@ -148,7 +149,7 @@ def check_eap_detected():
         ptprinthelper.ptprint("\033[90m802.1x is detected, so scan will be cancelled\033[0m", "WARNING", condition=True, indent=4)
         if json_output:
             Non_json.print_box("Json output")
-            print(Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode))
+            print(Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips))
         sys.exit(0)
 
 
@@ -184,7 +185,7 @@ def ptnet_eap(combine=False):
     if json_output:
         if not combine:
             enablePrint()
-        _accumulated_json_result = Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode)
+        _accumulated_json_result = Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips)
 
 
 def ptnet_passive():
@@ -218,12 +219,13 @@ def ptnet_passive():
         target_codes,
         lambda fname: get_csv_path(fname, interface),
         target_macs,
+        target_ips,
     )
 
     # Accumulate JSON result (don't print yet if multiple modes)
     if json_output:
         global _accumulated_json_result
-        _accumulated_json_result = Json.output_object(True, "p", target_codes=target_codes, ipver=ip_mode)
+        _accumulated_json_result = Json.output_object(True, "p", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips)
 
 
 def ptnet_active():
@@ -258,6 +260,7 @@ def ptnet_active():
         target_codes,
         lambda fname: get_csv_path(fname, interface),
         target_macs,
+        target_ips,
     )
 
 
@@ -313,6 +316,7 @@ def ptnet_aggressive():
         target_codes,
         lambda fname: get_csv_path(fname, interface),
         target_macs,
+        target_ips,
     )
 
     if not REUSE_EXISTING_DATA:
@@ -334,7 +338,7 @@ def execute_scan(scan_types):
         if len(scan_types) > 1:
             check_eap_detected()
             if json_output:
-                Json.output_object(False, "802.1x", target_codes=target_codes, ipver=ip_mode)
+                Json.output_object(False, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips)
 
     if has_passive:
         Interface_object.shutdown_traffic()
@@ -407,6 +411,7 @@ def main():
         nofwd,
         target_codes,
         target_macs,
+        target_ips,
     )
 
     required_files = ["addresses.csv", "addresses_unfiltered.csv", "networks.csv"]
@@ -440,7 +445,7 @@ def main():
             if more_detail:
                 Non_json.print_box("Json output")
             # Final output reads accumulated CSVs; avoid mode filtering
-            print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs))
+            print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips))
     except KeyboardInterrupt:
         has_active = "a" in scanning_type
         has_aggressive = "a+" in scanning_type

@@ -4,6 +4,7 @@ Exposes argument parsing, normalization to internal types, and convenience
 helpers to validate network-related inputs and drive scan configuration.
 """
 import argparse
+import ipaddress
 import logging
 import os
 import subprocess
@@ -193,7 +194,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-t", nargs='+', choices=["802.1x", "p", "a", "a+"], help="first mandatory argument")
     parser.add_argument("-i", dest="interface", help="second mandatory argument")
     parser.add_argument("-j", action="store_true")
-    parser.add_argument("-target", dest="target_macs", nargs="+", action="append", help="target device MAC address(es) for results filtering (space-separated; -target can be repeated)")
+    parser.add_argument("-target", dest="targets", nargs="+", action="append", help="target MAC/IP address(es) for results filtering (space-separated; -target can be repeated)")
     parser.add_argument("-vv", action="store_true", default=False)
     parser.add_argument("-less", action="store_true", default=False)
     parser.add_argument("-nc", action="store_false", default=True)
@@ -277,7 +278,7 @@ def get_help() -> list:
             ["                ", "   a+        Aggressive mode - perform tests as fake router"],
             ["-i              ", "Interface (mandatory)"],
             ["-j              ", "Output in JSON format"],
-            ["-target         ", "Target device MAC address(es) for filtering (space-separated; only show results for these devices)"],
+            ["-target         ", "Target MAC/IP address(es) for filtering (space-separated; MAC => device + all IPs, IP => only that address)"],
             ["-vv             ", "Show full details of network scan"],
             ["-less           ", "Show minimum details of network scan"],
             ["-nc             ", "Do not check if found addresses are valid"],
@@ -943,7 +944,7 @@ def _print_warnings(list_warning, json_output, more_detail, less_detail) -> None
                 ptprinthelper.ptprint(f"{GREY}{info}{END}", "WARNING", condition=True, indent=4)
 
 
-def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, target_codes, target_macs, tmp_retention) -> None:
+def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, target_codes, target_macs, target_ips, tmp_retention) -> None:
     """Print information about inserted parameters."""
     if not less_detail:
         Non_json.print_box("Information about inserted parameters")
@@ -1002,6 +1003,9 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
         if target_macs:
             ptprinthelper.ptprint(f"Target devices (MAC addresses): {sorted(m.lower() for m in target_macs)}", "INFO", condition=True, indent=4)
 
+        if target_ips:
+            ptprinthelper.ptprint(f"Target addresses (IP): {sorted(target_ips)}", "INFO", condition=True, indent=4)
+
         ptprinthelper.ptprint(f"Temporary file retention: {tmp_retention}s", "INFO", condition=True, indent=4)
 
 
@@ -1031,7 +1035,7 @@ def parameter_control(
     nofwd,
     target_codes,
     tmp_retention,
-    target_macs,
+    targets,
 ) -> tuple:
     """
     Checks and validates inserted parameters. Returns all variables if no error, otherwise prints errors and exits.
@@ -1113,21 +1117,29 @@ def parameter_control(
         period = float(period)
 
     validated_target_macs = None
-    if target_macs:
+    validated_target_ips = None
+    if targets:
         # Flatten when -target provided multiple times with nargs+ (list of lists)
         flat_targets = []
-        for item in target_macs:
+        for item in targets:
             if isinstance(item, list):
                 flat_targets.extend(item)
             else:
                 flat_targets.append(item)
-        normalized = set()
-        for mac in flat_targets:
-            mac_upper = mac.upper()
-            if not is_valid_mac(mac_upper):
-                list_error.append(f"Invalid MAC address: {mac}")
-            else:
-                normalized.add(mac_upper)
+        normalized_macs = set()
+        normalized_ips = set()
+        for target in flat_targets:
+            value = str(target).strip()
+            if not value:
+                continue
+            mac_upper = value.upper()
+            if is_valid_mac(mac_upper):
+                normalized_macs.add(mac_upper)
+                continue
+            try:
+                normalized_ips.add(str(ipaddress.ip_address(value)))
+            except ValueError:
+                list_error.append(f"Invalid target value (expected MAC or IP): {target}")
         if list_error:
             _store_error_outputs(list_error, json_output, interface, more_detail)
             if json_output:
@@ -1135,8 +1147,10 @@ def parameter_control(
             else:
                 _print_errors(list_error, json_output, more_detail)
             sys.exit(1)
-        if normalized:
-            validated_target_macs = normalized
+        if normalized_macs:
+            validated_target_macs = normalized_macs
+        if normalized_ips:
+            validated_target_ips = normalized_ips
 
     if json_output and not (more_detail or less_detail):
         blockPrint()
@@ -1166,6 +1180,7 @@ def parameter_control(
         nofwd,
         validated_target_codes,
         validated_target_macs,
+        validated_target_ips,
         tmp_retention,
     )
 
@@ -1192,4 +1207,5 @@ def parameter_control(
         validated_target_codes,
         tmp_retention,
         validated_target_macs,
+        validated_target_ips,
     )

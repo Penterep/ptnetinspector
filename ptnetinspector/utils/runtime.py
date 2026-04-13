@@ -176,6 +176,7 @@ def build_run_signature(
     nofwd,
     target_codes,
     target_macs,
+    target_ips,
 ) -> dict:
     """Construct a signature of current run parameters used for tmp reuse.
 
@@ -201,6 +202,7 @@ def build_run_signature(
         "nofwd": bool(nofwd),
         "target_codes": sorted(target_codes) if target_codes else [],
         "target_macs": sorted(target_macs) if target_macs else [],
+        "target_ips": sorted(target_ips) if target_ips else [],
     }
 
 
@@ -292,6 +294,27 @@ def _check_macs_in_role_node(tmp_path: Path, target_macs: set[str]) -> bool:
         return target_macs.issubset(saved_macs)
     except Exception:
         return False
+
+
+def _check_ips_in_addresses(tmp_path: Path, target_ips: set[str]) -> bool:
+    """Check if all target IPs exist in saved addresses CSVs."""
+    addresses_files = [tmp_path / "addresses.csv", tmp_path / "addresses_unfiltered.csv"]
+    saved_ips: set[str] = set()
+
+    for path in addresses_files:
+        if not path.exists():
+            continue
+        try:
+            with open(path, 'r', newline='') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    ip = str(row.get('IP', '')).strip()
+                    if ip:
+                        saved_ips.add(ip)
+        except Exception:
+            continue
+
+    return target_ips.issubset(saved_ips)
 
 
 def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[str]) -> bool:
@@ -393,6 +416,19 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
         if not current_macs.issubset(saved_macs):
             return False
     # else: neither has targets (both full scans), can reuse
+
+    # Check target_ips with corrected logic
+    current_ips = set(current_sig.get("target_ips", []))
+    saved_ips = set(saved_sig.get("target_ips", []))
+
+    if saved_ips and not current_ips:
+        return False
+    elif not saved_ips and current_ips:
+        if tmp_path is None or not _check_ips_in_addresses(tmp_path, current_ips):
+            return False
+    elif saved_ips and current_ips:
+        if not current_ips.issubset(saved_ips):
+            return False
 
     # Check target_codes with corrected logic (same pattern as target_macs)
     current_codes = set(current_sig.get("target_codes", []))
@@ -511,7 +547,7 @@ def prepare_tmp_files(
     return True
 
 
-def output_protocols(scan_type, protocols, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs=None):
+def output_protocols(scan_type, protocols, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs=None, target_ips=None):
     protocol_files = {
         "MDNS": "MDNS.csv",
         "LLMNR": "LLMNR.csv",
@@ -560,7 +596,7 @@ def output_protocols(scan_type, protocols, ip_mode, interface, less_detail, targ
     for protocol in protocols:
         if protocol in protocol_files and is_protocol_allowed(protocol):
             file_path = get_csv_path_fn(protocol_files[protocol])
-            Non_json.output_protocol(interface, ip_mode, scan_type, protocol, file_path, less_detail, target_macs=target_macs)
+            Non_json.output_protocol(interface, ip_mode, scan_type, protocol, file_path, less_detail, target_macs=target_macs, target_ips=target_ips)
 
 
 def handle_output(
@@ -576,27 +612,28 @@ def handle_output(
     target_codes,
     get_csv_path_fn,
     target_macs=None,
+    target_ips=None,
 ):
     # Skip all non-JSON output if -j is used without -vv
     if _suppress_non_json:
         return
 
     if (not json_output) or more_detail:
-        Non_json.output_general(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs)
-        Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs)
+        Non_json.output_general(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs, target_ips=target_ips)
+        Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs, target_ips=target_ips)
 
         if more_detail:
             time_file = get_csv_path_fn("time_incoming.csv")
-            Non_json.output_protocol(interface, ip_mode, scan_type, "time", time_file, less_detail, target_macs=target_macs)
+            Non_json.output_protocol(interface, ip_mode, scan_type, "time", time_file, less_detail, target_macs=target_macs, target_ips=target_ips)
             if check_addresses:
                 Non_json.print_box("Unfiltered found addresses")
                 addr_file = get_csv_path_fn("addresses_unfiltered.csv")
-                Non_json.output_general(scan_type, ip_mode, addr_file, target_codes=target_codes, target_macs=target_macs)
+                Non_json.output_general(scan_type, ip_mode, addr_file, target_codes=target_codes, target_macs=target_macs, target_ips=target_ips)
 
-            output_protocols(scan_type, protocols_basic, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs)
+            output_protocols(scan_type, protocols_basic, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs, target_ips)
 
             if protocols_detailed:
-                output_protocols(scan_type, protocols_detailed, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs)
+                output_protocols(scan_type, protocols_detailed, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs, target_ips)
 
 
 def handle_addresses(interface, ip_mode, passive: bool = False) -> None:
