@@ -24,11 +24,13 @@ from ptnetinspector.send.send import IPMode
 
 class Json:
     @staticmethod
-    def _resolve_vulnerability_file(preferred_name: str, fallback_name: str = "vulnerability.csv") -> str:
+    def _resolve_vulnerability_file(preferred_name: str, fallback_name: str | None = None) -> str:
         preferred = get_csv_path(preferred_name)
         if has_additional_data(preferred):
             return preferred
-        return get_csv_path(fallback_name)
+        if fallback_name:
+            return get_csv_path(fallback_name)
+        return preferred
 
     @staticmethod
     def _load_scanner_mac_from_run_params() -> str | None:

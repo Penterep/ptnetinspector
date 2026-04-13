@@ -121,10 +121,6 @@ def create_csv(interface: str | None = None) -> None:
         fieldnames = ['MAC', 'IP']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-    with open(f"{directory}/vulnerability.csv", 'w', newline='') as csvfile:
-        fieldnames = ['ID', 'MAC', 'Mode', 'IPver', 'Code', 'Description', 'Label']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
     with open(f"{directory}/vulnerability_mac.csv", 'w', newline='') as csvfile:
         fieldnames = ['ID', 'MAC', 'Mode', 'IPver', 'Code', 'Description', 'Label']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)

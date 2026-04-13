@@ -23,11 +23,13 @@ from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test, load_vu
 
 class Non_json:
     @staticmethod
-    def _resolve_vulnerability_file(preferred_name: str, fallback_name: str = "vulnerability.csv") -> str:
+    def _resolve_vulnerability_file(preferred_name: str, fallback_name: str | None = None) -> str:
         preferred = get_csv_path(preferred_name)
         if has_additional_data(preferred):
             return preferred
-        return get_csv_path(fallback_name)
+        if fallback_name:
+            return get_csv_path(fallback_name)
+        return preferred
 
     @staticmethod
     def print_box(string: str) -> None:

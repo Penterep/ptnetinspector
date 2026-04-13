@@ -308,7 +308,6 @@ def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[st
         tmp_path / "vulnerability_mac.csv",
         tmp_path / "vulnerability_ip.csv",
         tmp_path / "vulnerability_net.csv",
-        tmp_path / "vulnerability.csv",
     ]
 
     try:
