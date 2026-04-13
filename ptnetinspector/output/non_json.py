@@ -559,22 +559,29 @@ class Non_json:
 
 
                 vuln_df = pd.read_csv(vulnerability_file)
-                device_vulns = vuln_df[vuln_df['ID'].astype(str) == str(device_number)]
                 if target_ips_set and has_additional_data(vulnerability_ip_file):
                     vuln_ip_df = pd.read_csv(vulnerability_ip_file)
-                    allowed_codes = set(
-                        vuln_ip_df[
-                            (vuln_ip_df['ID'].astype(str) == str(device_number))
-                            & (vuln_ip_df['IP'].astype(str).isin(target_ips_set))
-                        ]['Code'].astype(str).str.upper().tolist()
-                    )
-                    if allowed_codes:
-                        device_vulns = device_vulns[device_vulns['Code'].astype(str).str.upper().isin(allowed_codes)]
-                    else:
-                        device_vulns = device_vulns.iloc[0:0]
-                # Respect -ts filters for device vulnerabilities as well
-                if target_vuln_codes_set:
-                    device_vulns = device_vulns[device_vulns['Code'].str.upper().isin(target_vuln_codes_set)]
+                    device_vulns = vuln_ip_df[
+                        (vuln_ip_df['ID'].astype(str) == str(device_number))
+                        & (vuln_ip_df['IP'].astype(str).isin(target_ips_set))
+                    ].copy()
+                    if mode is not None:
+                        device_vulns = device_vulns[device_vulns['Mode'].astype(str).str.contains(mode, regex=False)]
+                    if target_vuln_codes_set:
+                        device_vulns = device_vulns[device_vulns['Code'].astype(str).str.upper().isin(target_vuln_codes_set)]
+                    if not device_vulns.empty:
+                        device_vulns['Label'] = pd.to_numeric(device_vulns['Label'], errors='coerce').fillna(2).astype(int)
+                        device_vulns = (
+                            device_vulns
+                            .sort_values(by=['Code'])
+                            .groupby('Code', as_index=False)
+                            .agg({'Description': 'first', 'IPver': 'first', 'Mode': 'first', 'Label': 'max'})
+                        )
+                else:
+                    device_vulns = vuln_df[vuln_df['ID'].astype(str) == str(device_number)]
+                    # Respect -ts filters for device vulnerabilities as well
+                    if target_vuln_codes_set:
+                        device_vulns = device_vulns[device_vulns['Code'].str.upper().isin(target_vuln_codes_set)]
                 for _, vuln_row in device_vulns.iterrows():
                     code = vuln_row.get('Code', '')
                     desc = vuln_row.get('Description', '')
@@ -795,23 +802,29 @@ class Non_json:
                     if protocol != "RA":
                         try:
                             vuln_df = pd.read_csv(vulnerability_file)
-                            device_vulns = vuln_df[
-                                (vuln_df['ID'] == str(device_number)) &
-                                (vuln_df['Description'].str.contains(protocol, case=True, na=False)) &
-                                (vuln_df['MAC'].isin(df['MAC']))
-                            ]
                             if target_ips_set and has_additional_data(vulnerability_ip_file):
                                 vuln_ip_df = pd.read_csv(vulnerability_ip_file)
-                                allowed_codes = set(
-                                    vuln_ip_df[
-                                        (vuln_ip_df['ID'].astype(str) == str(device_number))
-                                        & (vuln_ip_df['IP'].astype(str).isin(target_ips_set))
-                                    ]['Code'].astype(str).str.upper().tolist()
-                                )
-                                if allowed_codes:
-                                    device_vulns = device_vulns[device_vulns['Code'].astype(str).str.upper().isin(allowed_codes)]
-                                else:
-                                    device_vulns = device_vulns.iloc[0:0]
+                                device_vulns = vuln_ip_df[
+                                    (vuln_ip_df['ID'].astype(str) == str(device_number))
+                                    & (vuln_ip_df['Description'].astype(str).str.contains(protocol, case=True, na=False))
+                                    & (vuln_ip_df['IP'].astype(str).isin(target_ips_set))
+                                ].copy()
+                                if mode is not None:
+                                    device_vulns = device_vulns[device_vulns['Mode'].astype(str).str.contains(mode, regex=False)]
+                                if not device_vulns.empty:
+                                    device_vulns['Label'] = pd.to_numeric(device_vulns['Label'], errors='coerce').fillna(2).astype(int)
+                                    device_vulns = (
+                                        device_vulns
+                                        .sort_values(by=['Code'])
+                                        .groupby('Code', as_index=False)
+                                        .agg({'Description': 'first', 'IPver': 'first', 'Mode': 'first', 'Label': 'max'})
+                                    )
+                            else:
+                                device_vulns = vuln_df[
+                                    (vuln_df['ID'] == str(device_number)) &
+                                    (vuln_df['Description'].str.contains(protocol, case=True, na=False)) &
+                                    (vuln_df['MAC'].isin(df['MAC']))
+                                ]
                             for _, vuln_row in device_vulns.iterrows():
                                 code = vuln_row.get('Code', '')
                                 desc = vuln_row.get('Description', '')
