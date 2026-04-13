@@ -26,14 +26,46 @@ class MLDV2_RType(IntEnum):
     BLOCK_OLD_SOURCES = 6
 
 class PrototypeIPv6Packet:
-    # Addresses
+    # Addresses by https://www.iana.org/assignments/ipv6-multicast-addresses/ipv6-multicast-addresses.xhtml
     ALL_NODES_IPV6_MULTICAST_IP = "ff02::1"
     ALL_ROUTERS_IPV6_MULTICAST_IP = "ff02::2"
-    DHCPV6_ALL_SERVERS_MULTICAST_IP = "ff02::1:2"
     LLMNR_IPV6_MULTICAST_IP = "ff02::1:3"
     MDNS_IPV6_MULTICAST_IP = "ff02::fb"
     MLDV2_IPV6_MULTICAST_IP = "ff02::16"
-    WS_DISCOVERY_IPV6_MULTICAST_IP = "ff02::c"
+    WS_DISCOVERY_LINK_LOCAL_IPV6_MULTICAST_IP = "ff02::c"
+    DHCPV6_IPV6_MULTICAST_IPS = [
+        "ff02::1:2", # All DHCPv6 servers and relay agents on the local link
+        "ff05::1:3", # All DHCPv6 servers on the local network (site-local scope)
+    ]
+    SSDP_IPV6_MULTICAST_IPS = [
+        "ff02::c", # Link-local scope
+        "ff03::c", # Realm-local scope
+        "ff04::c", # Admin-local scope
+        "ff05::c", # Site-local scope
+        "ff08::c", # Organization-local scope
+    ]
+    UPNP_IPV6_MULTICAST_IPS = [
+        "ff02::f", # Link-local scope
+        "ff02::130", # Link-local scope
+        "ff03::130", # Realm-local scope
+        "ff04::130", # Admin-local scope
+        "ff05::130", # Site-local scope
+        "ff08::130", # Organization-local scope
+    ]
+    SLP_IPV6_MULTICAST_IPS = [
+        # SRVLOC: SLPv2 service type request and attribute request messages
+        "ff02::116", # Link-local scope
+        "ff03::116", # Realm-local scope
+        "ff04::116", # Admin-local scope
+        "ff05::116", # Site-local scope
+        "ff08::116", # Organization-local scope
+        # SRVLOC-DA: SLPv2 directory agents
+        "ff02::123", # Link-local scope
+        "ff03::123", # Realm-local scope
+        "ff04::123", # Admin-local scope
+        "ff05::123", # Site-local scope
+        "ff08::123", # Organization-local scope
+    ] # Per https://datatracker.ietf.org/doc/html/rfc3111#section-4.1
     # Extension headers
     EXT_HDR_DESTINATION_OPTION_TYPE_MULTICAST = 128
     EXT_HDR_DESTINATION_OPTION_TYPE_UNICAST = 192
@@ -49,12 +81,11 @@ class PrototypeIPv6Packet:
         MLDV2_IPV6_MULTICAST_IP,
         LLMNR_IPV6_MULTICAST_IP,
         MDNS_IPV6_MULTICAST_IP,
-        WS_DISCOVERY_IPV6_MULTICAST_IP
-    ]
+        # WS_DISCOVERY_LINK_LOCAL_IPV6_MULTICAST_IP, # Included in SSDP_IPV6_MULTICAST_IPS
+    ].extend(SSDP_IPV6_MULTICAST_IPS).extend(UPNP_IPV6_MULTICAST_IPS).extend(SLP_IPV6_MULTICAST_IPS)
     MULTICAST_GROUPS_AGGRESSIVE = [
-        DHCPV6_ALL_SERVERS_MULTICAST_IP,
         ALL_ROUTERS_IPV6_MULTICAST_IP
-    ]
+    ].extend(DHCPV6_IPV6_MULTICAST_IPS)
     MULTICAST_GROUPS_KEEP = [
         
     ]
