@@ -576,7 +576,7 @@ class SendIPv6:
                 sendp(pkt * 2, verbose=0, iface=interface)
 
     @staticmethod
-    def probe_ipv6_interesting_addresses(network: ipaddress.IPv6Network, interface: str, probe_bits: int = 0, batch_size: int = 64, end_wildcard: bool = False) -> None:
+    def probe_ipv6_interesting_addresses(network: ipaddress.IPv6Network, interface: str, probe_bits: int = 8, batch_size: int = 64, end_wildcard: bool = False) -> None:
         """
         Probe ::0 and ::1 addresses in IPv6 network.
         Args:
