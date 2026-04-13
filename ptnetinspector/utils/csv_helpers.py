@@ -360,13 +360,15 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
     # Get unique rows from dictionary
     unique_rows = list(row_dict.values())
 
-    # Deduplicate by code: keep row with longest description for same ID, Mode, IPver, Code
+    # Deduplicate by code while preserving identity column (MAC/IP).
+    # For vulnerability_ip.csv, using only ID/Mode/IPver/Code would incorrectly collapse
+    # multiple IP rows of the same device into one.
     code_dict = {}
     for row in unique_rows:
         if not row or len(row) < 7:
             continue
-        # Key: ID, Mode, IPver, Code
-        code_key = (row[0], row[2], row[3], row[4])
+        # Key: ID, identity(MAC or IP), Mode, IPver, Code
+        code_key = (row[0], row[1], row[2], row[3], row[4])
 
         if code_key in code_dict:
             existing_row = code_dict[code_key]
@@ -391,7 +393,7 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
             network_rows.append(row)
 
     # Sort rows
-    numeric_rows.sort(key=lambda r: (int(r[0]), r[3], r[4], r[5]))
+    numeric_rows.sort(key=lambda r: (int(r[0]), r[1], r[3], r[4], r[5]))
     network_rows.sort(key=lambda r: (r[4], r[5]))
     sorted_rows = numeric_rows + network_rows
 
