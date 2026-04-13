@@ -5,6 +5,7 @@ graph-style JSON (nodes, properties, vulnerabilities), optionally filters by
 IP version and vulnerability codes, and writes the final `ptnetinspector-output.json`.
 """
 import ipaddress
+import json
 import pandas as pd
 from ptlibs.app_dirs import AppDirs
 from ptnetinspector.utils.path import get_csv_path, get_output_dir, get_tmp_path
@@ -28,6 +29,20 @@ class Json:
         if has_additional_data(preferred):
             return preferred
         return get_csv_path(fallback_name)
+
+    @staticmethod
+    def _load_scanner_mac_from_run_params() -> str | None:
+        """Load scanner MAC from run_params.json if available."""
+        try:
+            run_params_path = get_tmp_path() / "run_params.json"
+            if not run_params_path.exists():
+                return None
+            with open(run_params_path, encoding="utf-8") as f:
+                run_params = json.load(f)
+            smac = str(run_params.get("smac") or "").strip().upper()
+            return smac or None
+        except Exception:
+            return None
 
     @staticmethod
     def _get_vulnerabilities_for_id(vuln_df: pd.DataFrame, id_value: str, mode: str = None, target_codes: set[str] | None = None) -> list[str]:
@@ -76,6 +91,18 @@ class Json:
                 if code_clean not in vuln_codes:
                     vuln_codes.append(code_clean)
         return vuln_codes
+
+    @staticmethod
+    def _ip_matches_mode(ip: str, ipver: IPMode) -> bool:
+        """Return True if the IP family is enabled by selected mode."""
+        try:
+            is_v6 = is_valid_ipv6(ip)
+            if is_v6:
+                return bool(ipver.ipv6)
+            ipaddress.IPv4Address(ip)
+            return bool(ipver.ipv4)
+        except Exception:
+            return False
 
     @staticmethod
     def output_property(ipver: IPMode) -> dict:
@@ -259,6 +286,12 @@ class Json:
             addresses_df = pd.read_csv(addresses_file) if has_additional_data(addresses_file) else pd.read_csv(addresses_unfiltered_file)
             addresses_df = filter_ips_by_mode(addresses_df, ipver)
 
+            # Always ignore scanner device and all its addresses.
+            scanner_mac = Json._load_scanner_mac_from_run_params()
+            if scanner_mac:
+                role_node_df = role_node_df[role_node_df['MAC'].str.upper() != scanner_mac]
+                addresses_df = addresses_df[addresses_df['MAC'].str.upper() != scanner_mac]
+
             # Filter by target MACs if specified
             if target_macs_set:
                 role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(target_macs_set)]
@@ -301,6 +334,20 @@ class Json:
                         node_ele.setdefault("vulnerabilities", []).append({"vulnCode": code})
 
                 ip_addresses = addresses_df.loc[addresses_df['MAC'] == mac_address, 'IP'].tolist()
+                if vuln_ip_df is not None:
+                    ip_rows = vuln_ip_df[vuln_ip_df['ID'].astype(str) == str(device_number)]
+                    for _, ip_row in ip_rows.iterrows():
+                        ip_val = str(ip_row.get('IP', '')).strip()
+                        if not ip_val:
+                            continue
+                        if mode is not None and mode not in str(ip_row.get('Mode', '')):
+                            continue
+                        code_val = str(ip_row.get('Code', '')).strip().upper()
+                        if target_codes_set and code_val and code_val not in target_codes_set:
+                            continue
+                        if ip_val not in ip_addresses and Json._ip_matches_mode(ip_val, ipver):
+                            ip_addresses.append(ip_val)
+
                 for ip in ip_addresses:
                     ip_vul = Json._get_vulnerabilities_for_ip(
                         vuln_ip_df,
