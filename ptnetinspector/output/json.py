@@ -23,6 +23,13 @@ from ptnetinspector.send.send import IPMode
 
 class Json:
     @staticmethod
+    def _resolve_vulnerability_file(preferred_name: str, fallback_name: str = "vulnerability.csv") -> str:
+        preferred = get_csv_path(preferred_name)
+        if has_additional_data(preferred):
+            return preferred
+        return get_csv_path(fallback_name)
+
+    @staticmethod
     def _get_vulnerabilities_for_id(vuln_df: pd.DataFrame, id_value: str, mode: str = None, target_codes: set[str] | None = None) -> list[str]:
         """Extract vulnerability codes for a given ID, optionally filtered by mode or target codes."""
         vuln_codes: list[str] = []
@@ -37,6 +44,37 @@ class Json:
                 continue
             if vuln_row.get('Label', 0) == 1:
                 vuln_codes.append(code.strip())
+        return vuln_codes
+
+    @staticmethod
+    def _get_vulnerabilities_for_ip(
+        vuln_ip_df: pd.DataFrame,
+        ip_value: str,
+        id_value: str | None = None,
+        mode: str = None,
+        target_codes: set[str] | None = None,
+    ) -> list[str]:
+        """Extract vulnerability codes for a given IP, optionally constrained by device ID/mode/codes."""
+        if vuln_ip_df is None or 'IP' not in vuln_ip_df.columns:
+            return []
+
+        ip_vulns = vuln_ip_df[vuln_ip_df['IP'].astype(str) == str(ip_value)]
+        if id_value is not None and 'ID' in vuln_ip_df.columns:
+            ip_vulns = ip_vulns[ip_vulns['ID'].astype(str) == str(id_value)]
+
+        vuln_codes: list[str] = []
+        for _, vuln_row in ip_vulns.iterrows():
+            if mode is not None and mode not in vuln_row.get('Mode', ''):
+                continue
+            code = vuln_row.get('Code', '')
+            if not code:
+                continue
+            if target_codes and code.strip().upper() not in target_codes:
+                continue
+            if vuln_row.get('Label', 0) == 1:
+                code_clean = code.strip()
+                if code_clean not in vuln_codes:
+                    vuln_codes.append(code_clean)
         return vuln_codes
 
     @staticmethod
@@ -65,7 +103,7 @@ class Json:
     def output_vul_net(mode: str = None, vul_file: str = None, target_codes: set[str] | None = None) -> dict:
         """Extracts network vulnerabilities from CSV and adds them to the JSON object."""
         if vul_file is None:
-            vul_file = get_csv_path("vulnerability.csv")
+            vul_file = Json._resolve_vulnerability_file("vulnerability_net.csv")
 
         target_codes_set = {code.upper() for code in target_codes} if target_codes else None
 
@@ -81,15 +119,27 @@ class Json:
         return ptjsonlib_object.get_result_json()
 
     @staticmethod
-    def _create_address_node(ip: str, device_number: int, key_node_ele: str, all_ip: list) -> bool:
+    def _create_address_node(
+        ip: str,
+        device_number: int,
+        key_node_ele: str,
+        all_ip: list,
+        address_vuln_codes: list[str] | None = None,
+    ) -> bool:
         """Create and add an address node. Returns True if added."""
         if is_valid_ipv6(ip):
-            return Json._create_ipv6_address_node(ip, device_number, key_node_ele, all_ip)
+            return Json._create_ipv6_address_node(ip, device_number, key_node_ele, all_ip, address_vuln_codes)
         else:
-            return Json._create_ipv4_address_node(ip, device_number, key_node_ele, all_ip)
+            return Json._create_ipv4_address_node(ip, device_number, key_node_ele, all_ip, address_vuln_codes)
 
     @staticmethod
-    def _create_ipv6_address_node(ip: str, device_number: int, key_node_ele: str, all_ip: list) -> bool:
+    def _create_ipv6_address_node(
+        ip: str,
+        device_number: int,
+        key_node_ele: str,
+        all_ip: list,
+        address_vuln_codes: list[str] | None = None,
+    ) -> bool:
         """Create and add an IPv6 address node."""
         if is_llsnm_ipv6(ip):
             list_solicited_ip = [in6_getnsma(addr) for addr in [ip] if not is_llsnm_ipv6(addr)]
@@ -101,6 +151,9 @@ class Json:
                     }
                 )
                 if isinstance(node, dict):
+                    for code in (address_vuln_codes or []):
+                        if not any(v.get("vulnCode") == code for v in node.get("vulnerabilities", [])):
+                            node.setdefault("vulnerabilities", []).append({"vulnCode": code})
                     ptjsonlib_object.add_node(node)
                     return True
         elif not is_llsnm_ipv6(ip):
@@ -112,12 +165,21 @@ class Json:
                 }
             )
             if isinstance(node, dict):
+                for code in (address_vuln_codes or []):
+                    if not any(v.get("vulnCode") == code for v in node.get("vulnerabilities", [])):
+                        node.setdefault("vulnerabilities", []).append({"vulnCode": code})
                 ptjsonlib_object.add_node(node)
                 return True
         return False
 
     @staticmethod
-    def _create_ipv4_address_node(ip: str, device_number: int, key_node_ele: str, all_ip: list) -> bool:
+    def _create_ipv4_address_node(
+        ip: str,
+        device_number: int,
+        key_node_ele: str,
+        all_ip: list,
+        address_vuln_codes: list[str] | None = None,
+    ) -> bool:
         """Create and add an IPv4 address node."""
         try:
             ipaddress.IPv4Address(ip)
@@ -129,6 +191,9 @@ class Json:
                 }
             )
             if isinstance(node, dict):
+                for code in (address_vuln_codes or []):
+                    if not any(v.get("vulnCode") == code for v in node.get("vulnerabilities", [])):
+                        node.setdefault("vulnerabilities", []).append({"vulnCode": code})
                 ptjsonlib_object.add_node(node)
                 return True
         except ipaddress.AddressValueError:
@@ -186,7 +251,8 @@ class Json:
         addresses_file = get_csv_path("addresses.csv")
         addresses_unfiltered_file = get_csv_path("addresses_unfiltered.csv")
         role_node_file = get_csv_path("role_node.csv")
-        vulnerability_file = get_csv_path("vulnerability.csv")
+        vulnerability_file = Json._resolve_vulnerability_file("vulnerability_mac.csv")
+        vulnerability_ip_file = Json._resolve_vulnerability_file("vulnerability_ip.csv")
 
         if (has_additional_data(addresses_file) or has_additional_data(addresses_unfiltered_file)) and has_additional_data(role_node_file):
             role_node_df = pd.read_csv(role_node_file)
@@ -200,6 +266,7 @@ class Json:
 
             all_ip = addresses_df['IP'].to_list()
             vuln_df = pd.read_csv(vulnerability_file) if has_additional_data(vulnerability_file) else None
+            vuln_ip_df = pd.read_csv(vulnerability_ip_file) if has_additional_data(vulnerability_ip_file) else None
 
             for _, row in role_node_df.iterrows():
                 mac_address, device_number, role = row['MAC'], row['Device_Number'], row['Role']
@@ -235,7 +302,14 @@ class Json:
 
                 ip_addresses = addresses_df.loc[addresses_df['MAC'] == mac_address, 'IP'].tolist()
                 for ip in ip_addresses:
-                    Json._create_address_node(ip, device_number, node_ele["key"], all_ip)
+                    ip_vul = Json._get_vulnerabilities_for_ip(
+                        vuln_ip_df,
+                        ip,
+                        str(device_number),
+                        mode,
+                        target_codes_set,
+                    ) if vuln_ip_df is not None else []
+                    Json._create_address_node(ip, device_number, node_ele["key"], all_ip, ip_vul)
 
         ptjsonlib_object.set_status("finished")
         output_json = ptjsonlib_object.get_result_json()

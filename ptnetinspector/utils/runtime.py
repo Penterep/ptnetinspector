@@ -295,18 +295,21 @@ def _check_macs_in_role_node(tmp_path: Path, target_macs: set[str]) -> bool:
 
 
 def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[str]) -> bool:
-    """Check if all target test codes have vulnerability data in saved vulnerability.csv.
+    """Check if all target test codes have vulnerability data in saved vulnerability outputs.
 
     Args:
-        tmp_path: Path to tmp directory containing vulnerability.csv
+        tmp_path: Path to tmp directory containing vulnerability CSV outputs
         target_test_codes: Set of test codes (uppercase) to check
 
     Returns:
         bool: True if all test codes have corresponding vulnerabilities in saved data, False otherwise
     """
-    vulnerability_file = tmp_path / "vulnerability.csv"
-    if not vulnerability_file.exists():
-        return False
+    candidate_files = [
+        tmp_path / "vulnerability_mac.csv",
+        tmp_path / "vulnerability_ip.csv",
+        tmp_path / "vulnerability_net.csv",
+        tmp_path / "vulnerability.csv",
+    ]
 
     try:
         # Load catalog to map vuln codes to test codes
@@ -319,14 +322,17 @@ def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[st
                     code_to_test[vuln_code] = test_code
 
         # Read saved vulnerability data and collect test codes found
-        with open(vulnerability_file, 'r', newline='') as f:
-            reader = csv.DictReader(f)
-            saved_test_codes = set()
-            for row in reader:
-                vuln_code = row.get('Code', '').strip().upper()
-                test_code = code_to_test.get(vuln_code, '')
-                if test_code:
-                    saved_test_codes.add(test_code.upper())
+        saved_test_codes = set()
+        for vulnerability_file in candidate_files:
+            if not vulnerability_file.exists():
+                continue
+            with open(vulnerability_file, 'r', newline='') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    vuln_code = row.get('Code', '').strip().upper()
+                    test_code = code_to_test.get(vuln_code, '')
+                    if test_code:
+                        saved_test_codes.add(test_code.upper())
 
         # Check if all target test codes are in saved data
         return target_test_codes.issubset(saved_test_codes)
@@ -353,7 +359,7 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
       * Both have targets: Can reuse IF current is subset of saved
       * Neither has targets: Can reuse (both are full scans)
     - target_codes:
-      * Previous NO test filter, current HAS test filter: Can reuse IF test codes exist in saved vulnerability.csv
+    * Previous NO test filter, current HAS test filter: Can reuse IF test codes exist in saved vulnerability outputs
       * Previous HAS test filter, current NO test filter: Cannot reuse (saved data is filtered, need full test run)
       * Both have test filters: Can reuse IF current is subset of saved
       * Neither has test filters: Can reuse (both run all tests)
@@ -399,7 +405,7 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
         return False
     elif not saved_codes and current_codes:
         # Previous run had NO test filter (all tests), current run HAS test filter
-        # Can reuse IF target test codes exist in saved vulnerability.csv
+        # Can reuse IF target test codes exist in saved vulnerability outputs
         if tmp_path is None or not _check_test_codes_in_vulnerability(tmp_path, current_codes):
             return False
     elif saved_codes and current_codes:

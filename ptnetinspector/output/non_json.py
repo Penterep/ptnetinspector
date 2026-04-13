@@ -23,6 +23,13 @@ from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test, load_vu
 
 class Non_json:
     @staticmethod
+    def _resolve_vulnerability_file(preferred_name: str, fallback_name: str = "vulnerability.csv") -> str:
+        preferred = get_csv_path(preferred_name)
+        if has_additional_data(preferred):
+            return preferred
+        return get_csv_path(fallback_name)
+
+    @staticmethod
     def print_box(string: str) -> None:
         """
         Print a highlighted heading without box characters.
@@ -82,7 +89,7 @@ class Non_json:
             target_macs (set[str] | None): Optional target MAC addresses to filter devices.
         """
         if csv_file_path is None:
-            csv_file_path = get_csv_path("vulnerability.csv")
+            csv_file_path = Non_json._resolve_vulnerability_file("vulnerability_mac.csv")
 
         # Load vulnerability catalog for descriptions
         try:
@@ -325,7 +332,8 @@ class Non_json:
             addresses_file_name = get_csv_path("addresses.csv")
 
         role_node_file = get_csv_path("role_node.csv")
-        vulnerability_file = get_csv_path("vulnerability.csv")
+        vulnerability_file = Non_json._resolve_vulnerability_file("vulnerability_mac.csv")
+        vulnerability_net_file = Non_json._resolve_vulnerability_file("vulnerability_net.csv")
         target_codes_set = {code.upper() for code in target_codes} if target_codes else None
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
 
@@ -344,6 +352,7 @@ class Non_json:
             # Network and device vulnerability testing section
             try:
                 vuln_df = pd.read_csv(vulnerability_file)
+                vuln_net_df = pd.read_csv(vulnerability_net_file)
 
                 # Convert Test codes to vulnerability Codes if target_codes_set is provided
                 target_vuln_codes_set = None
@@ -364,7 +373,7 @@ class Non_json:
                 all_vuln_results = []
 
                 # Process network vulnerabilities
-                net_vulns = vuln_df[vuln_df['ID'] == "Network"]
+                net_vulns = vuln_net_df[vuln_net_df['ID'] == "Network"]
 
                 # If target MACs specified, collect device vulnerabilities to correlate with network vulns
                 target_device_vuln_codes = set()
@@ -540,7 +549,8 @@ class Non_json:
         """
         start_end_file = get_csv_path("start_end_mode.csv")
         role_node_file = get_csv_path("role_node.csv")
-        vulnerability_file = get_csv_path("vulnerability.csv")
+        vulnerability_file = Non_json._resolve_vulnerability_file("vulnerability_mac.csv")
+        vulnerability_net_file = Non_json._resolve_vulnerability_file("vulnerability_net.csv")
         localname_file = get_csv_path("localname.csv")
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
 
@@ -595,10 +605,11 @@ class Non_json:
                     Non_json.print_box("WS-Discovery scan")
                 try:
                     vuln_df = pd.read_csv(vulnerability_file)
+                    vuln_net_df = pd.read_csv(vulnerability_net_file)
                     if protocol in ["MDNS", "LLMNR"]:
-                        network_vulns = vuln_df[(vuln_df['ID'] == "Network") & (vuln_df['Code'].str.contains(protocol, case=False, na=False))]
+                        network_vulns = vuln_net_df[(vuln_net_df['ID'] == "Network") & (vuln_net_df['Code'].str.contains(protocol, case=False, na=False))]
                     elif protocol in ["MLDv1", "MLDv2", "WS-Discovery", "IGMPv1/v2", "IGMPv3"]:
-                        network_vulns = vuln_df[(vuln_df['ID'] == "Network") & (vuln_df['Description'].str.contains(protocol, case=False, na=False))]
+                        network_vulns = vuln_net_df[(vuln_net_df['ID'] == "Network") & (vuln_net_df['Description'].str.contains(protocol, case=False, na=False))]
                     else:
                         network_vulns = pd.DataFrame()
 
