@@ -9,12 +9,12 @@ from ptnetinspector.entities._registry import registry
 
 
 class IGMPv3(Node):
-    def __init__(self, mac: str, ip: str, protocol: str, rtype: str, mulip: str, sources: str) -> None:
+    def __init__(self, mac: str, ip: str, protocol: str, rtype: str, mulip: str, sources) -> None:
         super().__init__(mac, ip)
         self.protocol = protocol
         self.rtype = rtype
         self.mulip = mulip
-        self.sources = sources
+        self.sources = ", ".join(sources) if isinstance(sources, list) else sources
 
     def save(self) -> None:
         key = (self.mac, self.ip, self.protocol, self.rtype, self.mulip, self.sources)
