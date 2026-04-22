@@ -172,8 +172,8 @@ class PrototypeIPv4Packet:
         Output:
             Packet: Scapy packet representing the ARP request.
         """
-        return (ARP(pdst=address) /
-            Ether(dst="ff:ff:ff:ff:ff:ff"))
+        return (Ether(dst="ff:ff:ff:ff:ff:ff") /
+            ARP(pdst=address))
 
     @staticmethod
     def get_frame_wsdiscovery(src_mac: str|list[str]|None, src_ip: str|list[str]|None, message_id: str|None = None) -> Packet:

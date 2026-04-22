@@ -109,7 +109,7 @@ class Send:
             try:
                 socket.inet_pton(socket.AF_INET, address)
                 ans = SendIPv4.send_arp_request(address, interface, True)
-                for _, packet in ans:
+                for _, packet in (ans or []):
                     if ARP in packet and packet[ARP].op == 2 and packet[ARP].psrc == address:
                         DefaultGateway(packet[ARP].hwsrc, address).save_addresses()
 
@@ -117,7 +117,7 @@ class Send:
                 try:
                     socket.inet_pton(socket.AF_INET6, address)
                     ans = SendIPv6.send_ns(address, interface, True)
-                    for _, packet in ans:
+                    for _, packet in (ans or []):
                         if ICMPv6ND_NA in packet and ICMPv6NDOptDstLLAddr in packet:
                             if packet[ICMPv6ND_NA].tgt == address:
                                 DefaultGateway(packet[ICMPv6NDOptDstLLAddr].lladdr, address).save_addresses()
