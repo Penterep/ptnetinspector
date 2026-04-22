@@ -5,6 +5,7 @@ consistent, readable format using the accumulated CSV data.
 """
 import csv
 import ipaddress
+import os
 import pandas as pd
 from tabulate import tabulate
 from ptlibs import ptprinthelper
@@ -94,6 +95,7 @@ class Non_json:
         """
         if csv_file_path is None:
             csv_file_path = Non_json._resolve_vulnerability_file("vulnerability_ip.csv" if target_ips else "vulnerability_mac.csv")
+        vulnerability_net_path = Non_json._resolve_vulnerability_file("vulnerability_net.csv")
 
         # Load vulnerability catalog for descriptions
         try:
@@ -182,6 +184,53 @@ class Non_json:
                         }
 
                     vulnerabilities[code]['entities'][entity_id] = label
+
+        # Network-scoped vulnerabilities are stored in a separate file.
+        if os.path.exists(vulnerability_net_path):
+            with open(vulnerability_net_path, 'r', newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    if row.get('ID', '').strip() != 'Network':
+                        continue
+                    if mode not in row.get('Mode', ''):
+                        continue
+
+                    code = row.get('Code', '').strip().upper()
+                    if target_codes_set and code not in target_codes_set:
+                        continue
+
+                    # When target filtering is enabled, keep only network vulns
+                    # that correlate with selected device vuln codes.
+                    if has_target_filter:
+                        if not target_device_vuln_codes:
+                            continue
+                        if not any(code in tcode or tcode in code for tcode in target_device_vuln_codes):
+                            continue
+
+                    ipver_value = row.get('IPver', '').strip()
+                    allowed_versions = set()
+                    if ipver.ipv4:
+                        allowed_versions.add('4')
+                    if ipver.ipv6:
+                        allowed_versions.add('6')
+                    allowed_versions.add('both')
+                    if not (ipver.ipv4 or ipver.ipv6):
+                        allowed_versions.update({'4', '6'})
+                    if ipver_value not in allowed_versions:
+                        continue
+
+                    description = row.get('Description', code)
+                    label = int(row.get('Label', 2))
+
+                    if code not in vulnerabilities:
+                        catalog_desc = vuln_catalog.get(code, {}).get('Description', description)
+                        vulnerabilities[code] = {
+                            'description': catalog_desc,
+                            'ipver': ipver_value,
+                            'entities': {}
+                        }
+
+                    vulnerabilities[code]['entities']['Network'] = label
 
         GREEN = '\033[92m'
         RED = '\033[91m'
