@@ -71,6 +71,12 @@ def _close_inherited_scapy_sockets():
         pass
 
 
+def _forked_target(fn, args):
+    """Wrapper for multiprocessing.Process targets that clears inherited Scapy sockets."""
+    _close_inherited_scapy_sockets()
+    fn(*args)
+
+
 class Sniff:
     @staticmethod
     def type(pkt):
@@ -461,14 +467,14 @@ class Run:
                 if ip_mode.ipv6:
                     multicast_ipv6_stop_event = multiprocessing.Event()
                     multicast_ipv6_responder = multiprocessing.Process(
-                        target=SendIPv6.react_to_mld_queries, args=["a", interface, None, multicast_ipv6_stop_event],
-                        initializer=_close_inherited_scapy_sockets)
+                        target=_forked_target,
+                        args=(SendIPv6.react_to_mld_queries, ["a", interface, None, multicast_ipv6_stop_event]))
                     multicast_ipv6_responder.start()
                 if ip_mode.ipv4:
                     multicast_ipv4_stop_event = multiprocessing.Event()
                     multicast_ipv4_responder = multiprocessing.Process(
-                        target=SendIPv4.react_to_igmp_queries, args=["a", interface, None, multicast_ipv4_stop_event],
-                        initializer=_close_inherited_scapy_sockets)
+                        target=_forked_target,
+                        args=(SendIPv4.react_to_igmp_queries, ["a", interface, None, multicast_ipv4_stop_event]))
                     multicast_ipv4_responder.start()
                 if ip_mode.ipv6:
                     SendIPv6.send_MLD_query(interface)
@@ -579,19 +585,15 @@ class Run:
         # Scan jobs
         csv_lock = multiprocessing.Lock()
         send_ra = multiprocessing.Process(
-            target=SendIPv6.send_RA,
-            args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, True, period, duration],
-            initializer=_close_inherited_scapy_sockets)
+            target=_forked_target,
+            args=(SendIPv6.send_RA, [interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, True, period, duration]))
         react_to_ns_rs = multiprocessing.Process(
-            target=SendIPv6.react_to_NS_RS,
-            args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, duration],
-            initializer=_close_inherited_scapy_sockets)
+            target=_forked_target,
+            args=(SendIPv6.react_to_NS_RS, [interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, duration]))
         active_scan = multiprocessing.Process(
-            target=Run.run_normal_mode, args=[interface, "a", ip_mode, duration, csv_lock],
-            initializer=_close_inherited_scapy_sockets)
+            target=_forked_target, args=(Run.run_normal_mode, [interface, "a", ip_mode, duration, csv_lock]))
         passive_scan = multiprocessing.Process(
-            target=Run.run_normal_mode, args=[interface, "p", ip_mode, duration, csv_lock],
-            initializer=_close_inherited_scapy_sockets)
+            target=_forked_target, args=(Run.run_normal_mode, [interface, "p", ip_mode, duration, csv_lock]))
 
         # Multicast helpers
         multicast_ipv6_responder = None
@@ -601,24 +603,22 @@ class Run:
         if ip_mode.ipv6:
             multicast_ipv6_stop_event = multiprocessing.Event()
             multicast_ipv6_unsubscribe = multiprocessing.Process(
-                target=SendIPv6.send_MLD_done_leave, args=[interface, True],
-                initializer=_close_inherited_scapy_sockets)
+                target=_forked_target, args=(SendIPv6.send_MLD_done_leave, [interface, True]))
             multicast_ipv6_responder = multiprocessing.Process(
-                target=SendIPv6.react_to_mld_queries, args=["a+", interface, duration, multicast_ipv6_stop_event],
-                initializer=_close_inherited_scapy_sockets)
+                target=_forked_target,
+                args=(SendIPv6.react_to_mld_queries, ["a+", interface, duration, multicast_ipv6_stop_event]))
         if ip_mode.ipv4:
             multicast_ipv4_stop_event = multiprocessing.Event()
             multicast_ipv4_unsubscribe = multiprocessing.Process(
-                target=SendIPv4.send_igmp_done_leave, args=[interface, True],
-                initializer=_close_inherited_scapy_sockets)
+                target=_forked_target, args=(SendIPv4.send_igmp_done_leave, [interface, True]))
             multicast_ipv4_responder = multiprocessing.Process(
-                target=SendIPv4.react_to_igmp_queries, args=["a+", interface, duration, multicast_ipv4_stop_event],
-                initializer=_close_inherited_scapy_sockets)
+                target=_forked_target,
+                args=(SendIPv4.react_to_igmp_queries, ["a+", interface, duration, multicast_ipv4_stop_event]))
 
         # Cleanup jobs
-        flush_router_flag_from_cache = multiprocessing.Process(target=SendIPv6.send_NA,
-            args=[interface, source_mac, None, source_ip, "ff02::1", 0, 0, 1],
-            initializer=_close_inherited_scapy_sockets)
+        flush_router_flag_from_cache = multiprocessing.Process(
+            target=_forked_target,
+            args=(SendIPv6.send_NA, [interface, source_mac, None, source_ip, "ff02::1", 0, 0, 1]))
 
         # Force multicast joins for aggressive mode, then keep responders running.
         if ip_mode.ipv6:
