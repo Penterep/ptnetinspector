@@ -62,7 +62,7 @@ class SendIPv4:
                 pkt.append(PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, src_ip, query))
                 pkt.append(PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1))
                 # Send the mDNS packet
-                ans, uans = srp(pkt, multi=True, timeout=0.3, iface=interface, verbose=False)
+                ans, uans = srp(pkt, timeout=0.3, iface=interface, verbose=False)
                 if ans:
                     try:
                         rdata = ans[0][1][DNS].an[0].rdata
