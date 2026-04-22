@@ -8,9 +8,9 @@ import ipaddress
 import csv
 import socket
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import List
+import warnings
 
 from scapy.all import *
 from scapy.layers.eap import EAPOL
@@ -56,7 +56,6 @@ class Send:
             ip_mode (IPMode): Enabled IP versions (IPv4/IPv6).
         """
         csv_file = get_csv_path('addresses.csv')
-        targets = []
         with open(csv_file, newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
@@ -70,29 +69,21 @@ class Send:
                         or is_global_unicast_ipv6(ip_address)
                         or is_ipv6_ula(ip_address)
                     ):
-                        targets.append(("ipv6", ip_address))
+                        try:
+                            SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
+                        except Exception as ex:
+                            warnings.warn(f"IPv6 reverse lookup failed for {ip_address}: {ex}")
                 elif ip_mode.ipv4:
                     try:
                         ipv4_address = ipaddress.IPv4Address(ip_address)
                         if ipv4_address.is_link_local or ipv4_address.is_unspecified:
                             continue
-                        targets.append(("ipv4", ip_address))
+                        try:
+                            SendIPv4.IPv4_test_mdns_llmnr(ip_address, interface)
+                        except Exception as ex:
+                            warnings.warn(f"IPv4 reverse lookup failed for {ip_address}: {ex}")
                     except ipaddress.AddressValueError:
                         continue
-
-        # Parallel reverse lookups — max 5 concurrent (raw socket + AsyncSniffer safety margin)
-        with ThreadPoolExecutor(max_workers=5) as pool:
-            futures = [
-                pool.submit(SendIPv6.IPv6_test_mdns_llmnr, addr, interface)
-                if proto == "ipv6"
-                else pool.submit(SendIPv4.IPv4_test_mdns_llmnr, addr, interface)
-                for proto, addr in targets
-            ]
-            for f in as_completed(futures):
-                try:
-                    f.result()
-                except Exception:
-                    pass
 
     @staticmethod
     def probe_gateways(interface: str, ip_mode: IPMode) -> None:
