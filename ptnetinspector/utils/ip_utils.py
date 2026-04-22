@@ -180,39 +180,31 @@ def is_ipv6_predictable(ip: str, mac: str) -> bool:
     if check_eui64(ip, mac):
         return True
 
-    zero_sequences = ip.split(':')
-    zero_count = sum(1 for part in zero_sequences if part == '' or part == '0000')
-    if zero_count >= 4:
-        return True
+    try:
+        ipv6_int = int(ipaddress.IPv6Address(ip))
+    except ipaddress.AddressValueError:
+        return False
 
-    if "::" in ip:
-        double_colon_count = ip.count("::")
-        if double_colon_count == 1:
-            expanded_zero_count = 8 - len([part for part in zero_sequences if part])
-            if expanded_zero_count >= 4:
-                return True
-
-    octet_count = {}
-    for part in zero_sequences:
-        if part and part != '0000':
-            octet_count[part] = octet_count.get(part, 0) + 1
-            if octet_count[part] >= 4:
-                return True
-
-    predictable_patterns_last_octet = [
-        "::1", "::2", "::3", "::4", "::5", "::6", "::7", "::8", "::9", "::a", "::b", "::c", "::d", "::e", "::f"
-    ]
-    predictable_patterns_anywhere = [
-        "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999",
-        "aaaa", "bbbb", "cccc", "dddd", "eeee", "ffff"
+    # Evaluate only the lower 64 bits (interface identifier).
+    lower_64 = ipv6_int & ((1 << 64) - 1)
+    lower_hextets = [
+        (lower_64 >> 48) & 0xFFFF,
+        (lower_64 >> 32) & 0xFFFF,
+        (lower_64 >> 16) & 0xFFFF,
+        lower_64 & 0xFFFF,
     ]
 
-    if any(ip.lower().endswith(pattern) for pattern in predictable_patterns_last_octet):
+    def has_at_most_one_nonzero_nibble(hextet: int) -> bool:
+        return sum(1 for shift in (0, 4, 8, 12) if ((hextet >> shift) & 0xF) != 0) <= 1
+
+    # Predictable if each lower hextet has at most one non-zero nibble.
+    # Examples: 0000, 0001, 0010, 0100, 1000, 00a0, ...
+    if all(has_at_most_one_nonzero_nibble(hextet) for hextet in lower_hextets):
         return True
 
-    for pattern in predictable_patterns_anywhere:
-        if ip.lower().count(pattern) >= 3:
-            return True
+    # Predictable if only the last byte may be non-zero (IID in range ::0..::ff).
+    if (lower_64 >> 8) == 0:
+        return True
 
     return False
 

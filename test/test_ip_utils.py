@@ -12,6 +12,7 @@ from ptnetinspector.utils.ip_utils import (
     is_valid_integer,
     is_valid_MTU,
     check_ipv6_addresses_generated_from_prefix,
+    is_ipv6_predictable,
 )
 
 
@@ -98,6 +99,25 @@ class TestMACValidation:
         assert is_valid_mac("not-a-mac") is False
         assert is_valid_mac(None) is False
         assert is_valid_mac("") is False
+
+
+class TestIPv6Predictable:
+    """Test predictable IPv6 detection rules."""
+
+    def test_detects_eui64(self):
+        assert is_ipv6_predictable("2000:6675:7272:7900:0211:22ff:fe33:4455", "00:11:22:33:44:55") is True
+
+    def test_detects_one_nonzero_nibble_per_lower_hextet(self):
+        assert is_ipv6_predictable("2000:6675:7272:7900:1000:0200:000f:0000", "00:00:00:00:00:00") is True
+
+    def test_detects_only_last_byte_nonzero(self):
+        assert is_ipv6_predictable("2000:6675:7272:7900::ff", "00:00:00:00:00:00") is True
+
+    def test_rejects_repeated_simple_pattern(self):
+        assert is_ipv6_predictable("2000:6675:7272:7900::1111:1111:1111:1111", "00:00:00:00:00:00") is False
+
+    def test_rejects_multiple_nonzero_nibbles_and_not_last_byte_only(self):
+        assert is_ipv6_predictable("2000:6675:7272:7900:00f1:0000:0000:0000", "00:00:00:00:00:00") is False
 
 
 class TestNumericValidation:
