@@ -750,7 +750,7 @@ class SendIPv6:
             None
         """
         send_ipv6_from_all_lla_addresses(interface,
-            PrototypeIPv6Packet.get_l3payload_dhcpv6_solicit(get_if_hwaddr(interface)), dst_ip=PrototypeIPv6Packet.DHCPV6_ALL_SERVERS_MULTICAST_IP)
+            PrototypeIPv6Packet.get_l3payload_dhcpv6_solicit(get_if_hwaddr(interface)), dst_ip=PrototypeIPv6Packet.DHCPV6_IPV6_MULTICAST_IPS)
         
     def react_to_mld_queries(mode: str, interface: str, duration: float|None, stop_event=None) -> None:
         """
