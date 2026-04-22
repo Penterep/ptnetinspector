@@ -25,6 +25,7 @@ from ptnetinspector.utils.ip_utils import reverse_IPadd
 from ptnetinspector.prototype.prototype_ipv6 import PrototypeIPv6Packet, MLDV2_RType
 from ptnetinspector.prototype.prototype_l4 import PrototypeL4
 from ptnetinspector.utils.ip_utils import send_ipv6_all_nodes_multicast, send_ipv6_all_routers_multicast, send_ipv6_from_all_addresses, send_ipv6_from_all_lla_addresses
+from ptnetinspector.send._scapy_io import SCAPY_IO_LOCK
 
 class SendIPv6:
     __icmpv6_echo_request_sequence_number = 1
@@ -167,7 +168,8 @@ class SendIPv6:
                 pkt = []
                 pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query))
                 pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1))
-                ans, uans = srp(pkt, timeout=0.3, iface=interface, verbose=False)
+                with SCAPY_IO_LOCK:
+                    ans, uans = srp(pkt, timeout=0.3, iface=interface, verbose=False, threaded=False)
                 if ans:
                     try:
                         rdata = ans[0][1][DNS].an[0].rdata
@@ -605,7 +607,8 @@ class SendIPv6:
                 src_mac = get_if_hwaddr(interface)   
                 pkt = PrototypeIPv6Packet.get_frame_ns(src_mac, address)
                 if wait_for_rsp:
-                    return srp(pkt * 2, iface=interface, verbose=0, timeout=rsp_timeout)[0]
+                    with SCAPY_IO_LOCK:
+                        return srp(pkt * 2, iface=interface, verbose=0, timeout=rsp_timeout, threaded=False)[0]
                 sendp(pkt * 2, verbose=0, iface=interface)
 
     @staticmethod

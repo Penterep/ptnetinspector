@@ -26,6 +26,7 @@ from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.mdns import MDNS
 from ptnetinspector.entities.llmnr import LLMNR
 from ptnetinspector.utils.ip_utils import reverse_IPadd
+from ptnetinspector.send._scapy_io import SCAPY_IO_LOCK
 
 
 class ICMPType(Enum):
@@ -62,7 +63,8 @@ class SendIPv4:
                 pkt.append(PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, src_ip, query))
                 pkt.append(PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1))
                 # Send the mDNS packet
-                ans, uans = srp(pkt, timeout=0.3, iface=interface, verbose=False)
+                with SCAPY_IO_LOCK:
+                    ans, uans = srp(pkt, timeout=0.3, iface=interface, verbose=False, threaded=False)
                 if ans:
                     try:
                         rdata = ans[0][1][DNS].an[0].rdata
@@ -158,7 +160,8 @@ class SendIPv4:
         try:
             pkt = PrototypeIPv4Packet.get_frame_arp(address)
             if wait_for_rsp:
-                return srp(pkt, iface=interface, verbose=0, timeout=rsp_timeout)[0]
+                with SCAPY_IO_LOCK:
+                    return srp(pkt, iface=interface, verbose=0, timeout=rsp_timeout, threaded=False)[0]
             sendp(pkt, verbose=0, iface=interface)
         except Exception:
             pass
