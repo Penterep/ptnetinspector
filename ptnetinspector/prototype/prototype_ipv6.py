@@ -574,7 +574,7 @@ class PrototypeIPv6Packet:
     @staticmethod
     def get_frame_wsdiscovery(src_mac: str|list[str]|None, src_ip: str|list[str]|None, message_id: str|None = None) -> Packet:
         return (Ether(src=src_mac) /
-                IPv6(src=src_ip, dst=PrototypeIPv6Packet.WS_DISCOVERY_IPV6_MULTICAST_IP, hlim=1) /
+                IPv6(src=src_ip, dst=PrototypeIPv6Packet.WS_DISCOVERY_LINK_LOCAL_IPV6_MULTICAST_IP, hlim=1) /
                 PrototypeL4.get_l3payload_wsdiscovery(message_id))
 
     @staticmethod
