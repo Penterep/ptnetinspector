@@ -226,7 +226,7 @@ class Save:
                         Remote_node(packet[0].src, packet[0][1].src, packet[0].dst, packet[0][1].dst).save_remote_node()
 
             if packet is not None and ICMPv6ND_RA in packet:
-                dns, mtu, prefix, valid_lft, preferred_lft = [], [], [], [], []
+                dns, mtu, prefix, valid_lft, preferred_lft = "", "", "", "", ""
                 A_flag, L_flag = "Not exist", "Not exist"
                 if ICMPv6NDOptRDNSS in packet:
                     dns = str(packet[ICMPv6NDOptRDNSS].dns)
