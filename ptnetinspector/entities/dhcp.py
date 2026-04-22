@@ -4,6 +4,7 @@ Supports loading DHCP-related MAC/IP/role tuples from CSV artifacts.
 """
 import csv
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.entities._registry import registry
 
 
 class DHCP:
@@ -35,14 +36,13 @@ class DHCP:
 
     def save_addresses(self) -> None:
         # Exporting addresses to csv files and avoid duplication
+        key = (self.mac, self.ip, self.role)
+        if registry.seen("dhcp", key):
+            return
+
         csv_file = get_csv_path("dhcp.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip and row['Role'] == self.role:
-                    return  # Record already exists in the file 
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP', 'Role']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

@@ -5,6 +5,7 @@ Extends Node with protocol/multicast details and persists to CSV.
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node
+from ptnetinspector.entities._registry import registry
 
 
 class MLDv1(Node):
@@ -16,14 +17,13 @@ class MLDv1(Node):
 
     def save_MLDv1(self) -> None:
         # Function to save MLDv1 information to a CSV file
+        key = (self.mac, self.ip, self.protocol, self.mulip)
+        if registry.seen("mldv1", key):
+            return
+
         csv_file = get_csv_path("MLDv1.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip and row['protocol'] == self.protocol and row['mulip'] == self.mulip:
-                    return  # Record already exists in the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP', 'protocol', 'mulip']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

@@ -6,6 +6,7 @@ import csv
 import subprocess
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.ip_utils import has_additional_data
+from ptnetinspector.entities._registry import registry
 
 
 class Node:
@@ -35,14 +36,13 @@ class Node:
 
     def save_addresses(self) -> None:
         # Exporting addresses to csv files and avoid duplication
+        key = (self.mac, self.ip)
+        if registry.seen("node_addresses", key):
+            return
+
         csv_file = get_csv_path("packets.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['src MAC'] == self.mac and row['source IP'] == self.ip:
-                    return  # Record already exists in the file 
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['time', 'src MAC', 'des MAC', 'source IP', 'destination IP', 'protocol', 'length']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -53,14 +53,13 @@ class Node:
     @staticmethod
     def save_local_name(mac, local_name) -> None:
         # Function to save local names from mdns and llmnr to a CSV file
+        key = (mac, local_name)
+        if registry.seen("node_local_name", key):
+            return
+
         csv_file = get_csv_path("localname.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == mac and row['name'] == local_name:
-                    return  # Record already exists in the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'name']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -70,14 +69,13 @@ class Node:
 
     @staticmethod
     def save_ipv6_routing_table(Destination: str, Nexthop: str, Flag: str, Metric: str, Refcnt: str, Use: str, If: str) -> None:
+        key = (Destination, Nexthop, Flag, Metric, Refcnt, Use, If)
+        if registry.seen("node_ipv6_route", key):
+            return
+
         csv_file = get_csv_path("ipv6_route_table.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.reader(csvfile):
-                if row and row == [Destination, Nexthop, Flag, Metric, Refcnt, Use, If]:
-                    return  # Record already exists in the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['Destination', 'Nexthop', 'Flag', 'Metric', 'Refcnt', 'Use', 'If']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -92,14 +90,13 @@ class Node:
 
     @staticmethod
     def save_ipv4_routing_table(Destination: str, Gateway: str, Genmask: str, Flags: str, Metric: str, Ref: str, Use: str, Iface: str) -> None:
+        key = (Destination, Gateway, Genmask, Flags, Metric, Ref, Use, Iface)
+        if registry.seen("node_ipv4_route", key):
+            return
+
         csv_file = get_csv_path("ipv4_route_table.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)
-            for row in csv.reader(csvfile):
-                if row and row == [Destination, Gateway, Genmask, Flags, Metric, Ref, Use, Iface]:
-                    return
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['Destination', 'Gateway', 'Genmask', 'Flags', 'Metric', 'Ref', 'Use', 'Iface']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

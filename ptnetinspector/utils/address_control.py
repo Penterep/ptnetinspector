@@ -97,6 +97,8 @@ class AddressValidator:
     def __init__(self, interface: str):
         self.interface = interface
         self.timeout = 0.5
+        # Bound the number of concurrent probe operations to avoid flooding.
+        self.max_concurrency = 16
 
     def verify_ipv4_mapping(self, mapping: AddressMapping) -> bool:
         arp_request = (Ether(src=get_if_hwaddr(self.interface), dst=mapping.mac) /
@@ -126,7 +128,9 @@ class AddressValidator:
     async def verify_mapping(self, mapping: AddressMapping) -> bool:
         try:
             ip = ipaddress.ip_address(mapping.ip)
-            return self.verify_ipv4_mapping(mapping) if isinstance(ip, ipaddress.IPv4Address) else self.verify_ipv6_mapping(mapping)
+            if isinstance(ip, ipaddress.IPv4Address):
+                return await asyncio.to_thread(self.verify_ipv4_mapping, mapping)
+            return await asyncio.to_thread(self.verify_ipv6_mapping, mapping)
         except ValueError:
             return False
 
@@ -135,7 +139,13 @@ class AddressValidator:
             ptprinthelper.ptprint(f"Could not validate IPv6 addresses. No IPv6 address on interface {self.interface}", "ERROR")
             mappings = [mapping for mapping in mappings if not isinstance(ipaddress.ip_address(mapping.ip), ipaddress.IPv6Address)]
 
-        tasks = [asyncio.create_task(self.verify_mapping(mapping)) for mapping in mappings]
+        semaphore = asyncio.Semaphore(self.max_concurrency)
+
+        async def verify_with_limit(mapping: AddressMapping) -> bool:
+            async with semaphore:
+                return await self.verify_mapping(mapping)
+
+        tasks = [asyncio.create_task(verify_with_limit(mapping)) for mapping in mappings]
         results = await asyncio.gather(*tasks)
 
         return [mapping for mapping, result in zip(mappings, results) if result]

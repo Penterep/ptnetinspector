@@ -384,6 +384,7 @@ def main():
         dns,
         target_codes=set(target_codes) if target_codes else None,
         target_macs=set(target_macs) if target_macs else None,
+        sip=sip,
     )
 
     json_output_path = get_tmp_path(interface) / "ptnetinspector-output.json"

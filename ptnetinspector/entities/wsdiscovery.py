@@ -9,6 +9,7 @@ import socket
 from urllib.parse import urlparse
 from scapy.packet import Raw
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.entities._registry import registry
 
 
 def parse_wsdiscovery(packet: bytes) -> list:
@@ -74,14 +75,13 @@ class WSDiscovery:
         WSDiscovery.all_nodes.append(self)
 
     def save_addresses(self) -> None:
+        key = (self.mac, self.ip)
+        if registry.seen("wsdiscovery", key):
+            return
+
         csv_file = get_csv_path("wsdiscovery.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip:
-                    return
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

@@ -10,6 +10,7 @@ import socket
 import pandas as pd
 import numpy as np
 from scapy.all import get_if_hwaddr
+from ptnetinspector.entities._registry import registry as entity_registry
 from ptnetinspector.utils.path import get_csv_path, get_tmp_path
 
 
@@ -24,6 +25,7 @@ def create_csv(interface: str | None = None) -> None:
         None
     """
     directory = get_tmp_path(interface)
+    entity_registry.clear()
     with open(f"{directory}/addresses.csv", 'w', newline='') as csvfile:
         fieldnames = ['MAC', 'IP']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)

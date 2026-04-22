@@ -5,6 +5,7 @@ Captures src/dst MAC/IP tuples for flows and loads from CSV.
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node
+from ptnetinspector.entities._registry import registry
 
 
 class Remote_node(Node):
@@ -37,14 +38,13 @@ class Remote_node(Node):
 
     def save_remote_node(self) -> None:
         # Exporting addresses to csv files and avoid duplication
+        key = (self.smac, self.sip, self.dmac, self.dip)
+        if registry.seen("remote_node", key):
+            return
+
         csv_file = get_csv_path("remote_node.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['src MAC'] == self.smac and row['src IP'] == self.sip and row['dst MAC'] == self.dmac and row['dst IP'] == self.dip:
-                    return  # Record already exists in the file 
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['src MAC', 'dst MAC', 'src IP', 'dst IP']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

@@ -4,6 +4,7 @@ Provides persistence helpers to record default gateway MAC/IP pairs into CSV.
 """
 import csv
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.entities._registry import registry
 
 
 class DefaultGateway:
@@ -15,14 +16,13 @@ class DefaultGateway:
         DefaultGateway.all_nodes.append(self)
 
     def save_addresses(self) -> None:
+        key = (self.mac, self.ip)
+        if registry.seen("default_gw", key):
+            return
+
         csv_file = get_csv_path("default_gw.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip:
-                    return
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

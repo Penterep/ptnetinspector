@@ -4,6 +4,7 @@ Used for time-based correlation and ordering; persisted to CSV.
 """
 import csv
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.entities._registry import registry
 
 
 class Time:
@@ -19,11 +20,13 @@ class Time:
 
     def save_time(self) -> None:
         # Function to save time and packet to a CSV file
+        key = (self.time, self.MAC, self.packet)
+        if registry.seen("time_all", key):
+            return
+
         csv_file = get_csv_path("time_all.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['time', 'MAC', 'packet']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -34,11 +37,13 @@ class Time:
 
     def save_time_incoming(self) -> None:
         # Function to save time and packet to a CSV file
+        key = (self.time, self.MAC, self.packet)
+        if registry.seen("time_incoming", key):
+            return
+
         csv_file = get_csv_path("time_incoming.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['time', 'MAC', 'packet']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -49,11 +54,13 @@ class Time:
 
     def save_time_outgoing(self) -> None:
         # Function to save time and packet to a CSV file
+        key = (self.time, self.MAC, self.packet)
+        if registry.seen("time_outgoing", key):
+            return
+
         csv_file = get_csv_path("time_outgoing.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['time', 'MAC', 'packet']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -65,11 +72,13 @@ class Time:
     @staticmethod
     def save_start_end(time: str) -> None:
         # Function to save time and packet to a CSV file
+        key = (time,)
+        if registry.seen("time_start_end", key):
+            return
+
         csv_file = get_csv_path("start_end_mode.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['time']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

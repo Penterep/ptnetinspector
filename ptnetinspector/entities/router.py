@@ -5,6 +5,7 @@ Persists RA fields per router into CSV for later analysis/output.
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node
+from ptnetinspector.entities._registry import registry
 
 
 class Router(Node):
@@ -66,27 +67,23 @@ class Router(Node):
     @staticmethod
     def save_router_address(mac: str) -> None:
         # Function to save router MAC address to a CSV file
+        key = (mac,)
+        if registry.seen("router_mac", key):
+            return
+
         csv_file = get_csv_path("routers.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)
-            # Check if the IP and MAC addresses already exist in the file
-            for row in csv.DictReader(csvfile):
-                if row['MAC'] == mac:
-                    return  # MAC already exist, no need to save
-
-            # IP and MAC not found, save them to the file
+        with open(csv_file, 'a', newline='') as csvfile:
             csv.writer(csvfile).writerow([mac])
 
     def save_RA(self) -> None:
+        key = (self.mac, self.ip, self.M, self.O, self.A, self.Preference, self.Prefix)
+        if registry.seen("router_ra", key):
+            return
+
         csv_file = get_csv_path("RA.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip and row['M'] == self.M and row['O'] == self.O and row['A'] == self.A and row['Preference'] == self.Preference and row['Prefix'] == self.Prefix:
-                    return  # Record already exists in the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP', 'M', 'O', 'H', 'A', 'L', 'Preference', 'Router_lft', 'Reachable_time',
                         'Retrans_time', 'DNS', 'MTU', 'Prefix', 'Valid_lft', 'Preferred_lft']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)

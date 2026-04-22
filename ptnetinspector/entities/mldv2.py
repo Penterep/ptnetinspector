@@ -5,6 +5,7 @@ Extends Node with report type, multicast and source list, persisted to CSV.
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node
+from ptnetinspector.entities._registry import registry
 
 
 class MLDv2(Node):
@@ -18,14 +19,13 @@ class MLDv2(Node):
 
     def save_MLDv2(self) -> None:
         # Function to save MLDv2 information to a CSV file
+        key = (self.mac, self.ip, self.protocol, self.rtype, self.mulip, self.sources)
+        if registry.seen("mldv2", key):
+            return
+
         csv_file = get_csv_path("MLDv2.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip and row['protocol'] == self.protocol and row['rtype'] == self.rtype and row['mulip'] == self.mulip and row['sources'] == self.sources:
-                    return  # Record already exists in the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP', 'protocol', 'rtype', 'mulip', 'sources']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

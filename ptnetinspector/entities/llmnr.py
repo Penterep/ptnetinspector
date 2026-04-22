@@ -5,6 +5,7 @@ Persists observed MAC/IP pairs responding to LLMNR into CSV.
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node
+from ptnetinspector.entities._registry import registry
 
 
 class LLMNR(Node):
@@ -14,14 +15,13 @@ class LLMNR(Node):
 
     def save_LLMNR(self) -> None:
         # Function to save LLMNR IP address to a CSV file
+        key = (self.mac, self.ip)
+        if registry.seen("llmnr", key):
+            return
+
         csv_file = get_csv_path("LLMNR.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip:
-                    return  # Record already exists in the file
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

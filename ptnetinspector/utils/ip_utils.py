@@ -720,11 +720,12 @@ def send_ipv6_from_all_addresses(interface: str, payload: Packet, dst_ip: str, d
     """
     packets = None
     ips = []
-    exist_interface = Interface(interface).check_interface()
+    iface = Interface(interface)
+    exist_interface = iface.check_interface()
     if exist_interface:
-        avail_ipv6 = Interface(interface).check_available_ipv6
+        avail_ipv6 = iface.check_available_ipv6()
         if avail_ipv6:
-            ip_addresses = Interface(interface).get_interface_ips()
+            ip_addresses = iface.get_interface_ips()
             src_mac = get_if_hwaddr(interface)
             for ip in ip_addresses:
                 try:
@@ -774,11 +775,12 @@ def send_ipv6_from_all_lla_addresses(interface: str, payload: Packet, dst_ip: st
         list[Packet]: The list of packets sent.
     """
     packets = None
-    exist_interface = Interface(interface).check_interface()
+    iface = Interface(interface)
+    exist_interface = iface.check_interface()
     if exist_interface:
-        avail_ipv6 = Interface(interface).check_available_ipv6
+        avail_ipv6 = iface.check_available_ipv6()
         if avail_ipv6:
-            ip_addresses = Interface(interface).get_interface_link_local_list()
+            ip_addresses = iface.get_interface_link_local_list()
             src_mac = get_if_hwaddr(interface)
             pkt = (Ether(src=src_mac, dst=dst_mac) /
                 IPv6(src=ip_addresses, dst=dst_ip) /

@@ -8,6 +8,7 @@ import ipaddress
 import csv
 import socket
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import List
 
@@ -55,40 +56,43 @@ class Send:
             ip_mode (IPMode): Enabled IP versions (IPv4/IPv6).
         """
         csv_file = get_csv_path('addresses.csv')
+        targets = []
         with open(csv_file, newline='') as csvfile:
-            # Create a CSV reader object
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
-
-            # Loop over each row in the CSV file
             for row in reader:
-
                 if len(row) < 2:  # Avoid the situation like this [':fffb:8']
                     continue
                 ip_address = row[1]
-
                 if is_valid_ipv6(ip_address) and ip_mode.ipv6:
-                    if is_link_local_ipv6(ip_address):
-                        SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
-
-                    elif is_global_unicast_ipv6(ip_address):
-                        SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
-
-                    elif is_ipv6_ula(ip_address):
-                        SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
-
+                    if (
+                        is_link_local_ipv6(ip_address)
+                        or is_global_unicast_ipv6(ip_address)
+                        or is_ipv6_ula(ip_address)
+                    ):
+                        targets.append(("ipv6", ip_address))
                 elif ip_mode.ipv4:
                     try:
                         ipv4_address = ipaddress.IPv4Address(ip_address)
-
-                        if ipv4_address.is_link_local:
+                        if ipv4_address.is_link_local or ipv4_address.is_unspecified:
                             continue
-                        elif ipv4_address.is_unspecified:
-                            continue
-                        else:
-                            SendIPv4.IPv4_test_mdns_llmnr(ip_address, interface)
+                        targets.append(("ipv4", ip_address))
                     except ipaddress.AddressValueError:
                         continue
+
+        # Parallel reverse lookups — max 5 concurrent (raw socket + AsyncSniffer safety margin)
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            futures = [
+                pool.submit(SendIPv6.IPv6_test_mdns_llmnr, addr, interface)
+                if proto == "ipv6"
+                else pool.submit(SendIPv4.IPv4_test_mdns_llmnr, addr, interface)
+                for proto, addr in targets
+            ]
+            for f in as_completed(futures):
+                try:
+                    f.result()
+                except Exception:
+                    pass
 
     @staticmethod
     def probe_gateways(interface: str, ip_mode: IPMode) -> None:

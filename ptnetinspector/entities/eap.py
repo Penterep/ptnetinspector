@@ -4,6 +4,7 @@ Handles persistence of EAP observations in CSV form.
 """
 import csv
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.entities._registry import registry
 
 
 class EAP:
@@ -17,14 +18,13 @@ class EAP:
 
     def save_eap(self) -> None:
         # Function to save EAP to a CSV file
+        key = (self.mac, self.packet)
+        if registry.seen("eap", key):
+            return
+
         csv_file = get_csv_path("eap.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['packet'] == self.packet:
-                    return  # Record already exists in the file 
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'packet']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({

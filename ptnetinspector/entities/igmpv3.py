@@ -5,6 +5,7 @@ Extends Node with report type, multicast and source list, persisted to CSV.
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node
+from ptnetinspector.entities._registry import registry
 
 
 class IGMPv3(Node):
@@ -16,14 +17,13 @@ class IGMPv3(Node):
         self.sources = sources
 
     def save(self) -> None:
+        key = (self.mac, self.ip, self.protocol, self.rtype, self.mulip, self.sources)
+        if registry.seen("igmpv3", key):
+            return
+
         csv_file = get_csv_path("IGMPv3.csv")
 
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip and row['protocol'] == self.protocol and row['rtype'] == self.rtype and row['mulip'] == self.mulip and row['sources'] == self.sources:
-                    return
-
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP', 'protocol', 'rtype', 'mulip', 'sources']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
