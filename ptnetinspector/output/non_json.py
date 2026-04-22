@@ -33,6 +33,31 @@ class Non_json:
         return preferred
 
     @staticmethod
+    def _collect_target_device_vuln_codes(vuln_df: pd.DataFrame, target_macs_set: set[str] | None) -> set[str]:
+        """Collect device vulnerability codes for selected target MACs, including mapped NET codes."""
+        target_device_vuln_codes = set()
+        if target_macs_set is None:
+            return target_device_vuln_codes
+
+        device_vulns = vuln_df[vuln_df['MAC'].str.upper().isin(target_macs_set)]
+        for _, dev_vuln_row in device_vulns.iterrows():
+            dev_code = str(dev_vuln_row.get('Code', '')).strip().upper()
+            if not dev_code:
+                continue
+            if dev_code.endswith('DEV'):
+                target_device_vuln_codes.add(dev_code[:-3])
+            target_device_vuln_codes.add(dev_code)
+        return target_device_vuln_codes
+
+    @staticmethod
+    def _is_correlated_network_vuln(code: str, target_device_vuln_codes: set[str]) -> bool:
+        """Return True if network vulnerability code correlates with selected device vulnerability codes."""
+        code_upper = str(code).strip().upper()
+        if not code_upper or not target_device_vuln_codes:
+            return False
+        return any(code_upper in tcode or tcode in code_upper for tcode in target_device_vuln_codes)
+
+    @staticmethod
     def print_box(string: str) -> None:
         """
         Print a highlighted heading without box characters.
@@ -150,8 +175,7 @@ class Non_json:
                         if not (mac_match or ip_match):
                             continue
                         if code.endswith('DEV'):
-                            net_code = code[:-3]
-                            target_device_vuln_codes.add(net_code)
+                            target_device_vuln_codes.add(code[:-3])
                         target_device_vuln_codes.add(code)
 
                     # Do not filter out network vulnerabilities when target MACs are specified
@@ -204,7 +228,7 @@ class Non_json:
                     if has_target_filter:
                         if not target_device_vuln_codes:
                             continue
-                        if not any(code in tcode or tcode in code for tcode in target_device_vuln_codes):
+                        if not Non_json._is_correlated_network_vuln(code, target_device_vuln_codes):
                             continue
 
                     ipver_value = row.get('IPver', '').strip()
@@ -452,16 +476,7 @@ class Non_json:
                 net_vulns = vuln_net_df[vuln_net_df['ID'] == "Network"]
 
                 # If target MACs specified, collect device vulnerabilities to correlate with network vulns
-                target_device_vuln_codes = set()
-                if target_macs_set:
-                    device_vulns = vuln_df[vuln_df['MAC'].str.upper().isin(target_macs_set)]
-                    for _, dev_vuln_row in device_vulns.iterrows():
-                        dev_code = dev_vuln_row.get('Code', '').strip().upper()
-                        # Map device vuln code to its network counterpart (e.g., MLDV1DEV -> MLDV1)
-                        if dev_code.endswith('DEV'):
-                            net_code = dev_code[:-3]  # Remove 'DEV' suffix
-                            target_device_vuln_codes.add(net_code)
-                        target_device_vuln_codes.add(dev_code)
+                target_device_vuln_codes = Non_json._collect_target_device_vuln_codes(vuln_df, target_macs_set)
 
                 # Collect network vulnerabilities matching criteria
                 network_vuln_results = []
@@ -736,16 +751,7 @@ class Non_json:
                         network_vulns = pd.DataFrame()
 
                     # If target MACs specified, collect device vulnerabilities to correlate with network vulns
-                    target_device_vuln_codes = set()
-                    if target_macs_set:
-                        device_vulns = vuln_df[vuln_df['MAC'].str.upper().isin(target_macs_set)]
-                        for _, dev_vuln_row in device_vulns.iterrows():
-                            dev_code = dev_vuln_row.get('Code', '').strip().upper()
-                            # Map device vuln code to its network counterpart (e.g., MLDV1DEV -> MLDV1)
-                            if dev_code.endswith('DEV'):
-                                net_code = dev_code[:-3]  # Remove 'DEV' suffix
-                                target_device_vuln_codes.add(net_code)
-                            target_device_vuln_codes.add(dev_code)
+                    target_device_vuln_codes = Non_json._collect_target_device_vuln_codes(vuln_df, target_macs_set)
 
                     if not has_target_filter:
                         for _, vuln_row in network_vulns.iterrows():
@@ -756,9 +762,8 @@ class Non_json:
 
                             # If target MACs specified, only show network vulns related to target device vulns
                             if target_macs_set:
-                                code_upper = code.strip().upper()
                                 # Check if this network vuln correlates with any target device vuln
-                                if not any(code_upper in tcode or tcode in code_upper for tcode in target_device_vuln_codes):
+                                if not Non_json._is_correlated_network_vuln(code, target_device_vuln_codes):
                                     continue
 
                             short_code = extract_short_code(code)
