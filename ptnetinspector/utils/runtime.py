@@ -687,7 +687,14 @@ def handle_output(
         return
 
     if (not json_output) or more_detail:
-        Non_json.output_general(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs, target_ips=target_ips)
+        Non_json.output_general(
+            scan_type,
+            ip_mode,
+            check_addresses=check_addresses,
+            target_codes=target_codes,
+            target_macs=target_macs,
+            target_ips=target_ips,
+        )
         Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs, target_ips=target_ips)
 
         if more_detail:
@@ -696,7 +703,15 @@ def handle_output(
             if check_addresses:
                 Non_json.print_box("Unfiltered found addresses")
                 addr_file = get_csv_path_fn("addresses_unfiltered.csv")
-                Non_json.output_general(scan_type, ip_mode, addr_file, target_codes=target_codes, target_macs=target_macs, target_ips=target_ips)
+                Non_json.output_general(
+                    scan_type,
+                    ip_mode,
+                    addr_file,
+                    check_addresses=check_addresses,
+                    target_codes=target_codes,
+                    target_macs=target_macs,
+                    target_ips=target_ips,
+                )
 
             output_protocols(scan_type, protocols_basic, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs, target_ips)
 

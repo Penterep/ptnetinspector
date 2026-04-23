@@ -408,6 +408,7 @@ class Non_json:
         mode: str,
         ipver: IPMode,
         addresses_file_name: str = None,
+        check_addresses: bool = True,
         target_codes: set[str] | None = None,
         target_macs: set[str] | None = None,
         target_ips: set[str] | None = None,
@@ -419,6 +420,7 @@ class Non_json:
             mode (str): Scan mode.
             ipver (IPMode): Enabled IP versions.
             addresses_file_name (str): Path to addresses CSV file.
+            check_addresses (bool): True when address validation is enabled (default behavior without -nc).
             target_codes (set[str] | None): Optional filter for vulnerability codes.
             target_macs (set[str] | None): Optional filter for target MAC addresses.
             target_ips (set[str] | None): Optional filter for target IP addresses.
@@ -608,8 +610,9 @@ class Non_json:
                     for ip in ip_addresses:
                         if ipver.ipv6 and is_valid_ipv6(ip):
                             if is_llsnm_ipv6(ip):
-                                if ip not in list_solicited_ip:
-                                    ptprinthelper.ptprint(f"IPv6  {in6_getansma(ip)} (possible address)", condition=True, indent=8)
+                                # Show unresolved possible addresses only in -nc mode.
+                                if (not check_addresses) and ip not in list_solicited_ip:
+                                    ptprinthelper.ptprint(f"IPv6  {in6_getansma(ip)} (possible address X)", condition=True, indent=8)
                             elif not is_llsnm_ipv6(ip):
                                 if all_ip.count(ip) >= 2:
                                     ptprinthelper.ptprint(f"IPv6  {ip} (duplicated address, probably not owned)", condition=True, indent=8)
