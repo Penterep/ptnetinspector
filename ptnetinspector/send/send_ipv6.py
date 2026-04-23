@@ -856,12 +856,18 @@ def generate_more_possible_IP(interface: str) -> dict | None:
         ip_index = headers.index('IP')
         for row in reader:
             mac = row[mac_index]
-            ip = row[ip_index]
+            ip = row[ip_index].strip()
             if mac == src_mac:
                 continue
             if mac not in mac_ips:
                 mac_ips[mac] = []
                 mac_ips_global_old[mac] = []
+
+            # addresses.csv can naturally contain IPv4 and empty IP values;
+            # these are expected here and should not spam debug output.
+            if not ip or ':' not in ip:
+                continue
+
             try:
                 ip_address = ipaddress.IPv6Address(ip)
                 if ip_address.is_link_local:
