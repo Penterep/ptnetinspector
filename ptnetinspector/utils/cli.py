@@ -88,7 +88,8 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
             ptjsonlib_object.set_status("error", msg_str)
             json_content = ptjsonlib_object.get_result_json()
             json_path.write_text(json_content, encoding="utf-8")
-        except Exception:
+        except Exception as ex:
+            logger.debug("Failed to write JSON error output at %s: %s", json_path, ex)
             pass
         # If not more_detail, remove old txt file; if more_detail, keep both
         if not more_detail:
@@ -96,12 +97,14 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
                 if txt_path.exists():
                     txt_path.unlink()
             except Exception:
+                # Best-effort cleanup of stale text output; safe to ignore failures.
                 pass
         else:
             # Write text file as well when more_detail is True
             try:
                 txt_path.write_text(msg_str + "\n", encoding="utf-8")
-            except Exception:
+            except Exception as ex:
+                logger.debug("Failed to write text error output at %s: %s", txt_path, ex)
                 pass
     else:
         # Remove old JSON file if it exists
@@ -109,11 +112,13 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
             if json_path.exists():
                 json_path.unlink()
         except Exception:
+            # Best-effort cleanup of stale JSON output; safe to ignore failures.
             pass
         # Write text
         try:
             txt_path.write_text(msg_str + "\n", encoding="utf-8")
-        except Exception:
+        except Exception as ex:
+            logger.debug("Failed to write text error output at %s: %s", txt_path, ex)
             pass
 # ============================================================================
 # SECTION 1: ARGUMENT PARSER CLASS & PARSING FUNCTIONS
@@ -154,6 +159,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
                     if i_index + 1 < len(sys.argv):
                         interface = sys.argv[i_index + 1]
                 except (ValueError, IndexError):
+                    # Invalid/missing -i argument while constructing error context.
                     pass
             # Show logo for errors unless -j without -vv
             if not json_output or more_detail:
@@ -179,6 +185,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
                         if i_index + 1 < len(sys.argv):
                             interface = sys.argv[i_index + 1]
                     except (ValueError, IndexError):
+                        # Invalid/missing -i argument while constructing error context.
                         pass
                 # Show logo for errors unless -j without -vv
                 if not json_output or more_detail:
@@ -1064,7 +1071,8 @@ def parameter_control(
     # Ensure tmp path is interface-scoped for any early errors
     try:
         set_current_interface(interface)
-    except Exception:
+    except Exception as ex:
+        logger.debug("Failed to set interface-scoped tmp context for %s: %s", interface, ex)
         pass
 
     _validate_mandatory_args(type, interface, json_output, more_detail, target_codes)

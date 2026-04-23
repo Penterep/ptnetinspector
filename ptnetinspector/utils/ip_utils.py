@@ -538,6 +538,7 @@ def get_status_ip(mac: str, ip: str) -> str:
     try:
         ip_obj = ipaddress.ip_address(ip)
     except ValueError:
+        # Non-IP values are expected here and are treated as unknown status.
         return None
 
     if ip_obj.version == 4:
