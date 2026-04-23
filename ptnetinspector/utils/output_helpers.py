@@ -4,9 +4,13 @@ Centralizes IP filtering, role/code transformation, and other helpers used
 by both output modules to avoid duplication.
 """
 import ipaddress
+import logging
 import pandas as pd
 from ptnetinspector.send.send import IPMode
 from ptnetinspector.utils.ip_utils import is_valid_ipv6
+
+
+logger = logging.getLogger(__name__)
 
 
 def filter_ips_by_mode(df: pd.DataFrame, ipver: IPMode) -> pd.DataFrame:
@@ -29,6 +33,8 @@ def filter_ips_by_mode(df: pd.DataFrame, ipver: IPMode) -> pd.DataFrame:
             ipaddress.IPv4Address(ip)
             return ipver.ipv4
         except (ipaddress.AddressValueError, ValueError, TypeError):
+            # Invalid IP in stored addresses could indicate file corruption; log for debug.
+            logger.debug("Invalid IP value in output filtering: %s (potential CSV corruption)", ip)
             return False
 
     return df[df['IP'].apply(is_allowed)].reset_index(drop=True)

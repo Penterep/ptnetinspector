@@ -8,9 +8,9 @@ import ipaddress
 import csv
 import socket
 import subprocess
+import logging
 from dataclasses import dataclass
 from typing import List
-import warnings
 
 from scapy.all import *
 from scapy.layers.eap import EAPOL
@@ -23,6 +23,8 @@ from ptnetinspector.utils.ip_utils import is_global_unicast_ipv6, is_ipv6_ula, i
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.send.send_ipv4 import SendIPv4
 from ptnetinspector.send.send_ipv6 import SendIPv6
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -72,7 +74,7 @@ class Send:
                         try:
                             SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
                         except Exception as ex:
-                            warnings.warn(f"IPv6 reverse lookup failed for {ip_address}: {ex}")
+                            logger.debug("IPv6 reverse lookup failed for %s: %s", ip_address, ex)
                 elif ip_mode.ipv4:
                     try:
                         ipv4_address = ipaddress.IPv4Address(ip_address)
@@ -81,8 +83,9 @@ class Send:
                         try:
                             SendIPv4.IPv4_test_mdns_llmnr(ip_address, interface)
                         except Exception as ex:
-                            warnings.warn(f"IPv4 reverse lookup failed for {ip_address}: {ex}")
+                            logger.debug("IPv4 reverse lookup failed for %s: %s", ip_address, ex)
                     except ipaddress.AddressValueError:
+                        # Ignore non-IPv4 rows while iterating shared addresses CSV.
                         continue
 
     @staticmethod
@@ -112,10 +115,10 @@ class Send:
                         if ICMPv6ND_NA in packet and ICMPv6NDOptDstLLAddr in packet:
                             if packet[ICMPv6ND_NA].tgt == address:
                                 DefaultGateway(packet[ICMPv6NDOptDstLLAddr].lladdr, address).save_addresses()
-                except:
-                    pass
-            except:
-                pass
+                except Exception as ex:
+                    logger.debug("IPv6 gateway probe failed for %s: %s", address, ex)
+            except Exception as ex:
+                logger.debug("Gateway probe failed for %s: %s", address, ex)
 
     @staticmethod
     def probe_interesting_network_addresses(interface: str, ip_mode: IPMode) -> None:
@@ -142,8 +145,8 @@ class Send:
                     try:
                         network = ipaddress.ip_network(f"{network_prefix}/{prefix_length}", strict=False)
                         networks.append(network)
-                    except:
-                        pass
+                    except Exception as ex:
+                        logger.debug("Skipping invalid network row %s/%s: %s", network_prefix, prefix_length, ex)
 
         if ip_mode.ipv6:
             SendIPv6.probe_ipv6_interesting_addresses(ipaddress.IPv6Network("fe80::/64"), interface)
@@ -231,7 +234,7 @@ def get_gateway_addresses(interface: str, ip_mode: IPMode) -> List[str]:
                     if len(parts) >= 5 and parts[0] == 'default' and parts[1] == 'via':
                         gateway_ip = parts[2]
                         gateways.append(gateway_ip)
-        except subprocess.CalledProcessError:
-            pass
+        except subprocess.CalledProcessError as ex:
+            logger.debug("Failed to read IPv%s route table for %s: %s", ip_version, interface, ex)
 
     return gateways

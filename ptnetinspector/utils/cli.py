@@ -36,6 +36,8 @@ from ptnetinspector.utils.path import get_output_dir, get_tmp_path, set_current_
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog, load_vuln_catalog_by_test
 from ptnetinspector._version import __version__
 
+
+logger = logging.getLogger(__name__)
 ptjsonlib_object = PtJsonLib()
 SCRIPTNAME = "ptnetinspector"
 _LOGO_SHOWN = False
@@ -45,6 +47,11 @@ def _stringify_error(message) -> str:
     if isinstance(message, list):
         return "\n".join(str(m) for m in message)
     return str(message)
+
+
+def _is_more_detail_enabled() -> bool:
+    """Return True when verbose terminal output is enabled (-vv or -vvv)."""
+    return ('-vv' in sys.argv) or ('-vvv' in sys.argv)
 
 
 def _store_error_outputs(message, json_output: bool, interface: str | None = None, more_detail: bool = False) -> None:
@@ -58,6 +65,8 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
             valid_interfaces = netifaces.interfaces()
             interface_is_valid = interface in valid_interfaces
         except Exception:
+            # Interface discovery failed; fall back to generic output directory.
+            logger.debug("Interface discovery failed for %s (falling back to base output dir)", interface)
             pass
 
     # If interface is invalid or None, store in base data directory
@@ -136,7 +145,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
         if "invalid choice:" in message:
             msg = "Invalid choice."
             json_output = '-j' in sys.argv
-            more_detail = '-vv' in sys.argv
+            more_detail = _is_more_detail_enabled()
             # Extract interface from sys.argv if present
             interface = None
             if '-i' in sys.argv:
@@ -161,7 +170,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
             if err in message:
                 msg = "Expected argument after the prefix or the argument is invalid."
                 json_output = '-j' in sys.argv
-                more_detail = '-vv' in sys.argv
+                more_detail = _is_more_detail_enabled()
                 # Extract interface from sys.argv if present
                 interface = None
                 if '-i' in sys.argv:
@@ -196,6 +205,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-j", action="store_true")
     parser.add_argument("-target", dest="targets", nargs="+", action="append", help="target MAC/IP address(es) for results filtering (space-separated; -target can be repeated)")
     parser.add_argument("-vv", action="store_true", default=False)
+    parser.add_argument("-vvv", action="store_true", default=False)
     parser.add_argument("-less", action="store_true", default=False)
     parser.add_argument("-nc", action="store_false", default=True)
     parser.add_argument("-4", dest="ipv4", action="store_true", default=False)
@@ -280,6 +290,7 @@ def get_help() -> list:
             ["-j              ", "Output in JSON format"],
             ["-target         ", "Target MAC/IP address(es) for filtering (space-separated; MAC => device + all IPs, IP => only that address)"],
             ["-vv             ", "Show full details of network scan"],
+            ["-vvv            ", "Show full details plus DEBUG diagnostics"],
             ["-less           ", "Show minimum details of network scan"],
             ["-nc             ", "Do not check if found addresses are valid"],
             ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
@@ -972,6 +983,8 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
 
         if more_detail:
             ptprinthelper.ptprint("Displaying full detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
+            if '-vvv' in sys.argv:
+                ptprinthelper.ptprint("Chatty DEBUG diagnostics enabled (-vvv)", "INFO", condition=True, indent=4)
         if not more_detail:
             ptprinthelper.ptprint("Displaying only basic detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
         if check_addresses:

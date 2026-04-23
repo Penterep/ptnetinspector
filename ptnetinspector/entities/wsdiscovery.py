@@ -5,11 +5,15 @@ Extracts XAddrs/endpoints from WS-Discovery packets and persists results.
 import csv
 import re
 import socket
+import logging
 
 from urllib.parse import urlparse
 from scapy.packet import Raw
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities._registry import registry
+
+
+logger = logging.getLogger(__name__)
 
 
 def parse_wsdiscovery(packet: bytes) -> list:
@@ -54,14 +58,14 @@ def parse_wsdiscovery(packet: bytes) -> list:
                 socket.inet_pton(socket.AF_INET, host)
                 found_addresses.append(host)
                 continue
-            except socket.error:
-                pass
+            except socket.error as ex:
+                logger.debug("WS-Discovery host is not IPv4 (%s): %s", host, ex)
             try:
                 socket.inet_pton(socket.AF_INET6, host)
                 found_addresses.append(host)
                 continue
-            except socket.error:
-                pass
+            except socket.error as ex:
+                logger.debug("WS-Discovery host is not IPv6 (%s): %s", host, ex)
 
     return found_addresses
 

@@ -6,6 +6,7 @@ during scans; used by both passive and active flows.
 import ipaddress
 import asyncio
 import csv
+import logging
 import os
 
 from pathlib import Path
@@ -24,6 +25,9 @@ from ptnetinspector.entities.networks import Networks
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.send.send import IPMode
 from ptnetinspector.utils.path import get_csv_path
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -77,6 +81,8 @@ def filter_unicast_addresses(mappings: List[AddressMapping], ip_mode: IPMode) ->
                    (isinstance(ip, ipaddress.IPv6Address) and (not ipv6_subnets or check_ip_in_subnets(ip, ipv6_subnets))):
                     result.append(mapping)
         except ValueError:
+            # Malformed address in CSV could indicate file corruption; log for debug.
+            logger.debug("Skipping invalid address mapping: MAC=%s, IP=%s (potential CSV corruption)", mapping.mac, mapping.ip)
             continue
 
     return result
@@ -132,6 +138,8 @@ class AddressValidator:
                 return await asyncio.to_thread(self.verify_ipv4_mapping, mapping)
             return await asyncio.to_thread(self.verify_ipv6_mapping, mapping)
         except ValueError:
+            # Invalid address in mapping could indicate file corruption; log for debug.
+            logger.debug("Address verification failed: MAC=%s, IP=%s (invalid format)", mapping.mac, mapping.ip)
             return False
 
     async def verify_all_mappings(self, mappings: List[AddressMapping]) -> List[AddressMapping]:
@@ -173,4 +181,5 @@ def delete_tmp_mapping_file():
         unfiltered_file = csv_file.replace('.csv', '_unfiltered.csv')
         os.remove(unfiltered_file)
     except FileNotFoundError:
+        # Optional file may not exist on first run or after cleanup.
         pass

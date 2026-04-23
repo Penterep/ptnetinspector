@@ -59,6 +59,13 @@ class TestCLIParsing:
         assert args.ipv4 is False
         assert args.ipv6 is True
 
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a', '-i', 'eth0', '-vvv'])
+    def test_parse_args_chatty_debug(self):
+        """Test parsing chatty debug verbosity flag."""
+        args = parse_args()
+        assert args.vvv is True
+        assert args.vv is False
+
     def test_block_and_enable_print(self, capsys):
         """Test blocking and enabling print output."""
         # Test that blockPrint actually blocks output

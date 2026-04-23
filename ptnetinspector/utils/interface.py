@@ -104,6 +104,7 @@ class Interface:
                 if addr.is_global and not addr.is_multicast:
                     list_global.append(ipv6)
             except ipaddress.AddressValueError:
+                # Ignore non-IPv6 entries from mixed interface address lists.
                 pass
         return list_global
 
@@ -150,6 +151,7 @@ class Interface:
                 check=True
             )
         except subprocess.CalledProcessError:
+            # Best-effort configuration; caller may continue with existing addressing.
             pass
 
     def check_status(self) -> str:
@@ -273,6 +275,7 @@ class Interface:
                     stderr=subprocess.DEVNULL
                 )
             except subprocess.CalledProcessError:
+                # Rule may already be absent; continue removing remaining rules.
                 pass
 
         return 'Traffic on interface restored'
@@ -445,4 +448,5 @@ class IptablesRule:
             return rules_exist if (ipv4 or ipv6) else None
 
         except subprocess.CalledProcessError:
+            # Return None on command failure so caller can handle degraded capability.
             return None

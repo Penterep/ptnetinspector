@@ -24,6 +24,7 @@ from ptnetinspector.utils.lock import acquire_global_lock
 from ptnetinspector.utils.runtime import (
     build_run_signature,
     check_interface_status,
+    configure_debug_logging,
     delete_json_output,
     configure_output_flags,
     delete_text_output,
@@ -49,10 +50,14 @@ warnings.filterwarnings("ignore")
 
 ptjsonlib_object = PtJsonLib()
 args = parse_args()
+verbose_output = args.vv or args.vvv
 
 # Display logo at startup unless -j without -vv
 from ptnetinspector.utils.cli import display_logo
-display_logo(args.j, args.vv)
+display_logo(args.j, verbose_output)
+
+# Configure chatty DEBUG diagnostics only for -vvv.
+configure_debug_logging(args.vvv, args.j, verbose_output)
 
 # Validate and process parameters FIRST (before acquiring lock)
 # This ensures invalid parameters cause immediate errors without waiting in queue
@@ -84,7 +89,7 @@ display_logo(args.j, args.vv)
     args.interface,
     args.j,
     args.t,
-    args.vv,
+    verbose_output,
     args.less,
     args.nc,
     args.ipv4,
@@ -461,6 +466,7 @@ def main():
             try:
                 Interface_object.restore_traffic()
             except Exception:
+                # Best-effort restore during interruption; shutdown should continue regardless.
                 pass
         print_message("Scan interrupted by user", "WARNING")
     except Exception as e:
@@ -477,6 +483,7 @@ def main():
             try:
                 Interface_object.restore_traffic()
             except Exception:
+                # Best-effort restore after failure path; keep original exception handling flow.
                 pass
         print_message(f"An error occurred: {str(e)}", "ERROR")
         print_message("Terminating ptnetinspector", "INFO", indent=0)
@@ -491,6 +498,7 @@ def main():
                 try:
                     text_output_path.unlink()
                 except OSError:
+                    # Ignore cleanup failures for optional text output artifact.
                     pass
 
 

@@ -5,6 +5,7 @@ consistent, readable format using the accumulated CSV data.
 """
 import csv
 import ipaddress
+import logging
 import os
 import pandas as pd
 from tabulate import tabulate
@@ -20,6 +21,9 @@ from ptnetinspector.utils.ip_utils import (
 from ptnetinspector.utils.ip_utils import in6_getansma, in6_getnsma
 from ptnetinspector.utils.oui import lookup_vendor_from_csv
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test, load_vuln_catalog
+
+
+logger = logging.getLogger(__name__)
 
 
 class Non_json:
@@ -540,7 +544,7 @@ class Non_json:
                         elif label == 0:
                             ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=8)
             except Exception:
-                pass
+                logger.debug("Failed to evaluate general vulnerability summary", exc_info=True)
 
             if has_target_filter:
                 resolved_targets = []
@@ -619,6 +623,7 @@ class Non_json:
                                 else:
                                     ptprinthelper.ptprint(f"IPv4  {ip}", condition=True, indent=8)
                             except ipaddress.AddressValueError:
+                                # Ignore non-IPv4 entries while printing mixed address lists.
                                 continue
 
 
@@ -721,7 +726,7 @@ class Non_json:
                         elif label == 0:
                             ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=4)
             except Exception:
-                pass
+                logger.debug("Failed to render 802.1x summary", exc_info=True)
         if protocol in ["MDNS", "LLMNR", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3", "RA", "WS-Discovery"]:
             if has_additional_data(file_name) and has_additional_data(role_node_file):
                 if protocol == "MDNS" and not less_detail:
@@ -773,7 +778,7 @@ class Non_json:
                                 elif label == 0:
                                     ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=4)
                 except Exception:
-                    pass
+                    logger.debug("Failed to render protocol-level network vulnerabilities for %s", protocol, exc_info=True)
                 if protocol == "RA" and is_dhcp_slaac() != []:
                     for item in is_dhcp_slaac():
                         ptprinthelper.ptprint(f"{item} is discovered", "INFO", condition=True, indent=4)
@@ -815,7 +820,8 @@ class Non_json:
                                     local_name_df = pd.read_csv(localname_file)
                                     list_local_names = local_name_df.loc[local_name_df['MAC'] == mac_address, 'name'].tolist()
                                     ptprinthelper.ptprint(f"Local name   {list_local_names[0]}", condition=True, indent=8)
-                                except:
+                                except Exception:
+                                    # Local name is optional; continue rendering remaining protocol details.
                                     pass
                             if protocol in ["MLDv1", "IGMPv1/v2"]:
                                 filtered_rows = df[df['MAC'] == mac_address]
@@ -891,4 +897,4 @@ class Non_json:
                                     elif label == 0:
                                         ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=8)
                         except Exception:
-                            pass
+                            logger.debug("Failed to render device vulnerabilities for protocol %s, device %s", protocol, device_number, exc_info=True)

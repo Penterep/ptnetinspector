@@ -5,6 +5,7 @@ facts into CSV artifacts, used later for both human-readable and JSON outputs.
 """
 import csv
 import multiprocessing
+import logging
 from contextlib import nullcontext
 import pandas as pd
 from scapy.all import *
@@ -48,6 +49,9 @@ from ptnetinspector.utils.ip_utils import convert_OnOff, convert_preferenceRA, c
 from ptnetinspector.utils.csv_helpers import sort_csv
 
 
+logger = logging.getLogger(__name__)
+
+
 def _close_inherited_scapy_sockets():
     """Close Scapy SuperSocket instances inherited from the parent process on fork.
 
@@ -66,9 +70,10 @@ def _close_inherited_scapy_sockets():
                 try:
                     obj.close()
                 except Exception:
+                    # Best-effort cleanup; failing to close one inherited socket is non-fatal.
                     pass
     except Exception:
-        pass
+        logger.debug("Failed to close inherited Scapy sockets", exc_info=True)
 
 
 def _forked_target(fn, args):
@@ -332,8 +337,8 @@ class Save:
                                             Node(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_addresses()
                                     if packet.an[i].type == 12:
                                         Node.save_local_name(packet[0].src, packet[LLMNRResponse].an[i].rdata.decode())
-                                except:
-                                    pass
+                                except Exception as ex:
+                                    logger.debug("Failed to parse LLMNR answer for %s: %s", packet[0].src, ex)
 
             if packet is not None and DNSRR in packet and DNS in packet:
                 Node(packet[0].src, packet[0][1].src).save_addresses()
@@ -350,9 +355,11 @@ class Save:
                                     MDNS(packet[0].src, packet.an[i].rdata).save_MDNS()
                                 elif packet.an[i].type == 12:
                                     Node.save_local_name(packet[0].src, packet.an[i].rdata.decode())
-                        except AttributeError:
+                        except AttributeError as ex:
+                            logger.debug("Skipping malformed mDNS answer for %s: %s", packet[0].src, ex)
                             continue
-                        except IndexError:
+                        except IndexError as ex:
+                            logger.debug("mDNS answer index out of range for %s: %s", packet[0].src, ex)
                             break
 
 
@@ -368,8 +375,8 @@ class Save:
                         if packet[0].src == duid_mac:
                             DHCP_ptnet(packet[0].src, packet[IPv6].src, "server").save_addresses()
                             Node(packet[0].src, packet[IPv6].src).save_addresses()
-                    except:
-                        pass
+                    except Exception as ex:
+                        logger.debug("Failed to parse DHCPv6 server DUID for %s: %s", packet[0].src, ex)
 
             if packet is not None and DHCP in packet and packet[DHCP].options[0][1] == 3:
                 if find_requested_addr(packet[0][DHCP].options):

@@ -6,6 +6,7 @@ IP version and vulnerability codes, and writes the final `ptnetinspector-output.
 """
 import ipaddress
 import json
+import logging
 import pandas as pd
 from ptlibs.app_dirs import AppDirs
 from ptnetinspector.utils.path import get_csv_path, get_output_dir, get_tmp_path
@@ -20,6 +21,9 @@ from ptnetinspector.utils.oui import lookup_vendor_from_csv
 from ptnetinspector.utils.cli import ptjsonlib_object
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
 from ptnetinspector.send.send import IPMode
+
+
+logger = logging.getLogger(__name__)
 
 
 class Json:
@@ -43,7 +47,8 @@ class Json:
                 run_params = json.load(f)
             smac = str(run_params.get("smac") or "").strip().upper()
             return smac or None
-        except Exception:
+        except Exception as ex:
+            logger.debug("Failed to load scanner MAC from run_params.json: %s", ex)
             return None
 
     @staticmethod
@@ -103,7 +108,8 @@ class Json:
                 return bool(ipver.ipv6)
             ipaddress.IPv4Address(ip)
             return bool(ipver.ipv4)
-        except Exception:
+        except Exception as ex:
+            logger.debug("Invalid IP while matching mode (%s): %s", ip, ex)
             return False
 
     @staticmethod
@@ -175,8 +181,8 @@ class Json:
                 for code in vulns:
                     if not any(v['vulnCode'] == code for v in ptjsonlib_object.json_object['results']['vulnerabilities']):
                         ptjsonlib_object.add_vulnerability(vuln_code=code)
-            except Exception:
-                pass
+            except Exception as ex:
+                logger.debug("Failed to process network vulnerabilities from %s: %s", vul_file, ex)
         return ptjsonlib_object.get_result_json()
 
     @staticmethod
@@ -256,6 +262,7 @@ class Json:
                 ptjsonlib_object.add_node(node)
                 return True
         except ipaddress.AddressValueError:
+            logger.debug("Skipping invalid IPv4 address node candidate: %s", ip)
             pass
         return False
 
@@ -301,6 +308,7 @@ class Json:
                 target_codes_set = vuln_codes if vuln_codes else None
             except Exception:
                 # If catalog load fails, treat as no filter
+                logger.debug("Failed to load vulnerability test catalog; disabling target code filter", exc_info=True)
                 target_codes_set = None
 
         # Normalize target MACs to uppercase

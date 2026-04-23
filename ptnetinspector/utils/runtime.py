@@ -7,6 +7,7 @@ streaming to the terminal.
 """
 import csv
 import json
+import logging
 import multiprocessing
 import os
 import sys
@@ -21,6 +22,31 @@ from ptnetinspector.entities.networks import Networks
 from ptnetinspector.output.non_json import Non_json
 from ptnetinspector.utils.address_control import validate_addresses_mapping
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
+
+
+logger = logging.getLogger(__name__)
+
+
+_debug_handler: logging.Handler | None = None
+_debug_output_allowed = True
+
+
+class _PtprintDebugHandler(logging.Handler):
+    """Render DEBUG records using the same terminal style as runtime info lines."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        global _debug_output_allowed
+        if record.levelno != logging.DEBUG or not _debug_output_allowed:
+            return
+        try:
+            msg = record.getMessage()
+            if record.exc_info and len(record.exc_info) >= 2 and record.exc_info[1] is not None:
+                msg = f"{msg}: {record.exc_info[1]}"
+            # Keep DEBUG readable and distinct while preserving standard ptprint layout.
+            ptprinthelper.ptprint(f"\033[90m[debug] {msg}\033[0m", "INFO", condition=True, indent=4)
+        except Exception:
+            # Debug emission failures must never affect scanner execution.
+            pass
 
 
 # Global variable to capture terminal output
@@ -71,6 +97,7 @@ class DualWriter:
         try:
             self.flush()
         except Exception:
+            # Ignore flush errors during shutdown path.
             pass
         # Do not close underlying file/terminal here; stop_output_logging handles it.
 
@@ -104,6 +131,7 @@ def _should_suppress(level: str) -> bool:
     try:
         return bool(_suppress_non_json and level in ("INFO", "WARNING"))
     except NameError:
+        # Flags may be uninitialized during early import in tests.
         return False
 
 
@@ -145,6 +173,33 @@ def configure_output_flags(json_output: bool, more_detail: bool, less_detail: bo
     _suppress_info_when_json_less = bool(json_output and less_detail and not more_detail)
     # Suppress all non-JSON output when -j but not -vv
     _suppress_non_json = bool(json_output and not more_detail)
+
+
+def configure_debug_logging(chatty_debug: bool, json_output: bool, more_detail: bool) -> None:
+    """Configure optional DEBUG diagnostics for -vvv output mode.
+
+    DEBUG diagnostics are rendered through ptprinthelper so they follow the
+    same terminal style as standard runtime messages.
+    """
+    global _debug_handler, _debug_output_allowed
+
+    package_logger = logging.getLogger("ptnetinspector")
+    _debug_output_allowed = not (json_output and not more_detail)
+
+    if not chatty_debug:
+        if _debug_handler is not None:
+            package_logger.removeHandler(_debug_handler)
+            _debug_handler.close()
+            _debug_handler = None
+        package_logger.propagate = True
+        return
+
+    if _debug_handler is None:
+        _debug_handler = _PtprintDebugHandler()
+        package_logger.addHandler(_debug_handler)
+
+    package_logger.setLevel(logging.DEBUG)
+    package_logger.propagate = False
 
 
 def ptprint_info_warning(message: str, level: str = "INFO", condition: bool = True, indent: int = 0) -> None:
@@ -213,6 +268,7 @@ def write_run_signature(tmp_dir: Path, signature: dict) -> None:
         with open(sig_path, "w", encoding="utf-8") as f:
             json.dump(signature, f, sort_keys=True)
     except Exception:
+        # Signature persistence is optional; run can continue without cache metadata.
         pass
 
 
@@ -222,6 +278,7 @@ def load_run_signature(tmp_dir: Path):
         with open(sig_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
+        # Missing/invalid signature means cache reuse is unavailable.
         return None
 
 
@@ -230,6 +287,7 @@ def delete_json_output(json_file: Path) -> None:
         try:
             json_file.unlink()
         except OSError:
+            # Ignore cleanup failures for optional artifact.
             pass
 
 
@@ -239,6 +297,7 @@ def delete_text_output(text_file: Path) -> None:
         try:
             text_file.unlink()
         except OSError:
+            # Ignore cleanup failures for optional artifact.
             pass
 
 
@@ -254,6 +313,7 @@ def prepare_networks_file(interface_name: str, networks_path: Path) -> None:
     try:
         Networks.extract_available_subnets(interface_name)
     except Exception:
+        # Fallback to an empty networks file if subnet detection is unavailable.
         if not networks_path.exists():
             networks_path.parent.mkdir(parents=True, exist_ok=True)
             networks_path.write_text("network_prefix,prefix_length\n", encoding="utf-8")
@@ -265,11 +325,13 @@ def terminate_child_processes(timeout: float = 1.0) -> None:
         try:
             proc.terminate()
         except Exception:
+            # Child may already be exiting.
             pass
     for proc in multiprocessing.active_children():
         try:
             proc.join(timeout=timeout)
         except Exception:
+            # Joining timed out or child became unavailable.
             pass
 
 
@@ -293,6 +355,8 @@ def _check_macs_in_role_node(tmp_path: Path, target_macs: set[str]) -> bool:
             saved_macs = {row['MAC'].upper() for row in reader if 'MAC' in row}
         return target_macs.issubset(saved_macs)
     except Exception:
+        # CSV parse error or missing file could indicate data corruption; log for debug.
+        logger.debug("Error reading role_node.csv (cannot confirm MAC availability)")
         return False
 
 
@@ -312,6 +376,8 @@ def _check_ips_in_addresses(tmp_path: Path, target_ips: set[str]) -> bool:
                     if ip:
                         saved_ips.add(ip)
         except Exception:
+            # CSV parse error could indicate file corruption; log for debug.
+            logger.debug("Error reading addresses CSV at %s (continuing with other sources)", path)
             continue
 
     return target_ips.issubset(saved_ips)
@@ -359,6 +425,8 @@ def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[st
         # Check if all target test codes are in saved data
         return target_test_codes.issubset(saved_test_codes)
     except Exception:
+        # CSV parse/read error could indicate file corruption; log for debug.
+        logger.debug("Error reading vulnerability CSV files (forcing full scan)")
         return False
 
 

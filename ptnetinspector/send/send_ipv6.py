@@ -7,6 +7,7 @@ import ipaddress
 import csv
 import time
 import sys
+import logging
 
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSRR
@@ -26,6 +27,8 @@ from ptnetinspector.prototype.prototype_ipv6 import PrototypeIPv6Packet, MLDV2_R
 from ptnetinspector.prototype.prototype_l4 import PrototypeL4
 from ptnetinspector.utils.ip_utils import send_ipv6_all_nodes_multicast, send_ipv6_all_routers_multicast, send_ipv6_from_all_addresses, send_ipv6_from_all_lla_addresses
 from ptnetinspector.send._scapy_io import SCAPY_IO_LOCK
+
+logger = logging.getLogger(__name__)
 
 class SendIPv6:
     __icmpv6_echo_request_sequence_number = 1
@@ -176,9 +179,11 @@ class SendIPv6:
                         try:
                             answer = rdata.decode()
                             return answer
-                        except (IndexError, AttributeError, KeyError):
+                        except (IndexError, AttributeError, KeyError) as ex:
+                            logger.debug("Failed to decode IPv6 mDNS reverse response for %s: %s", ipv6_address, ex)
                             return None
-                    except (IndexError, AttributeError, KeyError):
+                    except (IndexError, AttributeError, KeyError) as ex:
+                        logger.debug("Missing IPv6 mDNS reverse response fields for %s: %s", ipv6_address, ex)
                         return None
                 return None
 
@@ -421,6 +426,7 @@ class SendIPv6:
             try:
                 src_ipv6.append(str(ipaddress.IPv6Address(ip)))
             except ipaddress.AddressValueError:
+                # Ignore non-IPv6 interface entries while building IPv6 source list.
                 continue
 
         if not src_ipv6:
@@ -436,6 +442,7 @@ class SendIPv6:
                 try:
                     valid_dst_ips.append(str(ipaddress.IPv6Address(ip)))
                 except ipaddress.AddressValueError:
+                    # Ignore malformed candidate addresses from generated target lists.
                     continue
 
             if not valid_dst_ips:
@@ -480,6 +487,7 @@ class SendIPv6:
                         dst_ip = ipaddress.IPv6Address(dst_ip)
                         SendIPv6.IPv6_test_mdns_llmnr(dst_ip, interface)
                     except ipaddress.AddressValueError:
+                        # Skip non-IPv6 generated target candidates.
                         continue
 
     @staticmethod
@@ -549,6 +557,7 @@ class SendIPv6:
                     if is_global_unicast_ipv6(str(ip_address)):
                         mac_ips_global[mac].append(ip)
                 except ValueError:
+                    # Ignore non-IPv6 rows in shared addresses.csv input.
                     pass
         if exist_interface:
             src_mac = get_if_hwaddr(interface)
@@ -688,7 +697,8 @@ class SendIPv6:
             if network_targets:
                 send_ns_batched(network_targets)
             return
-        except:
+        except Exception as ex:
+            logger.debug("IPv6 interesting-address probe failed for network %s: %s", network, ex)
             return
 
     @staticmethod
@@ -712,12 +722,14 @@ class SendIPv6:
                         ipaddress.IPv4Address(ip)
                         continue
                     except ipaddress.AddressValueError:
+                        # Not IPv4, keep testing as IPv6 candidate.
                         pass
                     try:
                         ipaddress.IPv6Address(ip)
                         src_ip = ip
                         packets.append(PrototypeIPv6Packet.get_frame_wsdiscovery(src_mac, src_ip))
                     except ipaddress.AddressValueError:
+                        # Skip malformed interface address entries.
                         pass
                 if len(packets) != 0:
                     sendp(packets, iface=interface, verbose=False)
@@ -856,8 +868,8 @@ def generate_more_possible_IP(interface: str) -> dict | None:
                     mac_ips[mac].append(ip)
                 if is_global_unicast_ipv6(str(ip_address)):
                     mac_ips_global_old[mac].append(ip)
-            except ValueError:
-                pass
+            except ValueError as ex:
+                logger.debug("Skipping invalid IPv6 candidate in addresses.csv (%s): %s", ip, ex)
 
     ra_csv_file = get_csv_path("RA.csv")
     if has_additional_data(ra_csv_file):

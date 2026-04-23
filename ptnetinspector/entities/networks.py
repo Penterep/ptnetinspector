@@ -4,8 +4,11 @@ Loads and writes local IPv4/IPv6 network information used by probes/filters.
 """
 import csv
 import ipaddress
+import logging
 import netifaces
 from ptnetinspector.utils.path import get_csv_path
+
+logger = logging.getLogger(__name__)
 
 
 class Networks:
@@ -33,8 +36,8 @@ class Networks:
                             ipv4_subnets.append(network)
                         elif isinstance(network, ipaddress.IPv6Network):
                             ipv6_subnets.append(network)
-                    except:
-                        pass
+                    except Exception as ex:
+                        logger.debug("Skipping invalid network row %s/%s: %s", network_prefix, prefix_length, ex)
 
         return ipv4_subnets, ipv6_subnets
 
@@ -89,8 +92,8 @@ class Networks:
                             prefix_len = bin(int(netmask_obj)).count('1')
                             network = ipaddress.IPv4Network(f"{ip}/{prefix_len}", strict=False)
                             subnets.append((str(network.network_address), prefix_len))
-                    except:
-                        pass
+                    except Exception as ex:
+                        logger.debug("Failed to parse IPv4 subnet for %s/%s: %s", ip, netmask, ex)
 
         # process IPv6 addresses
         if netifaces.AF_INET6 in addresses:
@@ -113,8 +116,8 @@ class Networks:
                         else:
                             try:
                                 prefix_len = bin(int(ipaddress.IPv6Address(netmask))).count('1')
-                            except:
-                                pass
+                            except Exception as ex:
+                                logger.debug("Failed to parse IPv6 netmask %s: %s", netmask, ex)
 
                     try:
                         ip_obj = ipaddress.IPv6Address(ip)
@@ -122,8 +125,8 @@ class Networks:
                         if not ip_obj.is_link_local:
                             network = ipaddress.IPv6Network(f"{ip}/{prefix_len}", strict=False)
                             subnets.append((str(network.network_address), prefix_len))
-                    except Exception as e:
-                        pass
+                    except Exception as ex:
+                        logger.debug("Failed to parse IPv6 subnet for %s/%s: %s", ip, prefix_len, ex)
 
         networks_file = get_csv_path("networks.csv")
 

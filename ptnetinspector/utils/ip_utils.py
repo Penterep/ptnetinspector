@@ -5,6 +5,7 @@ used throughout the scanner to interpret captured data and drive decisions.
 """
 import datetime
 import ipaddress
+import logging
 import socket
 import subprocess
 import csv
@@ -26,6 +27,9 @@ from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.interface import Interface
 
 
+logger = logging.getLogger(__name__)
+
+
 # ============================================================================
 # VALIDATION FUNCTIONS
 # ============================================================================
@@ -35,6 +39,7 @@ def is_non_negative_float(value: str) -> bool:
     try:
         return float(value) >= 0
     except ValueError:
+        # Invalid numeric input should fail validation.
         return False
 
 def is_valid_integer(value: str) -> bool:
@@ -43,6 +48,7 @@ def is_valid_integer(value: str) -> bool:
         value = int(value)
         return 0 <= value <= 255
     except ValueError:
+        # Invalid numeric input should fail validation.
         return False
 
 def is_valid_MTU(value: str) -> bool:
@@ -51,6 +57,7 @@ def is_valid_MTU(value: str) -> bool:
         value = int(value)
         return 0 <= value <= 65535
     except ValueError:
+        # Invalid numeric input should fail validation.
         return False
 
 def is_valid_ipv4(ip: str) -> bool:
@@ -59,6 +66,7 @@ def is_valid_ipv4(ip: str) -> bool:
         ipaddress.IPv4Address(ip)
         return True
     except ipaddress.AddressValueError:
+        # Invalid IPv4 strings are expected during filtering.
         return False
 
 def is_multicast_ipv4(addr: str) -> bool:
@@ -66,6 +74,7 @@ def is_multicast_ipv4(addr: str) -> bool:
     try:
         return ipaddress.IPv4Address(addr).is_multicast
     except:
+        # Treat malformed addresses as non-multicast.
         return False
 
 def is_broadcast_ipv4(addr: str) -> bool:
@@ -100,6 +109,7 @@ def is_valid_ipv6_prefix(prefix: str) -> bool:
         ipaddress.IPv6Network(prefix, strict=False)
         return True
     except (ipaddress.AddressValueError, ValueError):
+        # Invalid prefix strings should fail validation.
         return False
 
 def is_valid_mac(mac: str) -> bool:
@@ -136,6 +146,7 @@ def is_global_unicast_ipv6(ipv6_address: str) -> bool:
         addr = ipaddress.IPv6Address(ipv6_address)
         return addr.is_global and not addr.is_multicast
     except ipaddress.AddressValueError:
+        # Invalid IPv6 strings are expected during filtering.
         return False
 
 def is_link_local_ipv6(address: str) -> bool:
@@ -144,6 +155,7 @@ def is_link_local_ipv6(address: str) -> bool:
         ip = ipaddress.ip_address(address)
         return ip.version == 6 and ip.is_link_local
     except ValueError:
+        # Invalid address strings are expected during filtering.
         return False
 
 def is_ipv6_ula(address: str) -> bool:
@@ -153,6 +165,7 @@ def is_ipv6_ula(address: str) -> bool:
         # ULA: fc00::/7 (fc00::0 - fdff:ffff:...)
         return ip.version == 6 and (0xfc00 <= int(ip) >> 112 <= 0xfdff)
     except (ipaddress.AddressValueError, ValueError):
+        # Invalid address strings are expected during filtering.
         return False
 
 def is_llsnm_ipv6(ipv6: str) -> bool:
@@ -167,6 +180,7 @@ def is_ipv6_predictable(ip: str, mac: str) -> bool:
         try:
             ipv6_full = ipaddress.ip_address(ipv6).exploded
         except ValueError:
+            # Not a valid IPv6 address for EUI-64 predictability checks.
             return False
         last_64_bits = "".join(ipv6_full.split(":")[4:])
         if last_64_bits[6:10] != 'fffe':
@@ -183,6 +197,7 @@ def is_ipv6_predictable(ip: str, mac: str) -> bool:
     try:
         ipv6_int = int(ipaddress.IPv6Address(ip))
     except ipaddress.AddressValueError:
+        # Invalid IPv6 strings are not predictable by definition.
         return False
 
     # Evaluate only the lower 64 bits (interface identifier).
@@ -220,6 +235,7 @@ def check_ipv6_addresses_generated_from_prefix(ip: str, prefix: str) -> bool:
         ipv6_address = ipaddress.IPv6Address(ip)
         return ipv6_address in ipv6_network
     except ValueError:
+        # Invalid IP/prefix inputs cannot satisfy the prefix match.
         return False
 
 def belongs_to_any_prefix(ipv6_address: str, prefixes: list) -> bool:
@@ -232,6 +248,7 @@ def belongs_to_any_prefix(ipv6_address: str, prefixes: list) -> bool:
                 return True
         return False
     except ValueError:
+        # Invalid address strings are treated as non-matching.
         return False
 
 
@@ -369,6 +386,7 @@ def extract_interface_id(link_local_address: str) -> str:
         interface_id = link_local_address.exploded.split(":", 4)[-1]
         return interface_id
     except ipaddress.AddressValueError as e:
+        # Keep legacy behavior by returning parse error text.
         return str(e)
 
 def count_octets(ipv6_part: str) -> int:
@@ -391,6 +409,7 @@ def generate_global_ipv6(prefix: str, link_local_address: str) -> str | None:
         else:
             return None
     except Exception:
+        # Invalid inputs or prefix math errors should not break caller flow.
         return None
 
 
@@ -583,6 +602,8 @@ def is_dhcp_slaac() -> list:
                             if status not in lst_result:
                                 lst_result.append(status)
                 except Exception:
+                    # Malformed DHCP row could indicate file corruption; log for debug.
+                    logger.debug("Malformed DHCP row (skipping): %s", row)
                     continue
 
     if has_additional_data(ra_file_path):
@@ -626,6 +647,8 @@ def IPv4_IPv6_filter(input_filename: str) -> None:
                     if not ip.is_link_local and not ip.is_multicast and not ip.is_unspecified:
                         ipv6_writer.writerow([ip_str])
             except ValueError:
+                # Malformed address in CSV could indicate file corruption; log for debug.
+                logger.debug("Malformed address in IPv4/IPv6 filter: %s (skipping)", ip_str)
                 pass
 
 
@@ -645,6 +668,8 @@ def extract_ipv6_addresses(config_string: str) -> list:
             ipaddress.IPv6Address(ip)
             valid_ipv6.append(ip)
         except ValueError:
+            # Malformed IPv6 literal in config field could indicate data corruption; log for debug.
+            logger.debug("Malformed IPv6 literal in config string (skipping): %s", ip)
             continue
     return valid_ipv6
 
@@ -724,11 +749,13 @@ def send_ipv6_from_all_addresses(interface: str, payload: Packet, dst_ip: str, d
                     ipaddress.IPv4Address(ip)
                     continue
                 except ipaddress.AddressValueError:
+                    # Not IPv4, continue validation as IPv6 candidate.
                     pass
                 try:
                     ipaddress.IPv6Address(ip)
                     ips.append(ip)
                 except ipaddress.AddressValueError:
+                    # Ignore malformed interface address entries.
                     pass
             if len(ips) != 0:
                 pkt = (Ether(src=src_mac, dst=dst_mac) /

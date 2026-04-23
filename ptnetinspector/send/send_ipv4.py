@@ -4,6 +4,7 @@ Implements Scapy-based probes for IPv4 (ICMP, mDNS/LLMNR, DHCP, IGMP, etc.)
 that complement passive capture in active/aggressive modes.
 """
 import ipaddress
+import logging
 import random
 import time
 import sys
@@ -27,6 +28,9 @@ from ptnetinspector.entities.mdns import MDNS
 from ptnetinspector.entities.llmnr import LLMNR
 from ptnetinspector.utils.ip_utils import reverse_IPadd
 from ptnetinspector.send._scapy_io import SCAPY_IO_LOCK
+
+
+logger = logging.getLogger(__name__)
 
 
 class ICMPType(Enum):
@@ -72,8 +76,10 @@ class SendIPv4:
                             answer = rdata.decode()
                             return answer
                         except (IndexError, AttributeError, KeyError):
+                            logger.debug("Failed to decode mDNS reverse response for %s", ip_address, exc_info=True)
                             return None
                     except (IndexError, AttributeError, KeyError):
+                        logger.debug("Missing mDNS reverse response fields for %s", ip_address, exc_info=True)
                         return None
                 return None
 
@@ -163,8 +169,8 @@ class SendIPv4:
                 with SCAPY_IO_LOCK:
                     return srp(pkt, iface=interface, verbose=0, timeout=rsp_timeout, threaded=False)[0]
             sendp(pkt, verbose=0, iface=interface)
-        except Exception:
-            pass
+        except Exception as ex:
+            logger.debug("IPv4 ARP probe failed for %s on %s: %s", address, interface, ex)
 
     @staticmethod
     def probe_ipv4_interesting_addresses(network: ipaddress.IPv4Network, interface: str) -> None:

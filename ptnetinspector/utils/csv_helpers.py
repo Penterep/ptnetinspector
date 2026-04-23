@@ -4,6 +4,7 @@ Centralizes creation of tmp CSVs, sorting/cleanup, and simple analytics used by
 both the terminal (non-JSON) and JSON outputs.
 """
 import csv
+import logging
 import os
 import socket
 
@@ -12,6 +13,9 @@ import numpy as np
 from scapy.all import get_if_hwaddr
 from ptnetinspector.entities._registry import registry as entity_registry
 from ptnetinspector.utils.path import get_csv_path, get_tmp_path
+
+
+logger = logging.getLogger(__name__)
 
 
 def create_csv(interface: str | None = None) -> None:
@@ -222,6 +226,8 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
                     socket.inet_pton(socket.AF_INET6, ip_addr)
                     ip_version = "6"
                 except socket.error:
+                    # Malformed IP in gateway CSV could indicate file corruption; log for debug.
+                    logger.debug("Malformed gateway IP in CSV: MAC=%s, IP=%s (skipping)", mac_address, ip_addr)
                     pass
             if mac_address in device_roles and "Router" not in device_roles[mac_address] and "Preferred router" not in device_roles[mac_address]:
                 device_roles[mac_address] += f";Router;IPv{ip_version} default GW"
@@ -246,6 +252,8 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
                     socket.inet_pton(socket.AF_INET6, ip_addr)
                     dhcp_version = "DHCPv6"
                 except socket.error:
+                    # Malformed DHCP server IP in CSV could indicate file corruption; log for debug.
+                    logger.debug("Malformed DHCP server IP in CSV: MAC=%s, IP=%s (skipping)", mac_address, ip_addr)
                     pass
             if mac_address in device_roles:
                 device_roles[mac_address] += f";{dhcp_version} server"
@@ -276,6 +284,8 @@ def read_role_node_csv(filename):
                 mac = row['MAC'].strip()
                 result[device_number] = mac
             except (ValueError, KeyError):
+                # Malformed role-node row could indicate file corruption; log for debug.
+                logger.debug("Malformed role-node CSV row (skipping): %s", row)
                 continue
     return dict(sorted(result.items()))
 
@@ -295,6 +305,7 @@ def delete_middle_content_csv(filename: str) -> None:
             df = df[df.index.isin([0, -1]) | ~df.index.isin(range(1, len(df) - 1))]
             df.to_csv(filename, index=False)
     except FileNotFoundError:
+        # Optional file may not exist yet.
         pass
 
 def sort_all_csv(interface: str) -> None:
