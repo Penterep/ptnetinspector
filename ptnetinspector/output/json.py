@@ -454,6 +454,14 @@ class Json:
                         device_ips=ip_addresses,
                     )
 
+        if has_target_filter:
+            # In target-filter mode keep output focused on selected entities only;
+            # omit network-wide sections entirely instead of emitting empty arrays.
+            results_section = ptjsonlib_object.json_object.get("results", {})
+            if isinstance(results_section, dict):
+                results_section.pop("properties", None)
+                results_section.pop("vulnerabilities", None)
+
         ptjsonlib_object.set_status("finished")
         output_json = ptjsonlib_object.get_result_json()
 
