@@ -12,6 +12,7 @@ import multiprocessing
 import os
 import sys
 import time
+import ipaddress
 from io import StringIO
 from pathlib import Path
 from typing import Callable, Iterable
@@ -361,7 +362,15 @@ def _check_macs_in_role_node(tmp_path: Path, target_macs: set[str]) -> bool:
 
 
 def _check_ips_in_addresses(tmp_path: Path, target_ips: set[str]) -> bool:
-    """Check if all target IPs exist in saved addresses CSVs."""
+    """Check if all target IPs exist in saved addresses CSVs.
+
+    Args:
+        tmp_path: Path to tmp directory containing addresses CSV files
+        target_ips: Set of normalized IP address strings to check
+
+    Returns:
+        bool: True if all target IPs exist in addresses CSV, False otherwise
+    """
     addresses_files = [tmp_path / "addresses.csv", tmp_path / "addresses_unfiltered.csv"]
     saved_ips: set[str] = set()
 
@@ -374,7 +383,10 @@ def _check_ips_in_addresses(tmp_path: Path, target_ips: set[str]) -> bool:
                 for row in reader:
                     ip = str(row.get('IP', '')).strip()
                     if ip:
-                        saved_ips.add(ip)
+                        try:
+                            saved_ips.add(str(ipaddress.ip_address(ip)))
+                        except ValueError:
+                            saved_ips.add(ip)
         except Exception:
             # CSV parse error could indicate file corruption; log for debug.
             logger.debug("Error reading addresses CSV at %s (continuing with other sources)", path)
@@ -448,8 +460,13 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
       * Previous HAS target, current NO target: Cannot reuse (saved data is filtered, need full scan)
       * Both have targets: Can reuse IF current is subset of saved
       * Neither has targets: Can reuse (both are full scans)
-    - target_codes:
-    * Previous NO test filter, current HAS test filter: Can reuse IF test codes exist in saved vulnerability outputs
+        - target_ips:
+            * Previous NO target, current HAS target: Can reuse IF target IPs exist in saved addresses CSV
+            * Previous HAS target, current NO target: Cannot reuse (saved data is filtered, need full scan)
+            * Both have targets: Can reuse IF current is subset of saved
+            * Neither has targets: Can reuse (both are full scans)
+        - target_codes:
+            * Previous NO test filter, current HAS test filter: Can reuse IF test codes exist in saved vulnerability outputs
       * Previous HAS test filter, current NO test filter: Cannot reuse (saved data is filtered, need full test run)
       * Both have test filters: Can reuse IF current is subset of saved
       * Neither has test filters: Can reuse (both run all tests)

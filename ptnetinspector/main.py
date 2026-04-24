@@ -389,6 +389,7 @@ def main():
         dns,
         target_codes=set(target_codes) if target_codes else None,
         target_macs=set(target_macs) if target_macs else None,
+        target_ips=set(target_ips) if target_ips else None,
         sip=sip,
     )
 

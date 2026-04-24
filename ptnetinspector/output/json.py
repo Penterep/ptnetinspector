@@ -319,8 +319,8 @@ class Json:
         start_end_file = get_csv_path("start_end_mode.csv")
         delete_middle_content_csv(start_end_file)
 
-        Json.output_property(ipver)
         if not has_target_filter:
+            Json.output_property(ipver)
             Json.output_vul_net(mode, target_codes=target_codes_set)
 
         if not extract_to_json:

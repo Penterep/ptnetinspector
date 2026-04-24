@@ -57,6 +57,9 @@ class Send:
             interface (str): Network interface name.
             ip_mode (IPMode): Enabled IP versions (IPv4/IPv6).
         """
+        ipv6_targets: list[str] = []
+        ipv4_targets: list[str] = []
+
         csv_file = get_csv_path('addresses.csv')
         with open(csv_file, newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
@@ -71,22 +74,28 @@ class Send:
                         or is_global_unicast_ipv6(ip_address)
                         or is_ipv6_ula(ip_address)
                     ):
-                        try:
-                            SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
-                        except Exception as ex:
-                            logger.debug("IPv6 reverse lookup failed for %s: %s", ip_address, ex)
+                        ipv6_targets.append(ip_address)
                 elif ip_mode.ipv4:
                     try:
                         ipv4_address = ipaddress.IPv4Address(ip_address)
                         if ipv4_address.is_link_local or ipv4_address.is_unspecified:
                             continue
-                        try:
-                            SendIPv4.IPv4_test_mdns_llmnr(ip_address, interface)
-                        except Exception as ex:
-                            logger.debug("IPv4 reverse lookup failed for %s: %s", ip_address, ex)
+                        ipv4_targets.append(ip_address)
                     except ipaddress.AddressValueError:
                         # Ignore non-IPv4 rows while iterating shared addresses CSV.
                         continue
+
+        if ip_mode.ipv6 and ipv6_targets:
+            try:
+                SendIPv6.IPv6_test_mdns_llmnr_batch(ipv6_targets, interface)
+            except Exception as ex:
+                logger.debug("IPv6 reverse batch lookup failed: %s", ex)
+
+        if ip_mode.ipv4 and ipv4_targets:
+            try:
+                SendIPv4.IPv4_test_mdns_llmnr_batch(ipv4_targets, interface)
+            except Exception as ex:
+                logger.debug("IPv4 reverse batch lookup failed: %s", ex)
 
     @staticmethod
     def probe_gateways(interface: str, ip_mode: IPMode) -> None:

@@ -100,18 +100,18 @@ def write_mappings(mappings: List[AddressMapping], file_path: str = None) -> Non
 
 
 class AddressValidator:
+    __max_concurrency = 16  # Limit concurrent probes to avoid flooding the network.
+    __timeout = 0.5  # Seconds to wait for responses to ARP/NS probes.
+
     def __init__(self, interface: str):
         self.interface = interface
-        self.timeout = 0.5
-        # Bound the number of concurrent probe operations to avoid flooding.
-        self.max_concurrency = 16
 
     def verify_ipv4_mapping(self, mapping: AddressMapping) -> bool:
         arp_request = (Ether(src=get_if_hwaddr(self.interface), dst=mapping.mac) /
                        ARP(pdst=mapping.ip, hwdst=mapping.mac, op=1,
                            hwsrc=get_if_hwaddr(self.interface), psrc=get_if_addr(self.interface)))
 
-        arp_reply = srp1(arp_request, timeout=self.timeout, verbose=False, iface=self.interface, filter=f"arp and ether src {mapping.mac}")
+        arp_reply = srp1(arp_request, timeout=self.__timeout, verbose=False, iface=self.interface, filter=f"arp and ether src {mapping.mac}")
 
         return arp_reply and arp_reply.haslayer(ARP) and arp_reply.op == 2 and arp_reply.psrc == mapping.ip and arp_reply.hwsrc == mapping.mac
 
@@ -127,7 +127,7 @@ class AddressValidator:
                      ICMPv6ND_NS(tgt=mapping.ip) /
                      ICMPv6NDOptSrcLLAddr(lladdr=get_if_hwaddr(self.interface)))
 
-        advertisement = srp1(ns_packet, timeout=self.timeout, verbose=False, iface=self.interface, filter=f"icmp6 and ether src {mapping.mac}")
+        advertisement = srp1(ns_packet, timeout=self.__timeout, verbose=False, iface=self.interface, filter=f"icmp6 and ether src {mapping.mac}")
 
         return advertisement and advertisement.haslayer(ICMPv6ND_NA) and advertisement[IPv6].src == mapping.ip and advertisement[Ether].src == mapping.mac
 
@@ -147,7 +147,7 @@ class AddressValidator:
             ptprinthelper.ptprint(f"Could not validate IPv6 addresses. No IPv6 address on interface {self.interface}", "ERROR")
             mappings = [mapping for mapping in mappings if not isinstance(ipaddress.ip_address(mapping.ip), ipaddress.IPv6Address)]
 
-        semaphore = asyncio.Semaphore(self.max_concurrency)
+        semaphore = asyncio.Semaphore(self.__max_concurrency)
 
         async def verify_with_limit(mapping: AddressMapping) -> bool:
             async with semaphore:

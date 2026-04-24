@@ -227,13 +227,9 @@ class Non_json:
                     if target_codes_set and code not in target_codes_set:
                         continue
 
-                    # When target filtering is enabled, keep only network vulns
-                    # that correlate with selected device vuln codes.
+                    # Target filtering suppresses network vulnerability tables.
                     if has_target_filter:
-                        if not target_device_vuln_codes:
-                            continue
-                        if not Non_json._is_correlated_network_vuln(code, target_device_vuln_codes):
-                            continue
+                        continue
 
                     ipver_value = row.get('IPver', '').strip()
                     allowed_versions = set()
@@ -612,7 +608,7 @@ class Non_json:
                             if is_llsnm_ipv6(ip):
                                 # Show unresolved possible addresses only in -nc mode.
                                 if (not check_addresses) and ip not in list_solicited_ip:
-                                    ptprinthelper.ptprint(f"IPv6  {in6_getansma(ip)} (possible address X)", condition=True, indent=8)
+                                    ptprinthelper.ptprint(f"IPv6  {in6_getansma(ip)} (possible address)", condition=True, indent=8)
                             elif not is_llsnm_ipv6(ip):
                                 if all_ip.count(ip) >= 2:
                                     ptprinthelper.ptprint(f"IPv6  {ip} (duplicated address, probably not owned)", condition=True, indent=8)

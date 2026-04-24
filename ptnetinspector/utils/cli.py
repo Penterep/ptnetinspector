@@ -757,7 +757,7 @@ def _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, s
         list_error.append("No forwarding is not applied in this mode.")
 
 
-def _validate_active_mode(interface, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning) -> str:
+def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning) -> str:
     """Validate and process active mode parameters."""
     for param, msg in [
         (duration_passive, "Passive duration is not applied in this mode."),
@@ -784,9 +784,14 @@ def _validate_active_mode(interface, duration_passive, duration_aggressive, pref
         err = "Invalid inserted MAC address."
         list_error.append(err)
 
-    if not Interface(interface).check_available_ipv6():
-        err = f"No available IP on the interface: {interface}."
-        list_error.append(err)
+    interface_obj = Interface(interface)
+    has_ipv4 = bool(interface_obj.get_interface_ipv4_ips())
+    has_ipv6 = bool(interface_obj.get_interface_ipv6_ips())
+
+    if ip_mode.ipv4 and not has_ipv4:
+        list_error.append(f"No available IPv4 address on the interface: {interface}.")
+    if ip_mode.ipv6 and not has_ipv6:
+        list_error.append(f"No available IPv6 address on the interface: {interface}.")
 
     return smac
 
@@ -1118,7 +1123,7 @@ def parameter_control(
     elif type == ["802.1x"]:
         _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error)
     elif type == ["a"] or ("a" in type and "802.1x" in type and len(type) == 2):
-        smac = _validate_active_mode(interface, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning)
+        smac = _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning)
     if type == ["a+"] or ("a+" in type and ("802.1x" in type or "a" in type)):
         duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns = _validate_aggressive_mode(
             interface, ip_mode, duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning
@@ -1162,6 +1167,14 @@ def parameter_control(
             except ValueError:
                 list_error.append(f"Invalid target value (expected MAC or IP): {target}")
         if list_error:
+            _store_error_outputs(list_error, json_output, interface, more_detail)
+            if json_output:
+                print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
+            else:
+                _print_errors(list_error, json_output, more_detail)
+            sys.exit(1)
+        if normalized_macs and normalized_ips:
+            list_error.append("Invalid target combination: mixing MAC and IP addresses in -target is not allowed.")
             _store_error_outputs(list_error, json_output, interface, more_detail)
             if json_output:
                 print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))

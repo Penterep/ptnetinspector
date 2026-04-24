@@ -32,6 +32,34 @@ logger = logging.getLogger(__name__)
 
 class SendIPv6:
     __icmpv6_echo_request_sequence_number = 1
+    __ipv6_burst_limit = 0
+
+    @staticmethod
+    def __effective_burst_limit(requested_limit: int | None) -> int:
+        """Resolve effective query burst limit.
+
+        Priority:
+        1) Caller-provided limit.
+        2) Module constant.
+
+        Returns:
+            int: >0 chunk size, <=0 means no chunking.
+        """
+        if requested_limit is None:
+            return SendIPv6.__ipv6_burst_limit
+        return requested_limit
+
+    @staticmethod
+    def __chunked(items: list, burst_limit: int) -> list[list]:
+        """Split items into chunks when a positive burst limit is configured."""
+        if burst_limit <= 0 or len(items) <= burst_limit:
+            return [items]
+        return [items[i:i + burst_limit] for i in range(0, len(items), burst_limit)]
+
+    @staticmethod
+    def __normalize_qname(value: str) -> str:
+        """Normalize DNS-style names for robust matching."""
+        return str(value).strip().rstrip('.').lower()
     @staticmethod
     def __get_next_icmpv6_echo_request_id() -> int:
         """
@@ -159,33 +187,96 @@ class SendIPv6:
         Output:
             str | None: Local name if found, else None.
         """
+        result_map = SendIPv6.send_reverse_ipv6_MDNS_batch([str(ipv6_address)], interface)
+        return result_map.get(str(ipv6_address))
+
+    @staticmethod
+    def send_reverse_ipv6_MDNS_batch(ipv6_addresses: list[str], interface: str, burst_limit: int | None = None, rsp_timeout: float = 0.3) -> dict[str, str | None]:
+        """Send reverse mDNS PTR queries for a list of IPv6 targets.
+
+        Args:
+            ipv6_addresses (list[str]): Target IPv6 addresses.
+            interface (str): Network interface to use.
+            burst_limit (int | None): Optional query batch size. <=0 sends all at once.
+            rsp_timeout (float): Response timeout in seconds.
+
+        Returns:
+            dict[str, str | None]: Mapping target IPv6 -> discovered name (or None).
+        """
+        result: dict[str, str | None] = {str(ip): None for ip in ipv6_addresses}
+        if not ipv6_addresses:
+            return result
+
         iface = Interface(interface)
-        if iface.check_interface():
-            if iface.check_available_ipv6():
-                src_mac = get_if_hwaddr(interface)
-                query = reverse_IPadd(ipv6_address)
-                src_ip = iface.get_interface_link_local_list()
-                interface_ip_addresses = iface.get_interface_ips()
-                if ipv6_address in interface_ip_addresses or ipv6_address == src_ip[:-5]:
-                    return None
-                pkt = []
-                pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query))
-                pkt.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1))
-                with SCAPY_IO_LOCK:
-                    ans, uans = srp(pkt, multi=True, timeout=0.3, iface=interface, verbose=False, threaded=False)
-                if ans:
-                    try:
-                        rdata = ans[0][1][DNS].an[0].rdata
-                        try:
-                            answer = rdata.decode()
-                            return answer
-                        except (IndexError, AttributeError, KeyError) as ex:
-                            logger.debug("Failed to decode IPv6 mDNS reverse response for %s: %s", ipv6_address, ex)
-                            return None
-                    except (IndexError, AttributeError, KeyError) as ex:
-                        logger.debug("Missing IPv6 mDNS reverse response fields for %s: %s", ipv6_address, ex)
-                        return None
-                return None
+        if not iface.check_interface() or not iface.check_available_ipv6():
+            return result
+
+        src_mac = get_if_hwaddr(interface)
+        src_ip = iface.get_interface_link_local_list()
+        interface_ip_addresses = set(iface.get_interface_ips())
+        try:
+            local_prefix_candidate = src_ip[:-5]
+        except Exception:
+            local_prefix_candidate = ""
+
+        valid_targets: list[str] = []
+        target_query_map: dict[str, str] = {}
+        for target in ipv6_addresses:
+            target_str = str(target)
+            if target_str in interface_ip_addresses or target_str == local_prefix_candidate:
+                continue
+            try:
+                ipaddress.IPv6Address(target_str)
+            except ipaddress.AddressValueError:
+                continue
+            query = reverse_IPadd(target_str)
+            valid_targets.append(target_str)
+            target_query_map[target_str] = SendIPv6.__normalize_qname(query)
+
+        if not valid_targets:
+            return result
+
+        burst = SendIPv6.__effective_burst_limit(burst_limit)
+        for chunk in SendIPv6.__chunked(valid_targets, burst):
+            packet_to_target: dict[str, str] = {}
+            packets: list[Packet] = []
+            for target in chunk:
+                query = reverse_IPadd(target)
+                p1 = PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query)
+                p2 = PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1)
+                packets.append(p1)
+                packets.append(p2)
+                packet_to_target[query] = target
+
+            with SCAPY_IO_LOCK:
+                ans, _uans = srp(packets, multi=True, timeout=rsp_timeout, iface=interface, verbose=False, threaded=False)
+
+            if not ans:
+                continue
+
+            for sent, received in ans:
+                try:
+                    query_name = SendIPv6.__normalize_qname(sent[DNS].qd.qname.decode())
+                except Exception:
+                    continue
+
+                target = None
+                for candidate_query, candidate_target in packet_to_target.items():
+                    if SendIPv6.__normalize_qname(candidate_query) == query_name:
+                        target = candidate_target
+                        break
+                if target is None:
+                    continue
+
+                try:
+                    rdata = received[DNS].an[0].rdata
+                    answer = rdata.decode() if hasattr(rdata, "decode") else str(rdata)
+                    if answer and result.get(target) is None:
+                        result[target] = answer
+                except Exception:
+                    logger.debug("Failed to parse IPv6 mDNS response for %s", target, exc_info=True)
+
+        return result
 
     @staticmethod
     def send_mDNS_ipv6(query_name: str, interface: str) -> None:
@@ -197,15 +288,29 @@ class SendIPv6:
         Output:
             None
         """
+        SendIPv6.send_mDNS_ipv6_batch([query_name], interface)
+
+    @staticmethod
+    def send_mDNS_ipv6_batch(query_names: list[str], interface: str, burst_limit: int | None = None) -> None:
+        """Send mDNS queries for a list of names in configurable bursts."""
+        if not query_names:
+            return
         iface = Interface(interface)
-        if iface.check_interface():
-            if iface.check_available_ipv6():
-                src_mac = get_if_hwaddr(interface)
-                query_name = MDNS.full_name_MDNS(query_name)
-                src_ip = iface.get_interface_link_local_list()
-                pkt = PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, query_name)
-                pkt.extend(PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, query_name, unicastresponse=1))
-                sendp(pkt, iface=interface, verbose=False)
+        if not iface.check_interface() or not iface.check_available_ipv6():
+            return
+
+        src_mac = get_if_hwaddr(interface)
+        src_ip = iface.get_interface_link_local_list()
+        burst = SendIPv6.__effective_burst_limit(burst_limit)
+
+        for chunk in SendIPv6.__chunked([str(name) for name in query_names if str(name).strip()], burst):
+            packets: list[Packet] = []
+            for name in chunk:
+                qname = MDNS.full_name_MDNS(name)
+                packets.extend(PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname))
+                packets.extend(PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse=1))
+            if packets:
+                sendp(packets, iface=interface, verbose=False)
 
     @staticmethod
     def send_reverse_ipv6_llmnr(ipv6_address: str, interface: str) -> str | None:
@@ -217,26 +322,82 @@ class SendIPv6:
         Output:
             str | None: Domain name if found, else None.
         """
+        result_map = SendIPv6.send_reverse_ipv6_llmnr_batch([str(ipv6_address)], interface)
+        return result_map.get(str(ipv6_address))
+
+    @staticmethod
+    def send_reverse_ipv6_llmnr_batch(ipv6_addresses: list[str], interface: str, burst_limit: int | None = None, rsp_timeout: float = 0.2) -> dict[str, str | None]:
+        """Send reverse LLMNR PTR queries for a list of IPv6 targets.
+
+        Args:
+            ipv6_addresses (list[str]): Target IPv6 addresses.
+            interface (str): Network interface to use.
+            burst_limit (int | None): Optional query batch size. <=0 sends all at once.
+
+        Returns:
+            dict[str, str | None]: Mapping target IPv6 -> discovered name (or None).
+        """
+        result: dict[str, str | None] = {str(ip): None for ip in ipv6_addresses}
+        if not ipv6_addresses:
+            return result
+
         iface = Interface(interface)
-        if iface.check_interface():
-            if iface.check_available_ipv6():
-                src_mac = get_if_hwaddr(interface)
-                query = reverse_IPadd(ipv6_address)
-                src_ip = iface.get_interface_link_local_list()
-                interface_ip_addresses = iface.get_interface_ips()
-                if ipv6_address in interface_ip_addresses or ipv6_address == src_ip[:-5]:
-                    return None
-                pkt = PrototypeIPv6Packet.get_frame_llmnr_ptr(src_mac, src_ip, query)
-                response = AsyncSniffer(iface=interface)
-                response.start()
-                time.sleep(0.1)
-                sendp(pkt, iface=interface, verbose=False)
-                time.sleep(0.1)
-                response.stop()
-                for packet in response.results:
-                    if packet.haslayer(UDP) and packet.haslayer(LLMNRResponse) and packet[DNSRR].rrname.decode("utf-8")[:-1] == query:
-                        return packet[DNSRR].rdata.decode("utf-8")
-                return None
+        if not iface.check_interface() or not iface.check_available_ipv6():
+            return result
+
+        src_mac = get_if_hwaddr(interface)
+        src_ip = iface.get_interface_link_local_list()
+        interface_ip_addresses = set(iface.get_interface_ips())
+        try:
+            local_prefix_candidate = src_ip[:-5]
+        except Exception:
+            local_prefix_candidate = ""
+
+        valid_targets: list[str] = []
+        query_to_target: dict[str, str] = {}
+        for target in ipv6_addresses:
+            target_str = str(target)
+            if target_str in interface_ip_addresses or target_str == local_prefix_candidate:
+                continue
+            try:
+                ipaddress.IPv6Address(target_str)
+            except ipaddress.AddressValueError:
+                continue
+            query = reverse_IPadd(target_str)
+            valid_targets.append(target_str)
+            query_to_target[SendIPv6.__normalize_qname(query)] = target_str
+
+        if not valid_targets:
+            return result
+
+        burst = SendIPv6.__effective_burst_limit(burst_limit)
+        for chunk in SendIPv6.__chunked(valid_targets, burst):
+            packets: list[Packet] = []
+            for target in chunk:
+                packets.append(PrototypeIPv6Packet.get_frame_llmnr_ptr(src_mac, src_ip, reverse_IPadd(target)))
+
+            response = AsyncSniffer(iface=interface)
+            response.start()
+            time.sleep(0.05)
+            sendp(packets, iface=interface, verbose=False)
+            time.sleep(rsp_timeout)
+            response.stop()
+
+            for packet in response.results:
+                try:
+                    if not (packet.haslayer(UDP) and packet.haslayer(LLMNRResponse) and packet.haslayer(DNSRR)):
+                        continue
+                    rrname = SendIPv6.__normalize_qname(packet[DNSRR].rrname.decode("utf-8"))
+                    target = query_to_target.get(rrname)
+                    if target is None:
+                        continue
+                    answer = packet[DNSRR].rdata.decode("utf-8")
+                    if answer and result.get(target) is None:
+                        result[target] = answer
+                except Exception:
+                    logger.debug("Failed to parse IPv6 LLMNR response", exc_info=True)
+
+        return result
 
     @staticmethod
     def send_llmnr_ipv6(name: str, interface: str) -> None:
@@ -248,15 +409,30 @@ class SendIPv6:
         Output:
             None
         """
-        iface = Interface(interface)
-        if iface.check_interface():
-            if iface.check_available_ipv6():
-                src_mac = get_if_hwaddr(interface)
-                name = LLMNR.full_name_llmnr(name)
-                src_ip = iface.get_interface_link_local_list()
-                pkt = PrototypeIPv6Packet.get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, name)
-                sendp(pkt, iface=interface, verbose=False)
+        SendIPv6.send_llmnr_ipv6_batch([name], interface)
 
+    @staticmethod
+    def send_llmnr_ipv6_batch(names: list[str], interface: str, burst_limit: int | None = None) -> None:
+        """Send LLMNR queries for a list of names in configurable bursts."""
+        if not names:
+            return
+        iface = Interface(interface)
+        if not iface.check_interface() or not iface.check_available_ipv6():
+            return
+
+        src_mac = get_if_hwaddr(interface)
+        src_ip = iface.get_interface_link_local_list()
+        burst = SendIPv6.__effective_burst_limit(burst_limit)
+
+        for chunk in SendIPv6.__chunked([str(name) for name in names if str(name).strip()], burst):
+            packets: list[Packet] = []
+            for name in chunk:
+                qname = LLMNR.full_name_llmnr(name)
+                packets.extend(PrototypeIPv6Packet.get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, qname))
+            if packets:
+                sendp(packets, iface=interface, verbose=False)
+
+    @staticmethod
     def IPv6_test_mdns_llmnr(ip_address: str, interface: str) -> None:
         """
         Test mDNS and LLMNR for a given IPv6 address.
@@ -266,16 +442,40 @@ class SendIPv6:
         Output:
             None
         """
-        name = SendIPv6.send_reverse_ipv6_llmnr(ip_address, interface)
-        if name is not None and name.strip():
-            SendIPv6.send_mDNS_ipv6(name, interface)
-            SendIPv6.send_llmnr_ipv6(name, interface)
-            return
-        name = SendIPv6.send_reverse_ipv6_MDNS(ip_address, interface)
-        if name is not None and name.strip():
-            SendIPv6.send_mDNS_ipv6(name, interface)
-            SendIPv6.send_llmnr_ipv6(name, interface)
-            return
+        SendIPv6.IPv6_test_mdns_llmnr_batch([str(ip_address)], interface)
+
+    @staticmethod
+    def IPv6_test_mdns_llmnr_batch(ip_addresses: list[str], interface: str, burst_limit: int | None = None) -> dict[str, str | None]:
+        """Batch coordinator for reverse LLMNR/mDNS and follow-up forward queries.
+
+        Flow:
+            1) Reverse LLMNR for all targets.
+            2) Reverse mDNS only for unresolved targets.
+            3) Forward mDNS/LLMNR for discovered unique names.
+
+        Returns:
+            dict[str, str | None]: Mapping IPv6 target -> discovered name (if any).
+        """
+        result: dict[str, str | None] = {str(ip): None for ip in ip_addresses}
+        if not ip_addresses:
+            return result
+
+        llmnr_map = SendIPv6.send_reverse_ipv6_llmnr_batch(ip_addresses, interface, burst_limit=burst_limit)
+        result.update(llmnr_map)
+
+        unresolved = [ip for ip, name in result.items() if not name]
+        if unresolved:
+            mdns_map = SendIPv6.send_reverse_ipv6_MDNS_batch(unresolved, interface, burst_limit=burst_limit)
+            for ip, name in mdns_map.items():
+                if name:
+                    result[ip] = name
+
+        discovered_names = sorted({name for name in result.values() if isinstance(name, str) and name.strip()})
+        if discovered_names:
+            SendIPv6.send_mDNS_ipv6_batch(discovered_names, interface, burst_limit=burst_limit)
+            SendIPv6.send_llmnr_ipv6_batch(discovered_names, interface, burst_limit=burst_limit)
+
+        return result
 
     @staticmethod
     def send_MLD_query(interface: str) -> None:
@@ -480,15 +680,17 @@ class SendIPv6:
         if all_packets:
             sendp(all_packets, iface=interface, verbose=False)
 
-        for mac, ips in possible_global_IP.items():
-            if ips != []:
+        discovery_targets: list[str] = []
+        for _mac, ips in possible_global_IP.items():
+            if ips:
                 for dst_ip in ips:
                     try:
-                        dst_ip = ipaddress.IPv6Address(dst_ip)
-                        SendIPv6.IPv6_test_mdns_llmnr(dst_ip, interface)
+                        discovery_targets.append(str(ipaddress.IPv6Address(dst_ip)))
                     except ipaddress.AddressValueError:
                         # Skip non-IPv6 generated target candidates.
                         continue
+        if discovery_targets:
+            SendIPv6.IPv6_test_mdns_llmnr_batch(discovery_targets, interface)
 
     @staticmethod
     def send_NA(interface: str, source_mac: str, target_mac: str, source_ip: str, target_ip: str, r_flag: int, s_flag: int, o_flag: int) -> None:
