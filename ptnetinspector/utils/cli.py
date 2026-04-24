@@ -1071,8 +1071,6 @@ def parameter_control(
     list_error: list[str] = []
     list_warning: list[str] = []
 
-    logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-
     # Ensure tmp path is interface-scoped for any early errors
     try:
         set_current_interface(interface)

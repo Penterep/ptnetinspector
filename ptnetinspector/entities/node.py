@@ -111,10 +111,10 @@ class Node:
             })
 
     @staticmethod
-    def get_ipv6_route_metrics_and_addresses() -> None:
+    def get_ipv6_route_metrics_and_addresses(timeout: float = 10.0) -> None:
         try:
-            # Run the "route -A inet6" command to get the IPv6 route table
-            route_output = subprocess.check_output(["route", "-A", "inet6"]).decode("utf-8")
+            # Use numeric output (-n) to avoid reverse-DNS stalls when resolver is unavailable.
+            route_output = subprocess.check_output(["route", "-n", "-A", "inet6"], timeout=timeout).decode("utf-8")
 
             # Split the route output into lines
             route_lines = route_output.splitlines()[2:]
@@ -131,15 +131,18 @@ class Node:
         except subprocess.CalledProcessError as e:
             print("Error running 'ip' command:", e)
             return
+        except subprocess.TimeoutExpired:
+            print("Timeout while running 'route -n -A inet6' command")
+            return
 
         except Exception as e:
             print("An error occurred:", e)
             return
 
     @staticmethod
-    def get_ipv4_route_metrics_and_addresses() -> None:
+    def get_ipv4_route_metrics_and_addresses(timeout: float = 10.0) -> None:
         try:
-            route_output = subprocess.check_output(["route", "-n"]).decode("utf-8")
+            route_output = subprocess.check_output(["route", "-n"], timeout=timeout).decode("utf-8")
             route_lines = route_output.splitlines()[2:]
 
             for line in route_lines:
@@ -151,6 +154,9 @@ class Node:
 
         except subprocess.CalledProcessError as e:
             print("Error running 'route' command:", e)
+            return
+        except subprocess.TimeoutExpired:
+            print("Timeout while running 'route -n' command")
             return
 
         except Exception as e:

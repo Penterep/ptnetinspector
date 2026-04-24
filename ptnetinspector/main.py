@@ -10,6 +10,10 @@ import signal
 import sys
 import warnings
 import json
+import logging
+
+# Suppress Scapy runtime warnings early, before importing modules that load Scapy.
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 from ptnetinspector.output.json import Json
 from ptnetinspector.output.non_json import Non_json
