@@ -154,7 +154,7 @@ def check_eap_detected():
         ptprinthelper.ptprint("\033[90m802.1x is detected, so scan will be cancelled\033[0m", "WARNING", condition=True, indent=4)
         if json_output:
             Non_json.print_box("Json output")
-            print(Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips))
+            print(Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses))
         sys.exit(0)
 
 
@@ -190,7 +190,7 @@ def ptnet_eap(combine=False):
     if json_output:
         if not combine:
             enablePrint()
-        _accumulated_json_result = Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips)
+        _accumulated_json_result = Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
 
 
 def ptnet_passive():
@@ -230,7 +230,7 @@ def ptnet_passive():
     # Accumulate JSON result (don't print yet if multiple modes)
     if json_output:
         global _accumulated_json_result
-        _accumulated_json_result = Json.output_object(True, "p", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips)
+        _accumulated_json_result = Json.output_object(True, "p", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
 
 
 def ptnet_active():
@@ -343,7 +343,7 @@ def execute_scan(scan_types):
         if len(scan_types) > 1:
             check_eap_detected()
             if json_output:
-                Json.output_object(False, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips)
+                Json.output_object(False, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
 
     if has_passive:
         Interface_object.shutdown_traffic()
@@ -452,7 +452,7 @@ def main():
             if more_detail:
                 Non_json.print_box("Json output")
             # Final output reads accumulated CSVs; avoid mode filtering
-            print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips))
+            print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses))
     except KeyboardInterrupt:
         has_active = "a" in scanning_type
         has_aggressive = "a+" in scanning_type

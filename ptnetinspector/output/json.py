@@ -192,10 +192,20 @@ class Json:
         key_node_ele: str,
         all_ip: list,
         address_vuln_codes: list[str] | None = None,
+        check_addresses: bool = True,
+        device_ips: list[str] | None = None,
     ) -> bool:
         """Create and add an address node. Returns True if added."""
         if is_valid_ipv6(ip):
-            return Json._create_ipv6_address_node(ip, device_number, key_node_ele, all_ip, address_vuln_codes)
+            return Json._create_ipv6_address_node(
+                ip,
+                device_number,
+                key_node_ele,
+                all_ip,
+                address_vuln_codes,
+                check_addresses=check_addresses,
+                device_ips=device_ips,
+            )
         else:
             return Json._create_ipv4_address_node(ip, device_number, key_node_ele, all_ip, address_vuln_codes)
 
@@ -206,10 +216,22 @@ class Json:
         key_node_ele: str,
         all_ip: list,
         address_vuln_codes: list[str] | None = None,
+        check_addresses: bool = True,
+        device_ips: list[str] | None = None,
     ) -> bool:
         """Create and add an IPv6 address node."""
         if is_llsnm_ipv6(ip):
-            list_solicited_ip = [in6_getnsma(addr) for addr in [ip] if not is_llsnm_ipv6(addr)]
+            # Keep parity with non-JSON output: show possible addresses only in -nc mode.
+            if check_addresses:
+                return False
+
+            source_ips = device_ips if device_ips is not None else all_ip
+            list_solicited_ip = [
+                in6_getnsma(addr)
+                for addr in source_ips
+                if is_valid_ipv6(addr) and not is_llsnm_ipv6(addr)
+            ]
+
             if ip not in list_solicited_ip:
                 node = ptjsonlib_object.create_node_object(
                     node_type="Address", parent_type=None,
@@ -274,6 +296,7 @@ class Json:
         ipver: IPMode | None = None,
         target_macs: set[str] | None = None,
         target_ips: set[str] | None = None,
+        check_addresses: bool = True,
     ) -> dict:
         """Build and return the final JSON report from CSV artifacts.
 
@@ -284,6 +307,7 @@ class Json:
             ipver: Optional IPMode to filter addresses by IP family.
             target_macs: Optional set of target MAC addresses to filter devices.
             target_ips: Optional set of target IP addresses to filter addresses.
+            check_addresses: True when address validation is enabled (default behavior without -nc).
         Returns:
             dict: JSON structure (stringified when written to file).
         """
@@ -420,7 +444,15 @@ class Json:
                         mode,
                         target_codes_set,
                     ) if vuln_ip_df is not None else []
-                    Json._create_address_node(ip, device_number, node_ele["key"], all_ip, ip_vul)
+                    Json._create_address_node(
+                        ip,
+                        device_number,
+                        node_ele["key"],
+                        all_ip,
+                        ip_vul,
+                        check_addresses=check_addresses,
+                        device_ips=ip_addresses,
+                    )
 
         ptjsonlib_object.set_status("finished")
         output_json = ptjsonlib_object.get_result_json()
