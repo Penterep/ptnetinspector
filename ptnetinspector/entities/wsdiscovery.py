@@ -58,14 +58,14 @@ def parse_wsdiscovery(packet: bytes) -> list:
                 socket.inet_pton(socket.AF_INET, host)
                 found_addresses.append(host)
                 continue
-            except socket.error as ex:
-                logger.debug("WS-Discovery host is not IPv4 (%s): %s", host, ex)
+            except socket.error:
+                pass
             try:
                 socket.inet_pton(socket.AF_INET6, host)
                 found_addresses.append(host)
                 continue
-            except socket.error as ex:
-                logger.debug("WS-Discovery host is not IPv6 (%s): %s", host, ex)
+            except socket.error:
+                logger.debug("WS-Discovery host is not a valid IP address (%s)", host)
 
     return found_addresses
 
