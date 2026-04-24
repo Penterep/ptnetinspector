@@ -168,6 +168,7 @@ cython_debug/
 .pypirc
 
 .vscode/
+**/*.code-workspace
 !tmp/ports_*.csv
 tmp/*
 
