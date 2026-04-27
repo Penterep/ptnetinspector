@@ -294,7 +294,7 @@ class Non_json:
             END = '\033[0m'
             order_text = f"[{idx}/{len(sorted_codes)}]"
             ptprinthelper.ptprint(f"\n    {YELLOW}{order_text}{END} {description}", condition=True, indent=4)
-            ptprinthelper.ptprint(f"    ({code})", condition=True, indent=4)
+            ptprinthelper.ptprint(f"    ({code})", condition=True, indent=4)                    
 
             # Separate entities into devices and network
             devices = {}
@@ -305,6 +305,11 @@ class Non_json:
                     network_status = label
                 else:
                     devices[entity_id] = label
+
+            if devices:
+                vulnerable_devices_count = sum(1 for label in devices.values() if label == 1)
+                total_devices_count = len(devices)
+                ptprinthelper.ptprint(f"    {vulnerable_devices_count}/{total_devices_count} devices vulnerable", condition=True, indent=4)
 
             # Build table data with each entity as separate column
             headers = []
