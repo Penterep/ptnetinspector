@@ -101,7 +101,7 @@ def write_mappings(mappings: List[AddressMapping], file_path: str = None) -> Non
 
 class AddressValidator:
     __max_concurrency = 16  # Limit concurrent probes to avoid flooding the network.
-    __timeout = 0.5  # Seconds to wait for responses to ARP/NS probes.
+    __timeout = 0.2  # Seconds to wait for responses to ARP/NS probes.
 
     def __init__(self, interface: str):
         self.interface = interface

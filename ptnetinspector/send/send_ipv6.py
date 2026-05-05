@@ -191,7 +191,7 @@ class SendIPv6:
         return result_map.get(str(ipv6_address))
 
     @staticmethod
-    def send_reverse_ipv6_MDNS_batch(ipv6_addresses: list[str], interface: str, burst_limit: int | None = None, rsp_timeout: float = 0.3) -> dict[str, str | None]:
+    def send_reverse_ipv6_MDNS_batch(ipv6_addresses: list[str], interface: str, burst_limit: int | None = None, rsp_timeout: float = 0.2) -> dict[str, str | None]:
         """Send reverse mDNS PTR queries for a list of IPv6 targets.
 
         Args:
@@ -792,12 +792,22 @@ class SendIPv6:
                             id=SendIPv6.__get_next_icmpv6_echo_request_id(),
                             multicast=False
                         ))
-                    sendp(multicast_ping, iface=interface, verbose=False)
-                    sendp(empty_dest_opt, iface=interface, verbose=False)
-                    sendp(empty_hop_by_hop_opt, iface=interface, verbose=False)
-                    sendp(invalid, iface=interface, verbose=False)
-                    sendp(multicast_ping_dest_opt, iface=interface, verbose=False)
-                    sendp(multicast_ping_hop_by_hop_opt, iface=interface, verbose=False)
+                    packets = [
+                        multicast_ping,
+                        empty_dest_opt,
+                        empty_hop_by_hop_opt,
+                        invalid,
+                        multicast_ping_dest_opt,
+                        multicast_ping_hop_by_hop_opt
+                    ]
+                    sendp(packets, iface=interface, verbose=False)
+                    
+                    #sendp(multicast_ping, iface=interface, verbose=False)
+                    #sendp(empty_dest_opt, iface=interface, verbose=False)
+                    #sendp(empty_hop_by_hop_opt, iface=interface, verbose=False)
+                    #sendp(invalid, iface=interface, verbose=False)
+                    #sendp(multicast_ping_dest_opt, iface=interface, verbose=False)
+                    #sendp(multicast_ping_hop_by_hop_opt, iface=interface, verbose=False)
 
     @staticmethod
     def send_ns(address: str|list[str], interface: str, wait_for_rsp: bool = False, rsp_timeout: float|None = 0.1) -> None | SndRcvList:
@@ -950,12 +960,13 @@ class SendIPv6:
             avail_ipv6 = Interface(interface).check_available_ipv6()
             if avail_ipv6:
                 ipv6_addresses = Interface(interface).get_interface_ipv6_ips()
+                dns_sd = []
                 for source_ipv6_addr in ipv6_addresses:
-                    src_mac = get_if_hwaddr(interface)
-                    dns_sd = []
+                    src_mac = get_if_hwaddr(interface)                    
                     dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr))
                     dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr, unicastresponse=1))
-                    sendp(dns_sd, verbose=0, iface=interface)
+                if dns_sd:
+                    sendp(dns_sd, verbose=0, iface=interface)                    
 
     @staticmethod
     def send_dhcpv6_solicit(interface: str) -> None:

@@ -84,7 +84,7 @@ class SendIPv4:
         return result_map.get(str(ip_address))
 
     @staticmethod
-    def send_reverse_ipv4_MDNS_batch(ip_addresses: list[str], interface: str, burst_limit: int | None = None, rsp_timeout: float = 0.3) -> dict[str, str | None]:
+    def send_reverse_ipv4_MDNS_batch(ip_addresses: list[str], interface: str, burst_limit: int | None = None, rsp_timeout: float = 0.2) -> dict[str, str | None]:
         """Send reverse mDNS PTR queries for a list of IPv4 targets."""
         result: dict[str, str | None] = {str(ip): None for ip in ip_addresses}
         if not ip_addresses:
@@ -368,9 +368,11 @@ class SendIPv4:
         if exist_interface:
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
             src_mac = get_if_hwaddr(interface)
+            packets = []
             for source_ipv4_addr in ipv4_addresses:
-                query = PrototypeIPv4Packet.get_igmp_query_general(version, src_mac, source_ipv4_addr, spec_group)
-                sendp(query*2, verbose=0, iface=interface)
+                packets.append(PrototypeIPv4Packet.get_igmp_query_general(version, src_mac, source_ipv4_addr, spec_group))
+            if packets:
+                sendp(packets*2, verbose=0, iface=interface)
 
     @staticmethod
     def send_igmp_report_join(interface, aggressive = False) -> None:
@@ -431,7 +433,7 @@ class SendIPv4:
 
         if exist_interface:
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
-
+            packets = []
             for source_ipv4_addr in ipv4_addresses:
 
                 mac = Ether(src=get_if_hwaddr(interface), dst=mac_dst_addr)
@@ -439,8 +441,9 @@ class SendIPv4:
                 icmp_packet = ICMP(id=id_query, type=icmp_type.value)
 
                 icmp_message = mac / ipv4_packet / icmp_packet / "icmp echo request"
-
-                sendp(icmp_message, verbose=0, iface=interface)
+                packets.append(icmp_message)
+            if packets:
+                sendp(packets, verbose=0, iface=interface)
 
     @staticmethod
     def send_subnet_broadcast_icmp(interface: str, icmp_type: ICMPType = ICMPType.ECHO_REQUEST) -> None:
@@ -468,7 +471,7 @@ class SendIPv4:
 
         if exist_interface:
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
-
+            packets = []
             for source_ipv4_addr in ipv4_addresses:
 
                 ether = Ether(src=get_if_hwaddr(interface))
@@ -477,8 +480,9 @@ class SendIPv4:
                 mdns = DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
 
                 dns_sd = ether / ipv4 / udp / mdns
-
-                sendp(dns_sd, verbose=0, iface=interface)
+                packets.append(dns_sd)
+            if packets:
+                sendp(packets, verbose=0, iface=interface)
 
     @staticmethod
     def send_dhcp_discover(interface: str) -> None:
