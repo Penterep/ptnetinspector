@@ -21,7 +21,7 @@ class PrototypeL7:
     @staticmethod
     def get_dns_ptr(qname: str, unicastresponse: int = 0) -> Packet:
         return DNS(rd=1, qd=DNSQR(qname=qname, qtype=DNS_QType.PTR, unicastresponse=unicastresponse))
-    
+ 
     @staticmethod
     def get_dns_sd(unicastresponse: int = 0) -> Packet:
         return (

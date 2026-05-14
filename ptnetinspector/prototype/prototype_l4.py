@@ -49,7 +49,7 @@ class PrototypeL4:
         udp = UDP(sport=PrototypeL4.get_l4port_random(), dport=PrototypeL4.WS_DISCOVERY_PORT)
         payload = Raw(load=soap_payload)
         return udp / payload
-    
+ 
     # Note: Check the PrototypeL4.MDNS_PORT constant for consistency with the default value used in get_l3payload_mdns_sd sport parameter.
     @staticmethod
     def get_l3payload_mdns_sd(unicastresponse: int = 0, sport: int|None = 5353) -> Packet:

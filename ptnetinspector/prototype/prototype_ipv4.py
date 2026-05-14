@@ -42,7 +42,7 @@ class PrototypeIPv4Packet:
         "239.255.255.253", # v2
     ]
 
-    MULTICAST_GROUPS_ACTIVE = [        
+    MULTICAST_GROUPS_ACTIVE = [ 
         IGMPV3_IPV4_MULTICAST_IP,
         MDNS_IPV4_MULTICAST_IP,
         LLMNR_IPV4_MULTICAST_IP,
@@ -54,7 +54,7 @@ class PrototypeIPv4Packet:
         ALL_ROUTERS_IPV4_MULTICAST_IP
     ]
     MULTICAST_GROUPS_KEEP = [
-        
+ 
     ]
 
     # 
@@ -183,7 +183,7 @@ class PrototypeIPv4Packet:
         """
         Builds an ARP request packet for the specified target IPv4 address.
         The packet is constructed with an Ethernet header for broadcast and an ARP layer with the target IPv4 address.
-        Args:            
+        Args: 
             address: The target IPv4 address for the ARP request.
         Output:
             Packet: Scapy packet representing the ARP request.

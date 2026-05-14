@@ -294,7 +294,7 @@ class Non_json:
             END = '\033[0m'
             order_text = f"[{idx}/{len(sorted_codes)}]"
             ptprinthelper.ptprint(f"\n    {YELLOW}{order_text}{END} {description}", condition=True, indent=4)
-            ptprinthelper.ptprint(f"    ({code})", condition=True, indent=4)                    
+            ptprinthelper.ptprint(f"    ({code})", condition=True, indent=4) 
 
             # Separate entities into devices and network
             devices = {}

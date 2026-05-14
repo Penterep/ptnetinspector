@@ -87,7 +87,7 @@ class PrototypeIPv6Packet:
         ALL_ROUTERS_IPV6_MULTICAST_IP
     ] + DHCPV6_IPV6_MULTICAST_IPS
     MULTICAST_GROUPS_KEEP = [
-        
+ 
     ]
 
     # 
@@ -101,7 +101,7 @@ class PrototypeIPv6Packet:
         Does not include L2 and L3 headers, only the hop-by-hop extension header.
         Args:
             multicast: Whether to use the multicast or unicast option type for the hop-by-hop option.
-        
+ 
         Output:
             Packet: Scapy packet representing a hop-by-hop extension header with an unknown option.
         """

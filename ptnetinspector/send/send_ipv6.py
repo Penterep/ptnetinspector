@@ -768,7 +768,7 @@ class SendIPv6:
             layer2 = Ether(src=src_mac)
             for mac, ips in mac_ips_global.items():
                 if ips != []:
-                    layer3 = IPv6(src=sip, dst=ips)                    
+                    layer3 = IPv6(src=sip, dst=ips) 
                     multicast_ping = (layer2 / layer3 / 
                         PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request(
                             id=SendIPv6.__get_next_icmpv6_echo_request_id()
@@ -801,7 +801,7 @@ class SendIPv6:
                         multicast_ping_hop_by_hop_opt
                     ]
                     sendp(packets, iface=interface, verbose=False)
-                    
+ 
                     #sendp(multicast_ping, iface=interface, verbose=False)
                     #sendp(empty_dest_opt, iface=interface, verbose=False)
                     #sendp(empty_hop_by_hop_opt, iface=interface, verbose=False)
@@ -825,7 +825,7 @@ class SendIPv6:
         if exist_interface:
             avail_ipv6 = Interface(interface).check_available_ipv6()
             if avail_ipv6:
-                src_mac = get_if_hwaddr(interface)   
+                src_mac = get_if_hwaddr(interface) 
                 pkt = PrototypeIPv6Packet.get_frame_ns(src_mac, address)
                 if wait_for_rsp:
                     with SCAPY_IO_LOCK:
@@ -845,7 +845,7 @@ class SendIPv6:
         Output:
             None
         """
-        try:            
+        try: 
             IPV6_PROBE_MAX_TARGETS = 1024
             if batch_size <= 0:
                 raise ValueError("batch_size must be > 0")
@@ -962,11 +962,11 @@ class SendIPv6:
                 ipv6_addresses = Interface(interface).get_interface_ipv6_ips()
                 dns_sd = []
                 for source_ipv6_addr in ipv6_addresses:
-                    src_mac = get_if_hwaddr(interface)                    
+                    src_mac = get_if_hwaddr(interface) 
                     dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr))
                     dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr, unicastresponse=1))
                 if dns_sd:
-                    sendp(dns_sd, verbose=0, iface=interface)                    
+                    sendp(dns_sd, verbose=0, iface=interface) 
 
     @staticmethod
     def send_dhcpv6_solicit(interface: str) -> None:
@@ -979,7 +979,7 @@ class SendIPv6:
         """
         send_ipv6_from_all_lla_addresses(interface,
             PrototypeIPv6Packet.get_l3payload_dhcpv6_solicit(get_if_hwaddr(interface)), dst_ip=PrototypeIPv6Packet.DHCPV6_IPV6_MULTICAST_IPS)
-        
+ 
     def react_to_mld_queries(mode: str, interface: str, duration: float|None, stop_event=None) -> None:
         """
         React to MLD Query packets by sending MLD join reports.
