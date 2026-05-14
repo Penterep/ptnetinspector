@@ -117,6 +117,22 @@ class PrototypeIPv4Packet:
             PrototypeL4.get_l4port_random() if sport is None else sport) for q in queries]
 
     @staticmethod
+    def get_frame_mdns_sd(src_mac: str|list[str]|None, src_ip: str|list[str]|None, unicastresponse: int = 0, sport: int|None = PrototypeL4.MDNS_PORT) -> Packet:
+        """
+        Builds an mDNS Service Discovery packet with the specified source MAC and IPv4 addresses.
+        The packet is constructed with appropriate L2 and L3 headers, and includes a DNS query for the _services._dns-sd._udp.local. domain.
+        Args:
+            src_mac: Source MAC address for the mDNS Service Discovery packet.
+            src_ip: Source IPv4 address for the mDNS Service Discovery packet.
+            unicastresponse: Flag indicating whether to set the unicast response bit in the DNS query (default is 0).
+        Output:
+            Packet: Scapy packet representing the mDNS Service Discovery query.
+        """
+        return (Ether(src=src_mac) /
+            IP(src=src_ip, dst=PrototypeIPv4Packet.MDNS_IPV4_MULTICAST_IP, ttl=1) /
+            PrototypeL4.get_l3payload_mdns_sd(unicastresponse=unicastresponse, sport=sport))
+
+    @staticmethod
     def get_frame_llmnr_custom_payload(src_mac: str|list[str]|None, src_ip: str|list[str]|None, l4_payload: Packet, sport: int|None=None) -> Packet:
         """
         Adds L2, L3, and L4 headers to the provided L4 payload to create a complete LLMNR query packet.

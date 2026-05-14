@@ -3,9 +3,12 @@ import uuid
 
 from scapy.layers.inet import UDP
 from scapy.all import Raw, Packet
+from scapy.layers.dns import DNS, DNSQR, DNSRR
+
+from ptnetinspector.prototype.prototype_l7 import PrototypeL7
 
 class PrototypeL4:
-    MDNS_PORT = 5353
+    MDNS_PORT = 5353 # Note: Keep same as the default value used in get_l3payload_mdns_sd sport parameter for consistency.
     LLMNR_PORT = 5355
     WS_DISCOVERY_PORT = 3702
 
@@ -46,3 +49,10 @@ class PrototypeL4:
         udp = UDP(sport=PrototypeL4.get_l4port_random(), dport=PrototypeL4.WS_DISCOVERY_PORT)
         payload = Raw(load=soap_payload)
         return udp / payload
+    
+    # Note: Check the PrototypeL4.MDNS_PORT constant for consistency with the default value used in get_l3payload_mdns_sd sport parameter.
+    @staticmethod
+    def get_l3payload_mdns_sd(unicastresponse: int = 0, sport: int|None = 5353) -> Packet:
+        return (
+            UDP(sport=PrototypeL4.get_l4port_random() if sport is None else sport, dport=PrototypeL4.MDNS_PORT) /
+            PrototypeL7.get_dns_sd(unicastresponse=unicastresponse))

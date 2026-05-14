@@ -460,8 +460,7 @@ class PrototypeIPv6Packet:
         """
         return (Ether(src=src_mac) /
             IPv6(src=src_ip, dst=PrototypeIPv6Packet.MDNS_IPV6_MULTICAST_IP, hlim=1) /
-            UDP(sport=PrototypeL4.get_l4port_random() if sport is None else sport, dport=PrototypeL4.MDNS_PORT) /
-            DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype=DNS_QType.PTR, unicastresponse=unicastresponse)))
+            PrototypeL4.get_l3payload_mdns_sd(unicastresponse=unicastresponse, sport=sport))
 
     @staticmethod
     def get_frame_ra(prefix_len: int, network: str, source_mac: str, source_ip: str, rpref: int, chl: int, mtu: int|None, dns: list[str]|None) -> Packet:
