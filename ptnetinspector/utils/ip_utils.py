@@ -209,12 +209,13 @@ def is_ipv6_predictable(ip: str, mac: str) -> bool:
         lower_64 & 0xFFFF,
     ]
 
-    def has_at_most_one_nonzero_nibble(hextet: int) -> bool:
-        return sum(1 for shift in (0, 4, 8, 12) if ((hextet >> shift) & 0xF) != 0) <= 1
+    def has_only_low_nibble_nonzero(hextet: int) -> bool:
+        # Consider only the 4 LSB of each hextet as potentially non-zero.
+        return (hextet & 0xFFF0) == 0
 
-    # Predictable if each lower hextet has at most one non-zero nibble.
-    # Examples: 0000, 0001, 0010, 0100, 1000, 00a0, ...
-    if all(has_at_most_one_nonzero_nibble(hextet) for hextet in lower_hextets):
+    # Predictable if each lower hextet uses only its 4 LSB.
+    # Examples: 0000..000f
+    if all(has_only_low_nibble_nonzero(hextet) for hextet in lower_hextets):
         return True
 
     # Predictable if only the last byte may be non-zero (IID in range ::0..::ff).

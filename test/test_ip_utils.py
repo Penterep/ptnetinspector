@@ -108,7 +108,7 @@ class TestIPv6Predictable:
         assert is_ipv6_predictable("2000:6675:7272:7900:0211:22ff:fe33:4455", "00:11:22:33:44:55") is True
 
     def test_detects_one_nonzero_nibble_per_lower_hextet(self):
-        assert is_ipv6_predictable("2000:6675:7272:7900:1000:0200:000f:0000", "00:00:00:00:00:00") is True
+        assert is_ipv6_predictable("2000:6675:7272:7900:0001:0002:000f:0000", "00:00:00:00:00:00") is True
 
     def test_detects_only_last_byte_nonzero(self):
         assert is_ipv6_predictable("2000:6675:7272:7900::ff", "00:00:00:00:00:00") is True
