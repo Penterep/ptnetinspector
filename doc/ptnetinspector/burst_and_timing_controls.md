@@ -7,7 +7,7 @@ This file states variables and parameters that control specific timing controls 
 |---|---|---|---|
 |send/send_ipv4.py|SendIPv4|__ipv4_burst_limit|0|
 |send/send_ipv6.py|SendIPv6|__ipv6_burst_limit|0|
-|utils/address_control.py|AddressValidator|__max_concurrency|16|
+|utils/address_control.py|AddressValidator|__probe_burst_limit|0|
 
 ## Timeouts
 

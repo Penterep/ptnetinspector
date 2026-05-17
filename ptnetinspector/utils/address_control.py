@@ -8,14 +8,15 @@ import asyncio
 import csv
 import logging
 import os
+import time
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 from ptlibs import ptprinthelper
 from scapy.all import (
     Ether, ARP, IPv6, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr,
-    srp1
+    AsyncSniffer, sendp
 )
 from scapy.arch import get_if_hwaddr, get_if_addr
 from scapy.layers.inet6 import ICMPv6ND_NA
@@ -47,8 +48,6 @@ def read_mappings() -> List[AddressMapping]:
                 mappings.append(AddressMapping(mac=row['MAC'], ip=row['IP']))
     return mappings
 
-
-from typing import Union
 
 def is_valid_unicast_ip(ip: Union[ipaddress.IPv4Address, ipaddress.IPv6Address]) -> bool:
     return not (ip.is_multicast or ip.is_unspecified or ip.is_loopback)
@@ -100,63 +99,145 @@ def write_mappings(mappings: List[AddressMapping], file_path: str = None) -> Non
 
 
 class AddressValidator:
-    __max_concurrency = 16  # Limit concurrent probes to avoid flooding the network.
     __timeout = 0.2  # Seconds to wait for responses to ARP/NS probes.
+    __probe_retries = 2  # How many times each probe batch is sent to improve response rate.
+    __probe_burst_limit = 0  # <=0 sends all probes at once, >0 sends probes in chunks.
+
+    @staticmethod
+    def __effective_burst_limit(requested_limit: int | None) -> int:
+        """Resolve burst limit with validator default fallback."""
+        effective = AddressValidator.__probe_burst_limit if requested_limit is None else requested_limit
+        try:
+            effective = int(effective)
+        except (TypeError, ValueError):
+            effective = 0
+        return effective
+
+    @staticmethod
+    def __chunked(items: list, burst_limit: int):
+        """Yield chunks according to burst limit; <=0 means no chunking."""
+        if burst_limit <= 0:
+            if items:
+                yield items
+            return
+        for idx in range(0, len(items), burst_limit):
+            yield items[idx:idx + burst_limit]
 
     def __init__(self, interface: str):
         self.interface = interface
-
-    def verify_ipv4_mapping(self, mapping: AddressMapping) -> bool:
-        arp_request = (Ether(src=get_if_hwaddr(self.interface), dst=mapping.mac) /
-                       ARP(pdst=mapping.ip, hwdst=mapping.mac, op=1,
-                           hwsrc=get_if_hwaddr(self.interface), psrc=get_if_addr(self.interface)))
-
-        arp_reply = srp1(arp_request, timeout=self.__timeout, verbose=False, iface=self.interface, filter=f"arp and ether src {mapping.mac}")
-
-        return arp_reply and arp_reply.haslayer(ARP) and arp_reply.op == 2 and arp_reply.psrc == mapping.ip and arp_reply.hwsrc == mapping.mac
 
     def ipv6_address_on_interface_check(self) -> bool:
         candidate_ipv6_src_addr = Interface.get_interface_ipv6_ips(Interface(self.interface))
         return bool(candidate_ipv6_src_addr)
 
-    def verify_ipv6_mapping(self, mapping: AddressMapping) -> bool:
-        candidate_ipv6_src_addr = Interface.get_interface_ipv6_ips(Interface(self.interface))
-
-        ns_packet = (Ether(src=get_if_hwaddr(self.interface), dst=mapping.mac) /
-                     IPv6(src=get_source_addr_from_candidate_set(mapping.ip, candidate_ipv6_src_addr), dst=mapping.ip) /
-                     ICMPv6ND_NS(tgt=mapping.ip) /
-                     ICMPv6NDOptSrcLLAddr(lladdr=get_if_hwaddr(self.interface)))
-
-        advertisement = srp1(ns_packet, timeout=self.__timeout, verbose=False, iface=self.interface, filter=f"icmp6 and ether src {mapping.mac}")
-
-        return advertisement and advertisement.haslayer(ICMPv6ND_NA) and advertisement[IPv6].src == mapping.ip and advertisement[Ether].src == mapping.mac
-
-    async def verify_mapping(self, mapping: AddressMapping) -> bool:
+    def _build_probe_packet(
+        self,
+        mapping: AddressMapping,
+        iface_mac: str,
+        iface_ipv4: str,
+        candidate_ipv6_src_addr: List[str]
+    ) -> Tuple[Optional[object], Optional[Tuple[str, str, str]]]:
         try:
             ip = ipaddress.ip_address(mapping.ip)
-            if isinstance(ip, ipaddress.IPv4Address):
-                return await asyncio.to_thread(self.verify_ipv4_mapping, mapping)
-            return await asyncio.to_thread(self.verify_ipv6_mapping, mapping)
         except ValueError:
             # Invalid address in mapping could indicate file corruption; log for debug.
             logger.debug("Address verification failed: MAC=%s, IP=%s (invalid format)", mapping.mac, mapping.ip)
-            return False
+            return None, None
+
+        mac_normalized = mapping.mac.lower()
+
+        if isinstance(ip, ipaddress.IPv4Address):
+            packet = (Ether(src=iface_mac, dst=mapping.mac) /
+                      ARP(pdst=mapping.ip, hwdst=mapping.mac, op=1,
+                          hwsrc=iface_mac, psrc=iface_ipv4))
+            return packet, ("arp", mac_normalized, mapping.ip)
+
+        if not candidate_ipv6_src_addr:
+            return None, None
+
+        try:
+            ipv6_src = get_source_addr_from_candidate_set(mapping.ip, candidate_ipv6_src_addr)
+        except Exception as error:
+            # Source address selection may fail when interface candidates do not match target scope.
+            logger.debug(
+                "IPv6 source selection failed for MAC=%s, IP=%s: %s",
+                mapping.mac,
+                mapping.ip,
+                error
+            )
+            return None, None
+
+        packet = (Ether(src=iface_mac, dst=mapping.mac) /
+                  IPv6(src=ipv6_src, dst=mapping.ip) /
+                  ICMPv6ND_NS(tgt=mapping.ip) /
+                  ICMPv6NDOptSrcLLAddr(lladdr=iface_mac))
+        return packet, ("ns", mac_normalized, mapping.ip)
+
+    def _verify_mappings_bulk(self, mappings: List[AddressMapping]) -> List[AddressMapping]:
+        iface_mac = get_if_hwaddr(self.interface)
+        iface_ipv4 = get_if_addr(self.interface)
+        candidate_ipv6_src_addr = Interface.get_interface_ipv6_ips(Interface(self.interface))
+        burst_limit = AddressValidator.__effective_burst_limit(None)
+
+        probe_packets = []
+        mapping_keys: List[Optional[Tuple[str, str, str]]] = []
+
+        for mapping in mappings:
+            packet, key = self._build_probe_packet(
+                mapping,
+                iface_mac=iface_mac,
+                iface_ipv4=iface_ipv4,
+                candidate_ipv6_src_addr=candidate_ipv6_src_addr
+            )
+            mapping_keys.append(key)
+            if packet is not None:
+                probe_packets.append(packet)
+
+        if not probe_packets:
+            return []
+
+        sniffer = AsyncSniffer(iface=self.interface, filter="arp or icmp6", store=True)
+        sniffer.start()
+
+        try:
+            for _ in range(self.__probe_retries):
+                for packet_chunk in AddressValidator.__chunked(probe_packets, burst_limit):
+                    sendp(packet_chunk, iface=self.interface, verbose=False)
+
+            # Keep sniffer active for one response window after the last send.
+            time.sleep(self.__timeout)
+        finally:
+            captured_packets = sniffer.stop() or []
+
+        valid_keys = set()
+        for packet in captured_packets:
+            if packet.haslayer(ARP):
+                arp_layer = packet[ARP]
+                if arp_layer.op == 2:
+                    valid_keys.add(("arp", arp_layer.hwsrc.lower(), arp_layer.psrc))
+                continue
+
+            if packet.haslayer(ICMPv6ND_NA) and packet.haslayer(IPv6) and packet.haslayer(Ether):
+                valid_keys.add(("ns", packet[Ether].src.lower(), packet[IPv6].src))
+
+        return [mapping for mapping, key in zip(mappings, mapping_keys) if key in valid_keys]
 
     async def verify_all_mappings(self, mappings: List[AddressMapping]) -> List[AddressMapping]:
         if not self.ipv6_address_on_interface_check():
             ptprinthelper.ptprint(f"Could not validate IPv6 addresses. No IPv6 address on interface {self.interface}", "ERROR")
-            mappings = [mapping for mapping in mappings if not isinstance(ipaddress.ip_address(mapping.ip), ipaddress.IPv6Address)]
+            def is_ipv6_address(ip_value: str) -> bool:
+                try:
+                    return isinstance(ipaddress.ip_address(ip_value), ipaddress.IPv6Address)
+                except ValueError:
+                    return False
 
-        semaphore = asyncio.Semaphore(self.__max_concurrency)
+            mappings = [
+                mapping
+                for mapping in mappings
+                if not is_ipv6_address(mapping.ip)
+            ]
 
-        async def verify_with_limit(mapping: AddressMapping) -> bool:
-            async with semaphore:
-                return await self.verify_mapping(mapping)
-
-        tasks = [asyncio.create_task(verify_with_limit(mapping)) for mapping in mappings]
-        results = await asyncio.gather(*tasks)
-
-        return [mapping for mapping, result in zip(mappings, results) if result]
+        return await asyncio.to_thread(self._verify_mappings_bulk, mappings)
 
 
 def validate_addresses_mapping(interface: str, ip_mode: IPMode, passive: bool = False) -> None:
