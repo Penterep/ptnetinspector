@@ -729,11 +729,13 @@ class SendIPv6:
             sys.exit(0)
 
     @staticmethod
-    def send_to_test_RA_guard(interface: str) -> None:
+    def send_to_test_RA_guard(interface: str, burst_limit: int | None = None) -> None:
         """
         Send unicast IPv6 packets to all hosts to test RA guard.
         Args:
             interface (str): Network interface to use.
+            burst_limit (int | None): Optional packet batch size. Values <= 0 send
+                all packets in a single burst (default behavior).
         Output:
             None
         """
@@ -765,42 +767,55 @@ class SendIPv6:
             src_mac = get_if_hwaddr(interface)
             dest_ip_list = collect_unique_items(mac_ips_global)
             sip = generate_random_global_ipv6(dest_ip_list)
-            layer2 = Ether(src=src_mac)
+            all_packets: list[Packet] = []
             for mac, ips in mac_ips_global.items():
                 if ips != []:
-                    layer3 = IPv6(src=sip, dst=ips) 
-                    multicast_ping = (layer2 / layer3 / 
-                        PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request(
-                            id=SendIPv6.__get_next_icmpv6_echo_request_id()
-                        ))
-                    empty_dest_opt = (layer2 / layer3 / 
-                        PrototypeIPv6Packet.get_l3payload_empty_destination_option(multicast=False))
-                    empty_hop_by_hop_opt = (layer2 / layer3 / 
-                        PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop(multicast=False))
-                    invalid = (layer2 / layer3 / 
-                        PrototypeIPv6Packet.get_l3payload_invalid_icmpv6_with_dest_opt(
-                            id=SendIPv6.__get_next_icmpv6_echo_request_id(),
-                            multicast=False
-                        ))
-                    multicast_ping_dest_opt = (layer2 / layer3 / 
-                        PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_dest_opt(
-                            id=SendIPv6.__get_next_icmpv6_echo_request_id(),
-                            multicast=False
-                        ))
-                    multicast_ping_hop_by_hop_opt = (layer2 / layer3 / 
-                        PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(
-                            id=SendIPv6.__get_next_icmpv6_echo_request_id(),
-                            multicast=False
-                        ))
-                    packets = [
-                        multicast_ping,
-                        empty_dest_opt,
-                        empty_hop_by_hop_opt,
-                        invalid,
-                        multicast_ping_dest_opt,
-                        multicast_ping_hop_by_hop_opt
-                    ]
-                    sendp(packets, iface=interface, verbose=False)
+                    for dip in ips:
+                        try:
+                            ipaddress.IPv6Address(dip)
+                        except ValueError:
+                            # Skip malformed IPv6 address rows from addresses.csv.
+                            continue
+
+                        layer2 = Ether(src=src_mac, dst=mac)
+                        layer3 = IPv6(src=sip, dst=dip)
+                        multicast_ping = (layer2 / layer3 /
+                            PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request(
+                                id=SendIPv6.__get_next_icmpv6_echo_request_id()
+                            ))
+                        empty_dest_opt = (layer2 / layer3 /
+                            PrototypeIPv6Packet.get_l3payload_empty_destination_option(multicast=False))
+                        empty_hop_by_hop_opt = (layer2 / layer3 /
+                            PrototypeIPv6Packet.get_l3payload_empty_hop_by_hop(multicast=False))
+                        invalid = (layer2 / layer3 /
+                            PrototypeIPv6Packet.get_l3payload_invalid_icmpv6_with_dest_opt(
+                                id=SendIPv6.__get_next_icmpv6_echo_request_id(),
+                                multicast=False
+                            ))
+                        multicast_ping_dest_opt = (layer2 / layer3 /
+                            PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_dest_opt(
+                                id=SendIPv6.__get_next_icmpv6_echo_request_id(),
+                                multicast=False
+                            ))
+                        multicast_ping_hop_by_hop_opt = (layer2 / layer3 /
+                            PrototypeIPv6Packet.get_l3payload_icmpv6_echo_request_with_hop_by_hop_opt(
+                                id=SendIPv6.__get_next_icmpv6_echo_request_id(),
+                                multicast=False
+                            ))
+                        packets = [
+                            multicast_ping,
+                            empty_dest_opt,
+                            empty_hop_by_hop_opt,
+                            invalid,
+                            multicast_ping_dest_opt,
+                            multicast_ping_hop_by_hop_opt
+                        ]
+                        all_packets.extend(packets)
+
+            if all_packets:
+                effective_burst = SendIPv6.__effective_burst_limit(burst_limit)
+                for chunk in SendIPv6.__chunked(all_packets, effective_burst):
+                    sendp(chunk, iface=interface, verbose=False)
  
                     #sendp(multicast_ping, iface=interface, verbose=False)
                     #sendp(empty_dest_opt, iface=interface, verbose=False)
