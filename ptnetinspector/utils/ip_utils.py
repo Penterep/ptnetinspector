@@ -25,6 +25,7 @@ from scapy.layers.l2 import Ether
 from ptnetinspector.utils.csv_helpers import has_additional_data
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.interface import Interface
+from ptnetinspector.utils.burst_control import sendp_with_retries
 
 
 logger = logging.getLogger(__name__)
@@ -763,7 +764,15 @@ def send_ipv6_from_all_addresses(interface: str, payload: Packet, dst_ip: str, d
                 pkt = (Ether(src=src_mac, dst=dst_mac) /
                     IPv6(src=ips, dst=dst_ip) /
                     payload)
-                result = sendp(pkt, iface=interface, verbose=False)
+                result = sendp_with_retries(
+                    packets=pkt,
+                    interface=interface,
+                    logger=logger,
+                    context="ip-utils-send-ipv6-all-addresses",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
                 if result is not None:
                     if packets is None:
                         packets = result
@@ -806,7 +815,15 @@ def send_ipv6_from_all_lla_addresses(interface: str, payload: Packet, dst_ip: st
             pkt = (Ether(src=src_mac, dst=dst_mac) /
                 IPv6(src=ip_addresses, dst=dst_ip) /
                 payload)
-            result = sendp(pkt, iface=interface, verbose=False)
+            result = sendp_with_retries(
+                packets=pkt,
+                interface=interface,
+                logger=logger,
+                context="ip-utils-send-ipv6-lla-addresses",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
             if result is not None:
                 if packets is None:
                     packets = result

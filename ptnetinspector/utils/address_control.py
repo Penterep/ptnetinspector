@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from ptlibs import ptprinthelper
 from scapy.all import (
     Ether, ARP, IPv6, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr,
-    AsyncSniffer, sendp
+    AsyncSniffer
 )
 from scapy.arch import get_if_hwaddr, get_if_addr
 from scapy.layers.inet6 import ICMPv6ND_NA
@@ -26,6 +26,7 @@ from ptnetinspector.entities.networks import Networks
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.send.send import IPMode
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.utils.burst_control import resolve_burst_limit, sendp_adaptive
 
 
 logger = logging.getLogger(__name__)
@@ -103,26 +104,6 @@ class AddressValidator:
     __probe_retries = 2  # How many times each probe batch is sent to improve response rate.
     __probe_burst_limit = 0  # <=0 sends all probes at once, >0 sends probes in chunks.
 
-    @staticmethod
-    def __effective_burst_limit(requested_limit: int | None) -> int:
-        """Resolve burst limit with validator default fallback."""
-        effective = AddressValidator.__probe_burst_limit if requested_limit is None else requested_limit
-        try:
-            effective = int(effective)
-        except (TypeError, ValueError):
-            effective = 0
-        return effective
-
-    @staticmethod
-    def __chunked(items: list, burst_limit: int):
-        """Yield chunks according to burst limit; <=0 means no chunking."""
-        if burst_limit <= 0:
-            if items:
-                yield items
-            return
-        for idx in range(0, len(items), burst_limit):
-            yield items[idx:idx + burst_limit]
-
     def __init__(self, interface: str):
         self.interface = interface
 
@@ -177,7 +158,13 @@ class AddressValidator:
         iface_mac = get_if_hwaddr(self.interface)
         iface_ipv4 = get_if_addr(self.interface)
         candidate_ipv6_src_addr = Interface.get_interface_ipv6_ips(Interface(self.interface))
-        burst_limit = AddressValidator.__effective_burst_limit(None)
+        burst_limit = resolve_burst_limit(
+            requested_limit=None,
+            configured_limit=AddressValidator.__probe_burst_limit,
+            interface=self.interface,
+            logger=logger,
+            context="address-validator",
+        )
 
         probe_packets = []
         mapping_keys: List[Optional[Tuple[str, str, str]]] = []
@@ -201,8 +188,13 @@ class AddressValidator:
 
         try:
             for _ in range(self.__probe_retries):
-                for packet_chunk in AddressValidator.__chunked(probe_packets, burst_limit):
-                    sendp(packet_chunk, iface=self.interface, verbose=False)
+                sendp_adaptive(
+                    packets=probe_packets,
+                    interface=self.interface,
+                    logger=logger,
+                    context="address-validator",
+                    initial_burst=burst_limit,
+                )
 
             # Keep sniffer active for one response window after the last send.
             time.sleep(self.__timeout)

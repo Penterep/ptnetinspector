@@ -27,6 +27,13 @@ from ptnetinspector.prototype.prototype_ipv6 import PrototypeIPv6Packet, MLDV2_R
 from ptnetinspector.prototype.prototype_l4 import PrototypeL4
 from ptnetinspector.utils.ip_utils import send_ipv6_all_nodes_multicast, send_ipv6_all_routers_multicast, send_ipv6_from_all_addresses, send_ipv6_from_all_lla_addresses
 from ptnetinspector.send._scapy_io import SCAPY_IO_LOCK
+from ptnetinspector.utils.burst_control import (
+    resolve_burst_limit,
+    chunked,
+    sendp_adaptive,
+    sendp_with_retries,
+    srp_with_retries,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +42,7 @@ class SendIPv6:
     __ipv6_burst_limit = 0
 
     @staticmethod
-    def __effective_burst_limit(requested_limit: int | None) -> int:
+    def __effective_burst_limit(requested_limit: int | None, interface: str) -> int:
         """Resolve effective query burst limit.
 
         Priority:
@@ -45,16 +52,13 @@ class SendIPv6:
         Returns:
             int: >0 chunk size, <=0 means no chunking.
         """
-        if requested_limit is None:
-            return SendIPv6.__ipv6_burst_limit
-        return requested_limit
-
-    @staticmethod
-    def __chunked(items: list, burst_limit: int) -> list[list]:
-        """Split items into chunks when a positive burst limit is configured."""
-        if burst_limit <= 0 or len(items) <= burst_limit:
-            return [items]
-        return [items[i:i + burst_limit] for i in range(0, len(items), burst_limit)]
+        return resolve_burst_limit(
+            requested_limit=requested_limit,
+            configured_limit=SendIPv6.__ipv6_burst_limit,
+            interface=interface,
+            logger=logger,
+            context="send-ipv6",
+        )
 
     @staticmethod
     def __normalize_qname(value: str) -> str:
@@ -236,8 +240,8 @@ class SendIPv6:
         if not valid_targets:
             return result
 
-        burst = SendIPv6.__effective_burst_limit(burst_limit)
-        for chunk in SendIPv6.__chunked(valid_targets, burst):
+        burst = SendIPv6.__effective_burst_limit(burst_limit, interface)
+        for chunk in chunked(valid_targets, burst):
             packet_to_target: dict[str, str] = {}
             packets: list[Packet] = []
             for target in chunk:
@@ -249,7 +253,18 @@ class SendIPv6:
                 packet_to_target[query] = target
 
             with SCAPY_IO_LOCK:
-                ans, _uans = srp(packets, multi=True, timeout=rsp_timeout, iface=interface, verbose=False, threaded=False)
+                ans, _uans = srp_with_retries(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mdns-reverse",
+                    retries=3,
+                    retry_delay=0.05,
+                    multi=True,
+                    timeout=rsp_timeout,
+                    verbose=False,
+                    threaded=False,
+                )
 
             if not ans:
                 continue
@@ -301,16 +316,22 @@ class SendIPv6:
 
         src_mac = get_if_hwaddr(interface)
         src_ip = iface.get_interface_link_local_list()
-        burst = SendIPv6.__effective_burst_limit(burst_limit)
+        burst = SendIPv6.__effective_burst_limit(burst_limit, interface)
 
-        for chunk in SendIPv6.__chunked([str(name) for name in query_names if str(name).strip()], burst):
+        for chunk in chunked([str(name) for name in query_names if str(name).strip()], burst):
             packets: list[Packet] = []
             for name in chunk:
                 qname = MDNS.full_name_MDNS(name)
                 packets.extend(PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname))
                 packets.extend(PrototypeIPv6Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse=1))
             if packets:
-                sendp(packets, iface=interface, verbose=False)
+                sendp_adaptive(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mdns-batch",
+                    initial_burst=burst,
+                )
 
     @staticmethod
     def send_reverse_ipv6_llmnr(ipv6_address: str, interface: str) -> str | None:
@@ -370,8 +391,8 @@ class SendIPv6:
         if not valid_targets:
             return result
 
-        burst = SendIPv6.__effective_burst_limit(burst_limit)
-        for chunk in SendIPv6.__chunked(valid_targets, burst):
+        burst = SendIPv6.__effective_burst_limit(burst_limit, interface)
+        for chunk in chunked(valid_targets, burst):
             packets: list[Packet] = []
             for target in chunk:
                 packets.append(PrototypeIPv6Packet.get_frame_llmnr_ptr(src_mac, src_ip, reverse_IPadd(target)))
@@ -379,7 +400,13 @@ class SendIPv6:
             response = AsyncSniffer(iface=interface)
             response.start()
             time.sleep(0.05)
-            sendp(packets, iface=interface, verbose=False)
+            sendp_adaptive(
+                packets=packets,
+                interface=interface,
+                logger=logger,
+                context="send-ipv6-llmnr-reverse",
+                initial_burst=burst,
+            )
             time.sleep(rsp_timeout)
             response.stop()
 
@@ -422,15 +449,21 @@ class SendIPv6:
 
         src_mac = get_if_hwaddr(interface)
         src_ip = iface.get_interface_link_local_list()
-        burst = SendIPv6.__effective_burst_limit(burst_limit)
+        burst = SendIPv6.__effective_burst_limit(burst_limit, interface)
 
-        for chunk in SendIPv6.__chunked([str(name) for name in names if str(name).strip()], burst):
+        for chunk in chunked([str(name) for name in names if str(name).strip()], burst):
             packets: list[Packet] = []
             for name in chunk:
                 qname = LLMNR.full_name_llmnr(name)
                 packets.extend(PrototypeIPv6Packet.get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, qname))
             if packets:
-                sendp(packets, iface=interface, verbose=False)
+                sendp_adaptive(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-llmnr-batch",
+                    initial_burst=burst,
+                )
 
     @staticmethod
     def IPv6_test_mdns_llmnr(ip_address: str, interface: str) -> None:
@@ -495,19 +528,51 @@ class SendIPv6:
                 src_ip_gua = Interface(interface).get_interface_global_unicast_list()
                 # Send MLDv2 from LLA
                 query_v2_lla = PrototypeIPv6Packet.get_frame_mldv2(src_mac, ip_lla)
-                sendp(query_v2_lla*2, iface=interface, verbose=False)
+                sendp_with_retries(
+                    packets=query_v2_lla * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mld-query-v2-lla",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
                 time.sleep(0.1)
                 # Send MLDv2 from GUA
                 query_v2_gua = PrototypeIPv6Packet.get_frame_mldv2(src_mac, src_ip_gua)
-                sendp(query_v2_gua*2, iface=interface, verbose=False)
+                sendp_with_retries(
+                    packets=query_v2_gua * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mld-query-v2-gua",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
                 time.sleep(0.1)
                 # Send MLDv1 from LLA
                 query_v1_lla = PrototypeIPv6Packet.get_frame_mldv1(src_mac, ip_lla)
-                sendp(query_v1_lla*2, iface=interface, verbose=False)
+                sendp_with_retries(
+                    packets=query_v1_lla * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mld-query-v1-lla",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
                 time.sleep(0.1)
                 # Send MLDv1 from GUA
                 query_v1_gua = PrototypeIPv6Packet.get_frame_mldv1(src_mac, src_ip_gua)
-                sendp(query_v1_gua*2, iface=interface, verbose=False)
+                sendp_with_retries(
+                    packets=query_v1_gua * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mld-query-v1-gua",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
 
     @staticmethod
     def send_MLD_report_join(interface: str, aggressive: bool = False) -> None:
@@ -529,13 +594,29 @@ class SendIPv6:
                     mldv2_join = PrototypeIPv6Packet.get_init_mldv2_aggressive_mode(src_mac, ip_lla)
                 else:
                     mldv2_join = PrototypeIPv6Packet.get_init_mldv2_active_mode(src_mac, ip_lla)
-                sendp(mldv2_join*2, iface=interface, verbose=False)
+                sendp_with_retries(
+                    packets=mldv2_join * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mldv2-join",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
                 time.sleep(0.1)
                 if aggressive:
                     mldv1_report = PrototypeIPv6Packet.get_init_mldv1_aggressive_mode(src_mac, ip_lla)
                 else:
                     mldv1_report = PrototypeIPv6Packet.get_init_mldv1_active_mode(src_mac, ip_lla)
-                sendp(mldv1_report*2, iface=interface, verbose=False)
+                sendp_with_retries(
+                    packets=mldv1_report * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mldv1-report",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
 
     @staticmethod
     def send_MLD_done_leave(interface: str, aggressive: bool = False) -> None:
@@ -557,13 +638,29 @@ class SendIPv6:
                     mldv2_leave = PrototypeIPv6Packet.get_finish_mldv2_aggressive_mode(src_mac, ip_lla)
                 else:
                     mldv2_leave = PrototypeIPv6Packet.get_finish_mldv2_active_mode(src_mac, ip_lla)
-                sendp(mldv2_leave*2, iface=interface, verbose=False)
+                sendp_with_retries(
+                    packets=mldv2_leave * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mldv2-leave",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
                 time.sleep(0.1)
                 if aggressive:
                     mldv1_done = PrototypeIPv6Packet.get_finish_mldv1_aggressive_mode(src_mac, ip_lla)
                 else:
                     mldv1_done = PrototypeIPv6Packet.get_finish_mldv1_active_mode(src_mac, ip_lla)
-                sendp(mldv1_done*2, iface=interface, verbose=False)
+                sendp_with_retries(
+                    packets=mldv1_done * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-mldv1-done",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
 
     @staticmethod
     def send_RS(interface: str) -> None:
@@ -596,13 +693,37 @@ class SendIPv6:
                 kill_packet1 = PrototypeIPv6Packet.get_frame_ra_kill(prefix_len, network, source_mac, source_ip, rpref, chl, dns)
                 start_time = time.time()
                 while time.time() - start_time <= duration+0.5:
-                    sendp(packet1, verbose=False, iface=interface)
+                    sendp_with_retries(
+                        packets=packet1,
+                        interface=interface,
+                        logger=logger,
+                        context="send-ipv6-ra",
+                        retries=3,
+                        retry_delay=0.05,
+                        verbose=False,
+                    )
                     if time.time() - start_time >= duration:
-                        sendp(kill_packet1, verbose=False, iface=interface)
+                        sendp_with_retries(
+                            packets=kill_packet1,
+                            interface=interface,
+                            logger=logger,
+                            context="send-ipv6-ra-kill",
+                            retries=3,
+                            retry_delay=0.05,
+                            verbose=False,
+                        )
                         break
                     time.sleep(period)
             else:
-                sendp(packet1, verbose=False, iface=interface)
+                sendp_with_retries(
+                    packets=packet1,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-ra",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
 
     @staticmethod
     def send_to_possible_IP(interface: str) -> None:
@@ -678,7 +799,15 @@ class SendIPv6:
                         )
 
         if all_packets:
-            sendp(all_packets, iface=interface, verbose=False)
+            sendp_with_retries(
+                packets=all_packets,
+                interface=interface,
+                logger=logger,
+                context="send-ipv6-possible-ips",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
 
         discovery_targets: list[str] = []
         for _mac, ips in possible_global_IP.items():
@@ -705,7 +834,15 @@ class SendIPv6:
         exist_interface = Interface(interface).check_interface()
         if exist_interface:
             packet1 = PrototypeIPv6Packet.get_frame_na(source_mac, target_mac, source_ip, target_ip, r_flag, s_flag, o_flag)
-            sendp(packet1, verbose=False, iface=interface)
+            sendp_with_retries(
+                packets=packet1,
+                interface=interface,
+                logger=logger,
+                context="send-ipv6-na",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
 
     @staticmethod
     def react_to_NS_RS(interface: str, prefix_len: int, network: str, source_mac: str, source_ip: str, rpref: int, chl: int, mtu: int, dns: list[str]|None, duration: float|None) -> None:
@@ -813,9 +950,14 @@ class SendIPv6:
                         all_packets.extend(packets)
 
             if all_packets:
-                effective_burst = SendIPv6.__effective_burst_limit(burst_limit)
-                for chunk in SendIPv6.__chunked(all_packets, effective_burst):
-                    sendp(chunk, iface=interface, verbose=False)
+                effective_burst = SendIPv6.__effective_burst_limit(burst_limit, interface)
+                sendp_adaptive(
+                    packets=all_packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-ra-guard",
+                    initial_burst=effective_burst,
+                )
  
                     #sendp(multicast_ping, iface=interface, verbose=False)
                     #sendp(empty_dest_opt, iface=interface, verbose=False)
@@ -844,8 +986,26 @@ class SendIPv6:
                 pkt = PrototypeIPv6Packet.get_frame_ns(src_mac, address)
                 if wait_for_rsp:
                     with SCAPY_IO_LOCK:
-                        return srp(pkt * 2, iface=interface, verbose=0, timeout=rsp_timeout, threaded=False)[0]
-                sendp(pkt * 2, verbose=0, iface=interface)
+                        return srp_with_retries(
+                            packets=pkt * 2,
+                            interface=interface,
+                            logger=logger,
+                            context="send-ipv6-ns",
+                            retries=3,
+                            retry_delay=0.05,
+                            timeout=rsp_timeout,
+                            verbose=0,
+                            threaded=False,
+                        )[0]
+                sendp_with_retries(
+                    packets=pkt * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv6-ns",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=0,
+                )
 
     @staticmethod
     def probe_ipv6_interesting_addresses(network: ipaddress.IPv6Network, interface: str, probe_bits: int = 8, batch_size: int = 64, end_wildcard: bool = False) -> None:
@@ -959,7 +1119,15 @@ class SendIPv6:
                         # Skip malformed interface address entries.
                         pass
                 if len(packets) != 0:
-                    sendp(packets, iface=interface, verbose=False)
+                    sendp_with_retries(
+                        packets=packets,
+                        interface=interface,
+                        logger=logger,
+                        context="send-ipv6-ws-discovery",
+                        retries=3,
+                        retry_delay=0.05,
+                        verbose=False,
+                    )
 
     @staticmethod
     def send_dns_sd_probe(interface: str) -> None:
@@ -981,7 +1149,15 @@ class SendIPv6:
                     dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr))
                     dns_sd.append(PrototypeIPv6Packet.get_frame_mdns_sd(src_mac, source_ipv6_addr, unicastresponse=1))
                 if dns_sd:
-                    sendp(dns_sd, verbose=0, iface=interface) 
+                    sendp_with_retries(
+                        packets=dns_sd,
+                        interface=interface,
+                        logger=logger,
+                        context="send-ipv6-dns-sd",
+                        retries=3,
+                        retry_delay=0.05,
+                        verbose=0,
+                    ) 
 
     @staticmethod
     def send_dhcpv6_solicit(interface: str) -> None:

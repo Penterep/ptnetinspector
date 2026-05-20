@@ -23,6 +23,7 @@ from ptnetinspector.utils.ip_utils import is_global_unicast_ipv6, is_ipv6_ula, i
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.send.send_ipv4 import SendIPv4
 from ptnetinspector.send.send_ipv6 import SendIPv6
+from ptnetinspector.utils.burst_control import sendp_with_retries
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,15 @@ class Send:
             eapol = Ether(src=src_mac, dst="01:80:c2:00:00:03") / EAPOL(version=1, type=1)
 
             # Send the EAPOL packet on the specified interface
-            sendp(eapol, iface=interface, verbose=False)
+            sendp_with_retries(
+                packets=eapol,
+                interface=interface,
+                logger=logger,
+                context="send-8021x-eapol",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
 
     @staticmethod
     def send_llmnr_mdns(interface, ip_mode):
