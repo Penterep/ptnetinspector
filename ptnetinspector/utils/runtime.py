@@ -7,10 +7,12 @@ streaming to the terminal.
 """
 import csv
 import json
+import logging
 import multiprocessing
 import os
 import sys
 import time
+import ipaddress
 from io import StringIO
 from pathlib import Path
 from typing import Callable, Iterable
@@ -21,6 +23,31 @@ from ptnetinspector.entities.networks import Networks
 from ptnetinspector.output.non_json import Non_json
 from ptnetinspector.utils.address_control import validate_addresses_mapping
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
+
+
+logger = logging.getLogger(__name__)
+
+
+_debug_handler: logging.Handler | None = None
+_debug_output_allowed = True
+
+
+class _PtprintDebugHandler(logging.Handler):
+    """Render DEBUG records using the same terminal style as runtime info lines."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        global _debug_output_allowed
+        if record.levelno != logging.DEBUG or not _debug_output_allowed:
+            return
+        try:
+            msg = record.getMessage()
+            if record.exc_info and len(record.exc_info) >= 2 and record.exc_info[1] is not None:
+                msg = f"{msg}: {record.exc_info[1]}"
+            # Keep DEBUG readable and distinct while preserving standard ptprint layout.
+            ptprinthelper.ptprint(f"\033[90m[debug] {msg}\033[0m", "INFO", condition=True, indent=4)
+        except Exception:
+            # Debug emission failures must never affect scanner execution.
+            pass
 
 
 # Global variable to capture terminal output
@@ -50,19 +77,19 @@ class DualWriter:
     def __init__(self, terminal, file_handle):
         self.terminal = terminal
         self.file = file_handle
-    
+
     def write(self, message):
         self.terminal.write(message)
         self.terminal.flush()
         if self.file and not self.file.closed:
             self.file.write(message)
             self.file.flush()
-    
+
     def flush(self):
         self.terminal.flush()
         if self.file and not self.file.closed:
             self.file.flush()
-    
+
     def isatty(self):
         return self.terminal.isatty()
 
@@ -71,6 +98,7 @@ class DualWriter:
         try:
             self.flush()
         except Exception:
+            # Ignore flush errors during shutdown path.
             pass
         # Do not close underlying file/terminal here; stop_output_logging handles it.
 
@@ -104,6 +132,7 @@ def _should_suppress(level: str) -> bool:
     try:
         return bool(_suppress_non_json and level in ("INFO", "WARNING"))
     except NameError:
+        # Flags may be uninitialized during early import in tests.
         return False
 
 
@@ -147,6 +176,33 @@ def configure_output_flags(json_output: bool, more_detail: bool, less_detail: bo
     _suppress_non_json = bool(json_output and not more_detail)
 
 
+def configure_debug_logging(chatty_debug: bool, json_output: bool, more_detail: bool) -> None:
+    """Configure optional DEBUG diagnostics for -vvv output mode.
+
+    DEBUG diagnostics are rendered through ptprinthelper so they follow the
+    same terminal style as standard runtime messages.
+    """
+    global _debug_handler, _debug_output_allowed
+
+    package_logger = logging.getLogger("ptnetinspector")
+    _debug_output_allowed = not (json_output and not more_detail)
+
+    if not chatty_debug:
+        if _debug_handler is not None:
+            package_logger.removeHandler(_debug_handler)
+            _debug_handler.close()
+            _debug_handler = None
+        package_logger.propagate = True
+        return
+
+    if _debug_handler is None:
+        _debug_handler = _PtprintDebugHandler()
+        package_logger.addHandler(_debug_handler)
+
+    package_logger.setLevel(logging.DEBUG)
+    package_logger.propagate = False
+
+
 def ptprint_info_warning(message: str, level: str = "INFO", condition: bool = True, indent: int = 0) -> None:
     """Compatibility wrapper for historical callsites; same behavior as print_message."""
     if _should_suppress(level):
@@ -176,9 +232,10 @@ def build_run_signature(
     nofwd,
     target_codes,
     target_macs,
+    target_ips,
 ) -> dict:
     """Construct a signature of current run parameters used for tmp reuse.
-    
+
     Note: Excludes json_output, more_detail and less_detail flags so tmp cache 
     is reused regardless of output format (-j) or verbosity level (-vv / -less).
     """
@@ -201,6 +258,7 @@ def build_run_signature(
         "nofwd": bool(nofwd),
         "target_codes": sorted(target_codes) if target_codes else [],
         "target_macs": sorted(target_macs) if target_macs else [],
+        "target_ips": sorted(target_ips) if target_ips else [],
     }
 
 
@@ -211,6 +269,7 @@ def write_run_signature(tmp_dir: Path, signature: dict) -> None:
         with open(sig_path, "w", encoding="utf-8") as f:
             json.dump(signature, f, sort_keys=True)
     except Exception:
+        # Signature persistence is optional; run can continue without cache metadata.
         pass
 
 
@@ -220,6 +279,7 @@ def load_run_signature(tmp_dir: Path):
         with open(sig_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
+        # Missing/invalid signature means cache reuse is unavailable.
         return None
 
 
@@ -228,6 +288,7 @@ def delete_json_output(json_file: Path) -> None:
         try:
             json_file.unlink()
         except OSError:
+            # Ignore cleanup failures for optional artifact.
             pass
 
 
@@ -237,6 +298,7 @@ def delete_text_output(text_file: Path) -> None:
         try:
             text_file.unlink()
         except OSError:
+            # Ignore cleanup failures for optional artifact.
             pass
 
 
@@ -252,6 +314,7 @@ def prepare_networks_file(interface_name: str, networks_path: Path) -> None:
     try:
         Networks.extract_available_subnets(interface_name)
     except Exception:
+        # Fallback to an empty networks file if subnet detection is unavailable.
         if not networks_path.exists():
             networks_path.parent.mkdir(parents=True, exist_ok=True)
             networks_path.write_text("network_prefix,prefix_length\n", encoding="utf-8")
@@ -263,51 +326,91 @@ def terminate_child_processes(timeout: float = 1.0) -> None:
         try:
             proc.terminate()
         except Exception:
+            # Child may already be exiting.
             pass
     for proc in multiprocessing.active_children():
         try:
             proc.join(timeout=timeout)
         except Exception:
+            # Joining timed out or child became unavailable.
             pass
 
 
 def _check_macs_in_role_node(tmp_path: Path, target_macs: set[str]) -> bool:
     """Check if all target MACs exist in saved role_node.csv.
-    
+
     Args:
         tmp_path: Path to tmp directory containing role_node.csv
         target_macs: Set of MAC addresses (uppercase) to check
-        
+
     Returns:
         bool: True if all target MACs exist in role_node.csv, False otherwise
     """
     role_node_file = tmp_path / "role_node.csv"
     if not role_node_file.exists():
         return False
-    
+
     try:
         with open(role_node_file, 'r', newline='') as f:
             reader = csv.DictReader(f)
             saved_macs = {row['MAC'].upper() for row in reader if 'MAC' in row}
         return target_macs.issubset(saved_macs)
     except Exception:
+        # CSV parse error or missing file could indicate data corruption; log for debug.
+        logger.debug("Error reading role_node.csv (cannot confirm MAC availability)")
         return False
+
+
+def _check_ips_in_addresses(tmp_path: Path, target_ips: set[str]) -> bool:
+    """Check if all target IPs exist in saved addresses CSVs.
+
+    Args:
+        tmp_path: Path to tmp directory containing addresses CSV files
+        target_ips: Set of normalized IP address strings to check
+
+    Returns:
+        bool: True if all target IPs exist in addresses CSV, False otherwise
+    """
+    addresses_files = [tmp_path / "addresses.csv", tmp_path / "addresses_unfiltered.csv"]
+    saved_ips: set[str] = set()
+
+    for path in addresses_files:
+        if not path.exists():
+            continue
+        try:
+            with open(path, 'r', newline='') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    ip = str(row.get('IP', '')).strip()
+                    if ip:
+                        try:
+                            saved_ips.add(str(ipaddress.ip_address(ip)))
+                        except ValueError:
+                            saved_ips.add(ip)
+        except Exception:
+            # CSV parse error could indicate file corruption; log for debug.
+            logger.debug("Error reading addresses CSV at %s (continuing with other sources)", path)
+            continue
+
+    return target_ips.issubset(saved_ips)
 
 
 def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[str]) -> bool:
-    """Check if all target test codes have vulnerability data in saved vulnerability.csv.
-    
+    """Check if all target test codes have vulnerability data in saved vulnerability outputs.
+
     Args:
-        tmp_path: Path to tmp directory containing vulnerability.csv
+        tmp_path: Path to tmp directory containing vulnerability CSV outputs
         target_test_codes: Set of test codes (uppercase) to check
-        
+
     Returns:
         bool: True if all test codes have corresponding vulnerabilities in saved data, False otherwise
     """
-    vulnerability_file = tmp_path / "vulnerability.csv"
-    if not vulnerability_file.exists():
-        return False
-    
+    candidate_files = [
+        tmp_path / "vulnerability_mac.csv",
+        tmp_path / "vulnerability_ip.csv",
+        tmp_path / "vulnerability_net.csv",
+    ]
+
     try:
         # Load catalog to map vuln codes to test codes
         test_catalog = load_vuln_catalog_by_test()
@@ -317,34 +420,39 @@ def _check_test_codes_in_vulnerability(tmp_path: Path, target_test_codes: set[st
                 vuln_code = entry.get("Code", "").strip().upper()
                 if vuln_code:
                     code_to_test[vuln_code] = test_code
-        
+
         # Read saved vulnerability data and collect test codes found
-        with open(vulnerability_file, 'r', newline='') as f:
-            reader = csv.DictReader(f)
-            saved_test_codes = set()
-            for row in reader:
-                vuln_code = row.get('Code', '').strip().upper()
-                test_code = code_to_test.get(vuln_code, '')
-                if test_code:
-                    saved_test_codes.add(test_code.upper())
-        
+        saved_test_codes = set()
+        for vulnerability_file in candidate_files:
+            if not vulnerability_file.exists():
+                continue
+            with open(vulnerability_file, 'r', newline='') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    vuln_code = row.get('Code', '').strip().upper()
+                    test_code = code_to_test.get(vuln_code, '')
+                    if test_code:
+                        saved_test_codes.add(test_code.upper())
+
         # Check if all target test codes are in saved data
         return target_test_codes.issubset(saved_test_codes)
     except Exception:
+        # CSV parse/read error could indicate file corruption; log for debug.
+        logger.debug("Error reading vulnerability CSV files (forcing full scan)")
         return False
 
 
 def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None = None) -> bool:
     """Check if saved tmp data can be reused for current run.
-    
+
     Args:
         current_sig: Current run signature with parameters
         saved_sig: Saved run signature from previous run
         tmp_path: Path to tmp directory (needed for MAC and test code validation)
-        
+
     Returns:
         bool: True if tmp data can be reused, False if fresh scan needed
-    
+
     Rules for reuse:
     - All core parameters must match (interface, scan types, modes, durations, etc.)
     - target_macs:
@@ -352,8 +460,13 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
       * Previous HAS target, current NO target: Cannot reuse (saved data is filtered, need full scan)
       * Both have targets: Can reuse IF current is subset of saved
       * Neither has targets: Can reuse (both are full scans)
-    - target_codes:
-      * Previous NO test filter, current HAS test filter: Can reuse IF test codes exist in saved vulnerability.csv
+        - target_ips:
+            * Previous NO target, current HAS target: Can reuse IF target IPs exist in saved addresses CSV
+            * Previous HAS target, current NO target: Cannot reuse (saved data is filtered, need full scan)
+            * Both have targets: Can reuse IF current is subset of saved
+            * Neither has targets: Can reuse (both are full scans)
+        - target_codes:
+            * Previous NO test filter, current HAS test filter: Can reuse IF test codes exist in saved vulnerability outputs
       * Previous HAS test filter, current NO test filter: Cannot reuse (saved data is filtered, need full test run)
       * Both have test filters: Can reuse IF current is subset of saved
       * Neither has test filters: Can reuse (both run all tests)
@@ -364,16 +477,16 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
         "duration_passive", "duration_aggressive", "prefix_len", "network",
         "smac", "sip", "rpref", "period", "chl", "mtu", "dns", "nofwd"
     }
-    
+
     # Check exact match for core parameters
     for key in must_match_keys:
         if current_sig.get(key) != saved_sig.get(key):
             return False
-    
+
     # Check target_macs with corrected logic
     current_macs = set(current_sig.get("target_macs", []))
     saved_macs = set(saved_sig.get("target_macs", []))
-    
+
     if saved_macs and not current_macs:
         # Previous run HAD target, current run has NO target
         # Cannot reuse: saved data only has filtered devices, not all devices
@@ -388,18 +501,31 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
         if not current_macs.issubset(saved_macs):
             return False
     # else: neither has targets (both full scans), can reuse
-    
+
+    # Check target_ips with corrected logic
+    current_ips = set(current_sig.get("target_ips", []))
+    saved_ips = set(saved_sig.get("target_ips", []))
+
+    if saved_ips and not current_ips:
+        return False
+    elif not saved_ips and current_ips:
+        if tmp_path is None or not _check_ips_in_addresses(tmp_path, current_ips):
+            return False
+    elif saved_ips and current_ips:
+        if not current_ips.issubset(saved_ips):
+            return False
+
     # Check target_codes with corrected logic (same pattern as target_macs)
     current_codes = set(current_sig.get("target_codes", []))
     saved_codes = set(saved_sig.get("target_codes", []))
-    
+
     if saved_codes and not current_codes:
         # Previous run HAD test filter, current run has NO test filter
         # Cannot reuse: saved data only has filtered tests, not all tests
         return False
     elif not saved_codes and current_codes:
         # Previous run had NO test filter (all tests), current run HAS test filter
-        # Can reuse IF target test codes exist in saved vulnerability.csv
+        # Can reuse IF target test codes exist in saved vulnerability outputs
         if tmp_path is None or not _check_test_codes_in_vulnerability(tmp_path, current_codes):
             return False
     elif saved_codes and current_codes:
@@ -407,7 +533,7 @@ def can_reuse_tmp_data(current_sig: dict, saved_sig: dict, tmp_path: Path | None
         if not current_codes.issubset(saved_codes):
             return False
     # else: neither has test filters (both run all tests), can reuse
-    
+
     return True
 
 
@@ -425,7 +551,7 @@ def prepare_tmp_files(
     less_detail: bool = False,
 ) -> bool:
     """Prepare tmp folder scoped to interface; return True if existing data should be reused.
-    
+
     Args:
         interface (str): Network interface name (e.g. 'eth0'). Scopes tmp folder to tmp/<interface>/.
         retention_seconds (float): Age threshold in seconds; files older are discarded.
@@ -437,7 +563,7 @@ def prepare_tmp_files(
         write_run_signature_fn (Callable): Function to write run_params.json.
         load_run_signature_fn (Callable): Function to load run_params.json.
         required_files (Iterable[str]): List of required file names.
-        
+
     Returns:
         bool: True if existing cached data can be reused, False if fresh scan needed.
     """
@@ -506,7 +632,7 @@ def prepare_tmp_files(
     return True
 
 
-def output_protocols(scan_type, protocols, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs=None):
+def output_protocols(scan_type, protocols, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs=None, target_ips=None):
     protocol_files = {
         "MDNS": "MDNS.csv",
         "LLMNR": "LLMNR.csv",
@@ -555,7 +681,7 @@ def output_protocols(scan_type, protocols, ip_mode, interface, less_detail, targ
     for protocol in protocols:
         if protocol in protocol_files and is_protocol_allowed(protocol):
             file_path = get_csv_path_fn(protocol_files[protocol])
-            Non_json.output_protocol(interface, ip_mode, scan_type, protocol, file_path, less_detail, target_macs=target_macs)
+            Non_json.output_protocol(interface, ip_mode, scan_type, protocol, file_path, less_detail, target_macs=target_macs, target_ips=target_ips)
 
 
 def handle_output(
@@ -571,27 +697,43 @@ def handle_output(
     target_codes,
     get_csv_path_fn,
     target_macs=None,
+    target_ips=None,
 ):
     # Skip all non-JSON output if -j is used without -vv
     if _suppress_non_json:
         return
-    
+
     if (not json_output) or more_detail:
-        Non_json.output_general(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs)
-        Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs)
+        Non_json.output_general(
+            scan_type,
+            ip_mode,
+            check_addresses=check_addresses,
+            target_codes=target_codes,
+            target_macs=target_macs,
+            target_ips=target_ips,
+        )
+        Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs, target_ips=target_ips)
 
         if more_detail:
             time_file = get_csv_path_fn("time_incoming.csv")
-            Non_json.output_protocol(interface, ip_mode, scan_type, "time", time_file, less_detail, target_macs=target_macs)
+            Non_json.output_protocol(interface, ip_mode, scan_type, "time", time_file, less_detail, target_macs=target_macs, target_ips=target_ips)
             if check_addresses:
                 Non_json.print_box("Unfiltered found addresses")
                 addr_file = get_csv_path_fn("addresses_unfiltered.csv")
-                Non_json.output_general(scan_type, ip_mode, addr_file, target_codes=target_codes, target_macs=target_macs)
+                Non_json.output_general(
+                    scan_type,
+                    ip_mode,
+                    addr_file,
+                    check_addresses=check_addresses,
+                    target_codes=target_codes,
+                    target_macs=target_macs,
+                    target_ips=target_ips,
+                )
 
-            output_protocols(scan_type, protocols_basic, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs)
+            output_protocols(scan_type, protocols_basic, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs, target_ips)
 
             if protocols_detailed:
-                output_protocols(scan_type, protocols_detailed, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs)
+                output_protocols(scan_type, protocols_detailed, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs, target_ips)
 
 
 def handle_addresses(interface, ip_mode, passive: bool = False) -> None:

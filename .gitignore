@@ -166,3 +166,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+.vscode/
+**/*.code-workspace
+!tmp/ports_*.csv
+tmp/*
+
+**/.$*.drawio.bkp

@@ -21,7 +21,7 @@ class TestCSVHelpers:
             writer.writerow(['MAC', 'IP'])
             writer.writerow(['00:11:22:33:44:55', '192.168.1.100'])
             temp_path = f.name
-        
+
         try:
             assert has_additional_data(temp_path) is True
         finally:
@@ -33,7 +33,7 @@ class TestCSVHelpers:
             writer = csv.writer(f)
             writer.writerow(['MAC', 'IP'])
             temp_path = f.name
-        
+
         try:
             assert has_additional_data(temp_path) is False
         finally:
@@ -43,7 +43,7 @@ class TestCSVHelpers:
         """Test has_additional_data returns False for empty file."""
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as f:
             temp_path = f.name
-        
+
         try:
             assert has_additional_data(temp_path) is False
         finally:
@@ -58,17 +58,17 @@ class TestCSVHelpers:
             writer.writerow({'src MAC': 'aa:bb:cc:dd:ee:ff', 'source IP': '192.168.1.2'})
             writer.writerow({'src MAC': '00:11:22:33:44:55', 'source IP': '10.0.0.1'})
             input_path = input_f.name
-        
+
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as output_f:
             output_path = output_f.name
-        
+
         try:
             sort_csv(input_path, output_path)
-            
+
             with open(output_path, 'r') as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
-                
+
                 # Check that MACs are grouped
                 assert len(rows) > 0
                 assert 'MAC' in rows[0]
@@ -86,14 +86,14 @@ class TestCSVHelpers:
             writer.writerow({'MAC': '00:11:22:33:44:55', 'IP': '192.168.1.1'})  # Duplicate
             writer.writerow({'MAC': 'aa:bb:cc:dd:ee:ff', 'IP': '10.0.0.1'})
             temp_path = f.name
-        
+
         try:
             remove_duplicates_from_csv(temp_path)
-            
+
             with open(temp_path, 'r') as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
-                
+
                 assert len(rows) == 2  # Should have only 2 unique rows
         finally:
             Path(temp_path).unlink()

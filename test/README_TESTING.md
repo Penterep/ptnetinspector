@@ -227,16 +227,16 @@ jobs:
 ```python
 class TestNewFeature:
     """Test description."""
-    
+
     @patch('external_dependency')
     def test_feature_works(self, mock_dep):
         """Test specific behavior."""
         # Arrange
         mock_dep.return_value = expected_value
-        
+
         # Act
         result = function_to_test()
-        
+
         # Assert
         assert result == expected_value
         mock_dep.assert_called_once()

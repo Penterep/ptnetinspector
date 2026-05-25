@@ -4,6 +4,7 @@
 Encapsulates detecting/manipulating interface addresses and iptables rule state
 required by passive/active/aggressive scan modes.
 """
+import ipaddress
 import os
 import subprocess
 import sys
@@ -88,6 +89,25 @@ class Interface:
                 list_ll.append(ipv6)
         return list_ll
 
+    def get_interface_global_unicast_list(self) -> list:
+        """
+        Retrieve global IPv6 addresses of the network interface.
+
+        Returns:
+            list: List of global IPv6 addresses (not starting with 'fe80').
+        """
+        ips = self.get_interface_ips()
+        list_global = []
+        for ipv6 in ips:
+            try:
+                addr = ipaddress.IPv6Address(ipv6)
+                if addr.is_global and not addr.is_multicast:
+                    list_global.append(ipv6)
+            except ipaddress.AddressValueError:
+                # Ignore non-IPv6 entries from mixed interface address lists.
+                pass
+        return list_global
+
     def check_interface(self) -> bool:
         """Check if the configured network interface exists.
 
@@ -131,12 +151,13 @@ class Interface:
                 check=True
             )
         except subprocess.CalledProcessError:
+            # Best-effort configuration; caller may continue with existing addressing.
             pass
 
     def check_status(self) -> str:
         """
         Check if the network interface exists and its status.
-        
+
         Returns:
             str: Interface status or stdout output.
         """
@@ -157,14 +178,14 @@ class Interface:
     def shutdown_traffic(self) -> str | None:
         """
         Blocks all traffic on the interface using iptables and ip6tables.
-        
+
         Returns:
             str | None: Success message or None if interface is down.
         """
         status = self.check_status()
         if status == "Interface down":
             return None
-        
+
         try:
             # IPv4 Rules
             subprocess.run(
@@ -191,7 +212,7 @@ class Interface:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            
+
             # IPv6 Rules
             subprocess.run(
                 ["ip6tables", "-A", "OUTPUT", "-o", self.interface, "-j", "DROP"],
@@ -226,14 +247,14 @@ class Interface:
         """
         Removes traffic blocking rules from the interface.
         Silently continues if rules don't exist.
-        
+
         Returns:
             str | None: Success message or None if interface is down.
         """
         status = self.check_status()
         if status == "Interface down":
             return None
-        
+
         rules = [
             (["iptables", "-D", "OUTPUT", "-o", self.interface, "-j", "DROP"], "iptables OUTPUT"),
             (["iptables", "-D", "FORWARD", "-o", self.interface, "-j", "DROP"], "iptables FORWARD out"),
@@ -244,7 +265,7 @@ class Interface:
             (["ip6tables", "-D", "FORWARD", "-i", self.interface, "-j", "DROP"], "ip6tables FORWARD in"),
             (["ip6tables", "-D", "INPUT", "-i", self.interface, "-j", "DROP"], "ip6tables INPUT"),
         ]
-        
+
         for cmd, rule_name in rules:
             try:
                 subprocess.run(
@@ -254,8 +275,9 @@ class Interface:
                     stderr=subprocess.DEVNULL
                 )
             except subprocess.CalledProcessError:
+                # Rule may already be absent; continue removing remaining rules.
                 pass
-        
+
         return 'Traffic on interface restored'
 
 
@@ -272,7 +294,7 @@ class IptablesConfig:
         tmp_dir = get_tmp_path()
         iptables_file = tmp_dir / 'iptables.rules'
         ip6tables_file = tmp_dir / 'ip6tables.rules'
-        
+
         try:
             with open(iptables_file, 'w') as f:
                 subprocess.run(['iptables-save'], stdout=f, check=True)
@@ -290,7 +312,7 @@ class IptablesConfig:
         tmp_dir = get_tmp_path()
         iptables_file = tmp_dir / 'iptables.rules'
         ip6tables_file = tmp_dir / 'ip6tables.rules'
-        
+
         try:
             with open(iptables_file, 'r') as f:
                 subprocess.run(['iptables-restore'], stdin=f, check=True)
@@ -313,7 +335,7 @@ class IptablesRule:
     def add(mode: str, ipv4: bool = True, ipv6: bool = True, nofwd: bool = False) -> None:
         """
         Add iptables and ip6tables rules based on mode and IP version.
-        
+
         Args:
             mode (str): Mode ('a' or 'a+').
             ipv4 (bool): Whether to add IPv4 (iptables) rules. Default is True.
@@ -325,7 +347,7 @@ class IptablesRule:
                 subprocess.run(["ip6tables", "-A", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "port-unreachable", "-j", "DROP"], check=True)
             if ipv4:
                 subprocess.run(["iptables", "-A", "OUTPUT", "-p", "icmp", "--icmp-type", "port-unreachable", "-j", "DROP"], check=True)
-        
+
         if mode == "a+":
             if ipv6:
                 subprocess.run(["ip6tables", "-A", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "redirect", "-j", "DROP"], check=True)
@@ -336,7 +358,7 @@ class IptablesRule:
                     command = 'sysctl -w net.ipv6.conf.all.forwarding=0 >/dev/null'
                     subprocess.run(["ip6tables", "-A", "FORWARD", "-j", "DROP"], check=True)
                 os.system(command)
-            
+
             if ipv4:
                 subprocess.run(["iptables", "-A", "OUTPUT", "-p", "icmp", "--icmp-type", "redirect", "-j", "DROP"], check=True)
                 if not nofwd:
@@ -351,7 +373,7 @@ class IptablesRule:
     def remove(ipv6_rule: bool | None, mode: str, ipv4: bool = True, ipv6: bool = True) -> None:
         """
         Remove iptables and ip6tables rules based on mode and IP version.
-        
+
         Args:
             ipv6_rule (bool | None): IPv6 rule status.
             mode (str): Mode ('a' or 'a+').
@@ -364,7 +386,7 @@ class IptablesRule:
                     subprocess.run(["ip6tables", "-D", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "port-unreachable", "-j", "DROP"], check=False)
                 if ipv4:
                     subprocess.run(["iptables", "-D", "OUTPUT", "-p", "icmp", "--icmp-type", "port-unreachable", "-j", "DROP"], check=False)
-            
+
             if mode == "a+":
                 if ipv6:
                     subprocess.run(["ip6tables", "-D", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "redirect", "-j", "DROP"], check=True)
@@ -372,7 +394,7 @@ class IptablesRule:
                     subprocess.run(["ip6tables", "-D", "FORWARD", "-j", "ACCEPT"], stderr=subprocess.DEVNULL, check=False)
                     subprocess.run(["ip6tables", "-D", "FORWARD", "-j", "DROP"], stderr=subprocess.DEVNULL, check=False)
                     os.system(command)
-                
+
                 if ipv4:
                     subprocess.run(["iptables", "-D", "OUTPUT", "-p", "icmp", "--icmp-type", "redirect", "-j", "DROP"], check=False)
                     command = 'sysctl -w net.ipv4.ip_forward=0 >/dev/null'
@@ -384,19 +406,19 @@ class IptablesRule:
     def check(mode: str, ipv4: bool = True, ipv6: bool = True, nofwd: bool = False) -> bool | None:
         """
         Check if iptables and ip6tables rules exist for the given mode and IP version.
-        
+
         Args:
             mode (str): Mode ('a' or 'a+').
             ipv4 (bool): Whether to check IPv4 (iptables) rules. Default is True.
             ipv6 (bool): Whether to check IPv6 (ip6tables) rules. Default is True.
             nofwd (bool): Whether to check for disabled forwarding.
-        
+
         Returns:
             bool | None: True if rule exists, False if not, None on error.
         """
         try:
             rules_exist = False
-            
+
             if ipv6:
                 output = subprocess.check_output(["ip6tables", "-S", "OUTPUT"], stderr=subprocess.STDOUT, universal_newlines=True)
                 if mode == "a":
@@ -408,7 +430,7 @@ class IptablesRule:
                         rules_exist = rules_exist and "net.ipv6.conf.all.forwarding = 1" in output_2
                     else:
                         rules_exist = rules_exist and "net.ipv6.conf.all.forwarding = 0" in output_2
-            
+
             if ipv4:
                 output = subprocess.check_output(["iptables", "-S", "OUTPUT"], stderr=subprocess.STDOUT, universal_newlines=True)
                 if mode == "a":
@@ -422,8 +444,9 @@ class IptablesRule:
                     else:
                         ipv4_rule_exists = ipv4_rule_exists and "net.ipv4.ip_forward = 0" in output_2
                     rules_exist = rules_exist or ipv4_rule_exists
-            
+
             return rules_exist if (ipv4 or ipv6) else None
-        
+
         except subprocess.CalledProcessError:
+            # Return None on command failure so caller can handle degraded capability.
             return None

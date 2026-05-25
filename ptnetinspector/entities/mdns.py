@@ -5,23 +5,23 @@ Persists observed MAC/IP pairs responding to mDNS into CSV.
 import csv
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.entities.node import Node
+from ptnetinspector.entities._registry import registry
 
 
 class MDNS(Node):
-    def __init__(self, mac: str, ip: str):
+    def __init__(self, mac: str, ip: str) -> None:
         # Assign to self object
         super().__init__(mac, ip)
-        
-    def save_MDNS(self):
+
+    def save_MDNS(self) -> None:
         # Function to save MDNS IP address to a CSV file
+        key = (self.mac, self.ip)
+        if registry.seen("mdns", key):
+            return
+
         csv_file = get_csv_path("MDNS.csv")
-        
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)  # move the file pointer to the beginning of the file
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip:
-                    return  # Record already exists in the file
-                
+
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -30,10 +30,10 @@ class MDNS(Node):
             })
 
     @classmethod
-    def get_MDNS_from_csv(cls):
+    def get_MDNS_from_csv(cls) -> None:
         # Importing the information about nodes from tmp files
         csv_file = get_csv_path("MDNS.csv")
-        
+
         with open(csv_file, "r") as csv_file:
             reader = csv.DictReader(csv_file)
             nodes = list(reader)
@@ -43,9 +43,9 @@ class MDNS(Node):
                     mac=node.get('MAC'),
                     ip=node.get('IP')
                 )
-    
+
     @staticmethod
-    def full_name_MDNS(name):
+    def full_name_MDNS(name: str) -> str:
         # Function to complete MDNS name to use for asking about IP
         # Strip trailing dot from FQDN before processing
         name = name.rstrip('.')
@@ -54,5 +54,5 @@ class MDNS(Node):
         else:
             return name + ".local"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.mac}, {self.ip})"

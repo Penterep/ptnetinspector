@@ -5,6 +5,8 @@ facts into CSV artifacts, used later for both human-readable and JSON outputs.
 """
 import csv
 import multiprocessing
+import logging
+from contextlib import nullcontext
 import pandas as pd
 from scapy.all import *
 from scapy.contrib.igmp import IGMP
@@ -46,7 +48,40 @@ from ptnetinspector.send.send import Send, IPMode
 from ptnetinspector.utils.ip_utils import convert_OnOff, convert_preferenceRA, convert_mldv2_igmpv3_rtype, convert_timestamp_to_date
 from ptnetinspector.utils.csv_helpers import sort_csv
 
-       
+
+logger = logging.getLogger(__name__)
+
+
+def _close_inherited_scapy_sockets():
+    """Close Scapy SuperSocket instances inherited from the parent process on fork.
+
+    When multiprocessing.Process is started with the default 'fork' method on Linux,
+    the child inherits all open file descriptors including raw Scapy sockets.  If the
+    child later reallocates those fd numbers, the parent's sockets become invalid,
+    causing ``OSError: [Errno 9] Bad file descriptor`` in subsequent sendp/srp calls.
+    Running this as the Process initializer ensures the child starts with a clean
+    socket state before opening its own Scapy sockets.
+    """
+    import gc
+    try:
+        from scapy.supersocket import SuperSocket
+        for obj in gc.get_objects():
+            if isinstance(obj, SuperSocket):
+                try:
+                    obj.close()
+                except Exception:
+                    # Best-effort cleanup; failing to close one inherited socket is non-fatal.
+                    pass
+    except Exception:
+        logger.debug("Failed to close inherited Scapy sockets", exc_info=True)
+
+
+def _forked_target(fn, args):
+    """Wrapper for multiprocessing.Process targets that clears inherited Scapy sockets."""
+    _close_inherited_scapy_sockets()
+    fn(*args)
+
+
 class Sniff:
     @staticmethod
     def type(pkt):
@@ -81,14 +116,14 @@ class Sniff:
         output: AsyncSniffer object
         """
         packets = AsyncSniffer(iface=interface)
-        
+
         # # Store original stop method
         # original_stop = packets.stop
-        
+
         # def filtered_stop():
         #     # Call original stop
         #     original_stop()
-            
+
         #     # Filter packets based on ip_mode
         #     if not (ip_mode.ipv4 and ip_mode.ipv6):
         #         filtered_results = []
@@ -102,10 +137,10 @@ class Sniff:
         #                 if IP not in pkt:
         #                     filtered_results.append(pkt)
         #         packets.results = filtered_results
-        
+
         # # Replace stop method with filtered version
         # packets.stop = filtered_stop
-        
+
         return packets
 
     @staticmethod
@@ -121,7 +156,7 @@ class Sniff:
 
 
 class Save:
-    @staticmethod    
+    @staticmethod
     def packet_to_one_line(packet):
         """
         Convert packet details to a single line string.
@@ -132,7 +167,7 @@ class Save:
         details = packet.show(dump=True)
         one_line = ' '.join(details.replace('\r', '').replace('\n', ' ').split())
         return one_line
-    
+
     @staticmethod
     def save_async(packets):
         """
@@ -183,7 +218,7 @@ class Save:
                         'src MAC': packet[Dot11].src,
                         'des MAC': packet[Dot11].dst,
                     })
-                    
+
     @staticmethod
     def save_packets(interface, ip_mode, packets):
         """
@@ -196,31 +231,36 @@ class Save:
         src_mac = get_if_hwaddr(interface)
 
         for packet in packets:
-            Time(convert_timestamp_to_date(packet.time), packet[0].src, Save.packet_to_one_line(packet)).save_time()
+            mac_src = packet[0].src
+            packet_time = convert_timestamp_to_date(packet.time)
+            packet_line = Save.packet_to_one_line(packet)
 
-            if packet[0].src != src_mac:
-                Time(convert_timestamp_to_date(packet.time), packet[0].src, Save.packet_to_one_line(packet)).save_time_incoming()
-            if packet[0].src == src_mac:
-                Time(convert_timestamp_to_date(packet.time), packet[0].src, Save.packet_to_one_line(packet)).save_time_outgoing()
+            time_entity = Time(packet_time, mac_src, packet_line)
+            time_entity.save_time()
+
+            if mac_src != src_mac:
+                time_entity.save_time_incoming()
+            else:
+                time_entity.save_time_outgoing()
 
             if packet is not None:
-                if packet.haslayer(EAPOL) and packet[0].src != src_mac:    
-                    EAP(packet[0].src, str(packet.summary())).save_eap()
-            
+                if packet.haslayer(EAPOL) and mac_src != src_mac:
+                    EAP(mac_src, str(packet.summary())).save_eap()
+
             if packet is not None and IP not in packet and IPv6 not in packet:
-                Node(packet[0].src, "").save_addresses()
+                Node(mac_src, "").save_addresses()
             if packet is not None and IP in packet:
-                Node(packet[0].src, packet[IP].src).save_addresses()
+                Node(mac_src, packet[IP].src).save_addresses()
             if packet is not None and IPv6 in packet:
-                Node(packet[0].src, packet[0][1].src).save_addresses()   
+                Node(mac_src, packet[0][1].src).save_addresses()
 
             if packet is not None and IPv6 in packet:
                 if packet[0].dst == src_mac:
                     if is_global_unicast_ipv6(packet[0][1].src) and is_global_unicast_ipv6(packet[0][1].dst):
                         Remote_node(packet[0].src, packet[0][1].src, packet[0].dst, packet[0][1].dst).save_remote_node()
-        
-            if packet is not None and ICMPv6ND_RA in packet:            
-                dns, mtu, prefix, valid_lft, preferred_lft = [], [], [], [], []
+
+            if packet is not None and ICMPv6ND_RA in packet:
+                dns, mtu, prefix, valid_lft, preferred_lft = "", "", "", "", ""
                 A_flag, L_flag = "Not exist", "Not exist"
                 if ICMPv6NDOptRDNSS in packet:
                     dns = str(packet[ICMPv6NDOptRDNSS].dns)
@@ -241,8 +281,8 @@ class Save:
                         dns, mtu, prefix, valid_lft, preferred_lft).save_RA()
                 Node(packet[0].src, packet[0][1].src).save_addresses()
                 Router.save_router_address(packet[0].src)
-                
-            if packet is not None and ICMPv6MLReport2 in packet:            
+
+            if packet is not None and ICMPv6MLReport2 in packet:
                 for i in range(packet[0][ICMPv6MLReport2].records_number):
                     MLDv2(packet[0].src, packet[0][1].src, 'Report v2',
                           convert_mldv2_igmpv3_rtype(packet[0][ICMPv6MLDMultAddrRec][i].rtype),
@@ -278,7 +318,7 @@ class Save:
                 Node(packet[0].src, packet[0][1].src).save_addresses()
                 if packet[ICMPv6ND_NA].R == 1:
                     Router.save_router_address(packet[0].src)
-        
+
             if packet is not None and UDP in packet:
                 if packet[UDP].sport == 5355:
                     if ICMPv6ParamProblem not in packet and ICMPv6DestUnreach not in packet:
@@ -297,9 +337,9 @@ class Save:
                                             Node(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_addresses()
                                     if packet.an[i].type == 12:
                                         Node.save_local_name(packet[0].src, packet[LLMNRResponse].an[i].rdata.decode())
-                                except:
-                                    pass
-        
+                                except Exception as ex:
+                                    logger.debug("Failed to parse LLMNR answer for %s: %s", packet[0].src, ex)
+
             if packet is not None and DNSRR in packet and DNS in packet:
                 Node(packet[0].src, packet[0][1].src).save_addresses()
                 MDNS(packet[0].src, packet[0][1].src).save_MDNS()
@@ -315,12 +355,14 @@ class Save:
                                     MDNS(packet[0].src, packet.an[i].rdata).save_MDNS()
                                 elif packet.an[i].type == 12:
                                     Node.save_local_name(packet[0].src, packet.an[i].rdata.decode())
-                        except AttributeError:
+                        except AttributeError as ex:
+                            logger.debug("Skipping malformed mDNS answer for %s: %s", packet[0].src, ex)
                             continue
-                        except IndexError:
+                        except IndexError as ex:
+                            logger.debug("mDNS answer index out of range for %s: %s", packet[0].src, ex)
                             break
-                
-            
+
+
             if packet is not None and (DHCP6_Request in packet or DHCP6_Renew in packet or DHCP6_Release in packet or DHCP6_Decline in packet or DHCP6_Confirm in packet or DHCP6_Rebind in packet):
                 if DHCP6OptIAAddress in packet:
                     DHCP_ptnet(packet[0].src, packet[0][DHCP6OptIAAddress].addr, "client").save_addresses()
@@ -333,8 +375,8 @@ class Save:
                         if packet[0].src == duid_mac:
                             DHCP_ptnet(packet[0].src, packet[IPv6].src, "server").save_addresses()
                             Node(packet[0].src, packet[IPv6].src).save_addresses()
-                    except:
-                        pass
+                    except Exception as ex:
+                        logger.debug("Failed to parse DHCPv6 server DUID for %s: %s", packet[0].src, ex)
 
             if packet is not None and DHCP in packet and packet[DHCP].options[0][1] == 3:
                 if find_requested_addr(packet[0][DHCP].options):
@@ -364,7 +406,7 @@ class Save:
 
 class Run:
     @staticmethod
-    def run_normal_mode(interface, mode, ip_mode, timeout):
+    def run_normal_mode(interface, mode, ip_mode, timeout, csv_lock=None):
         """Run normal (passive/active/802.1x) scanning workflow.
 
         Args:
@@ -372,14 +414,30 @@ class Run:
             mode (str): One of "802.1x", "p", "a".
             ip_mode (IPMode): Enabled IP versions.
             timeout (int | None): Duration for passive capture or 802.1x wait.
+            csv_lock (multiprocessing.Lock | None): Optional shared lock used
+                to serialize CSV writes across processes.
         Returns:
             None. Writes CSV artifacts and updates derived files.
         """
+        def _csv_guard():
+            return csv_lock if csv_lock is not None else nullcontext()
+
+        def stop_responder(process, stop_event, graceful_timeout=2.0):
+            if process is None:
+                return
+            if stop_event is not None:
+                stop_event.set()
+            process.join(timeout=graceful_timeout)
+            if process.is_alive():
+                process.terminate()
+                process.join()
+
         exist_interface = Interface(interface).check_interface()
-        if exist_interface:  
+        if exist_interface:
             start_time = str(datetime.now())
-            Time.save_start_end(start_time)
-            
+            with _csv_guard():
+                Time.save_start_end(start_time)
+
             if mode == "802.1x":
                 pkts = Sniff.scan_async(interface)
                 pkts.start()
@@ -387,36 +445,62 @@ class Run:
                 Send.send_8021x_security(interface)
                 time.sleep(timeout)
                 pkts.stop()
-                Save.save_packets(interface, ip_mode, pkts.results)
+                with _csv_guard():
+                    Save.save_packets(interface, ip_mode, pkts.results)
                 finish_time = str(datetime.now())
-                Time.save_start_end(finish_time)
+                with _csv_guard():
+                    Time.save_start_end(finish_time)
 
             if mode == "p":
                 pkts = Sniff.scan_time(interface, timeout)
                 finish_time = str(datetime.now())
-                Time.save_start_end(finish_time)
-                Save.save_packets(interface, ip_mode, pkts)
+                with _csv_guard():
+                    Time.save_start_end(finish_time)
+                    Save.save_packets(interface, ip_mode, pkts)
 
             if mode == "a":
+                multicast_ipv6_responder = None
+                multicast_ipv4_responder = None
+                multicast_ipv6_stop_event = None
+                multicast_ipv4_stop_event = None
                 pkts = Sniff.scan_async(interface)
                 pkts.start()
                 time.sleep(1)
                 if ip_mode.ipv6:
+                    SendIPv6.send_MLD_report_join(interface)
+                if ip_mode.ipv4:
+                    SendIPv4.send_igmp_report_join(interface)
+                time.sleep(1)
+                if ip_mode.ipv6:
+                    multicast_ipv6_stop_event = multiprocessing.Event()
+                    multicast_ipv6_responder = multiprocessing.Process(
+                        target=_forked_target,
+                        args=(SendIPv6.react_to_mld_queries, ["a", interface, None, multicast_ipv6_stop_event]))
+                    multicast_ipv6_responder.start()
+                if ip_mode.ipv4:
+                    multicast_ipv4_stop_event = multiprocessing.Event()
+                    multicast_ipv4_responder = multiprocessing.Process(
+                        target=_forked_target,
+                        args=(SendIPv4.react_to_igmp_queries, ["a", interface, None, multicast_ipv4_stop_event]))
+                    multicast_ipv4_responder.start()
+                if ip_mode.ipv6:
                     SendIPv6.send_MLD_query(interface)
                     SendIPv6.send_normal_multicast_ping(interface)
+                    SendIPv6.send_empty_ipv6_dest_opt(interface)
+                    SendIPv6.send_empty_ipv6_hbh(interface)
                     SendIPv6.send_invalid_multicast_icmpv6(interface)
                     SendIPv6.send_invalid_multicast_ping(interface)
                     SendIPv6.send_invalid_ipv6_hbh(interface)
                     SendIPv6.send_RS(interface)
                 if ip_mode.ipv4:
                     SendIPv4.send_igmp_membership_query(3, interface)
-                    SendIPv4.send_igmp_membership_query(3, interface, "224.0.0.1")
+                    #SendIPv4.send_igmp_membership_query(3, interface, "224.0.0.1")
                     time.sleep(1)
                     SendIPv4.send_igmp_membership_query(2, interface)
-                    SendIPv4.send_igmp_membership_query(2, interface, "224.0.0.1")
+                    #SendIPv4.send_igmp_membership_query(2, interface, "224.0.0.1")
                     time.sleep(1)
                     SendIPv4.send_igmp_membership_query(1, interface)
-                    SendIPv4.send_igmp_membership_query(1, interface, "224.0.0.1")
+                    #SendIPv4.send_igmp_membership_query(1, interface, "224.0.0.1")
                     for icmp_type in ICMPType:
                         if icmp_type == ICMPType.ROUTER_SOLICITATION:
                             SendIPv4.send_local_icmp("224.0.0.2", interface, icmp_type)
@@ -424,38 +508,53 @@ class Run:
                             SendIPv4.send_local_icmp("224.0.0.1", interface, icmp_type)
                         SendIPv4.send_local_icmp("255.255.255.255", interface, icmp_type)
                         SendIPv4.send_subnet_broadcast_icmp(interface, icmp_type)
-                Send.probe_gateways(interface, ip_mode)
-                Send.probe_interesting_network_addresses(interface, ip_mode)
-                Send.send_dhcp_probe(interface, ip_mode)
-                Send.send_wsdiscovery_probe(interface, ip_mode)
-                Send.send_dns_sd_probe(interface, ip_mode)
+                with _csv_guard():
+                    Send.probe_gateways(interface, ip_mode)
+                    Send.probe_interesting_network_addresses(interface, ip_mode)
+                    Send.send_dhcp_probe(interface, ip_mode)
+                    Send.send_wsdiscovery_probe(interface, ip_mode)
+                    Send.send_dns_sd_probe(interface, ip_mode)
                 time.sleep(2.5)
                 pkts.stop()
-                Save.save_packets(interface, ip_mode, pkts.results)
+                with _csv_guard():
+                    Save.save_packets(interface, ip_mode, pkts.results)
+                pkts = Sniff.scan_async(interface) # Fix for closing of the socket
                 pkts.start()
                 Send.send_llmnr_mdns(interface, ip_mode)
                 time.sleep(1.5)
                 pkts.stop()
-                Save.save_packets(interface, ip_mode, pkts.results)
+                with _csv_guard():
+                    Save.save_packets(interface, ip_mode, pkts.results)
+                pkts = Sniff.scan_async(interface) # Fix for closing of the socket
                 pkts.start()
                 if ip_mode.ipv6:
                     SendIPv6.send_to_possible_IP(interface)
                     SendIPv6.send_to_test_RA_guard(interface)
                 time.sleep(1)
+                stop_responder(multicast_ipv6_responder, multicast_ipv6_stop_event)
+                stop_responder(multicast_ipv4_responder, multicast_ipv4_stop_event)
+                if ip_mode.ipv6:
+                    SendIPv6.send_MLD_done_leave(interface)
+                if ip_mode.ipv4:
+                    SendIPv4.send_igmp_done_leave(interface)
+                time.sleep(1)
                 pkts.stop()
-                Save.save_packets(interface, ip_mode, pkts.results)
+                with _csv_guard():
+                    Save.save_packets(interface, ip_mode, pkts.results)
                 finish_time = str(datetime.now())
-                Time.save_start_end(finish_time)
-                Node.get_ipv6_route_metrics_and_addresses()
-                Node.get_ipv4_route_metrics_and_addresses()
+                with _csv_guard():
+                    Time.save_start_end(finish_time)
+                    Node.get_ipv6_route_metrics_and_addresses()
+                    Node.get_ipv4_route_metrics_and_addresses()
 
-            remove_duplicates_from_csv(get_csv_path("MDNS.csv"))
-            remove_duplicates_from_csv(get_csv_path("LLMNR.csv"))
-            remove_duplicates_from_csv(get_csv_path("MLDv1.csv"))
-            remove_duplicates_from_csv(get_csv_path("MLDv2.csv"))
-            remove_duplicates_from_csv(get_csv_path("RA.csv"))
-            remove_duplicates_from_csv(get_csv_path("localname.csv"))
-            sort_csv_role_node(interface, get_csv_path("role_node.csv", interface))
+            with _csv_guard():
+                remove_duplicates_from_csv(get_csv_path("MDNS.csv"))
+                remove_duplicates_from_csv(get_csv_path("LLMNR.csv"))
+                remove_duplicates_from_csv(get_csv_path("MLDv1.csv"))
+                remove_duplicates_from_csv(get_csv_path("MLDv2.csv"))
+                remove_duplicates_from_csv(get_csv_path("RA.csv"))
+                remove_duplicates_from_csv(get_csv_path("localname.csv"))
+                sort_csv_role_node(interface, get_csv_path("role_node.csv", interface))
 
     @staticmethod
     def run_aggressive_mode(interface, ip_mode, prefix_len, network, source_mac, source_ip, rpref, duration, period, chl, mtu, dns):
@@ -480,19 +579,95 @@ class Run:
         Returns:
             None. Coordinates subprocesses and writes CSV artifacts.
         """
-        p1 = multiprocessing.Process(target=SendIPv6.send_RA,
-                                     args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, True, period, duration])
-        p2 = multiprocessing.Process(target=SendIPv6.react_to_NS_RS,
-                                     args=[interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, duration])
-        p3 = multiprocessing.Process(target=Run.run_normal_mode, args=[interface, "a", ip_mode, duration])
-        p4 = multiprocessing.Process(target=Run.run_normal_mode, args=[interface, "p", ip_mode, duration])
+        def stop_responder(process, stop_event, graceful_timeout=2.0):
+            if process is None:
+                return
+            if stop_event is not None:
+                stop_event.set()
+            process.join(timeout=graceful_timeout)
+            if process.is_alive():
+                process.terminate()
+                process.join()
 
-        p2.start()
-        p1.start()
-        p4.start()
+        # Scan jobs
+        csv_lock = multiprocessing.Lock()
+        send_ra = multiprocessing.Process(
+            target=_forked_target,
+            args=(SendIPv6.send_RA, [interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, True, period, duration]))
+        react_to_ns_rs = multiprocessing.Process(
+            target=_forked_target,
+            args=(SendIPv6.react_to_NS_RS, [interface, prefix_len, network, source_mac, source_ip, rpref, chl, mtu, dns, duration]))
+        active_scan = multiprocessing.Process(
+            target=_forked_target, args=(Run.run_normal_mode, [interface, "a", ip_mode, duration, csv_lock]))
+        passive_scan = multiprocessing.Process(
+            target=_forked_target, args=(Run.run_normal_mode, [interface, "p", ip_mode, duration, csv_lock]))
+
+        # Multicast helpers
+        multicast_ipv6_responder = None
+        multicast_ipv4_responder = None
+        multicast_ipv6_stop_event = None
+        multicast_ipv4_stop_event = None
+        if ip_mode.ipv6:
+            multicast_ipv6_stop_event = multiprocessing.Event()
+            multicast_ipv6_unsubscribe = multiprocessing.Process(
+                target=_forked_target, args=(SendIPv6.send_MLD_done_leave, [interface, True]))
+            multicast_ipv6_responder = multiprocessing.Process(
+                target=_forked_target,
+                args=(SendIPv6.react_to_mld_queries, ["a+", interface, duration, multicast_ipv6_stop_event]))
+        if ip_mode.ipv4:
+            multicast_ipv4_stop_event = multiprocessing.Event()
+            multicast_ipv4_unsubscribe = multiprocessing.Process(
+                target=_forked_target, args=(SendIPv4.send_igmp_done_leave, [interface, True]))
+            multicast_ipv4_responder = multiprocessing.Process(
+                target=_forked_target,
+                args=(SendIPv4.react_to_igmp_queries, ["a+", interface, duration, multicast_ipv4_stop_event]))
+
+        # Cleanup jobs
+        flush_router_flag_from_cache = multiprocessing.Process(
+            target=_forked_target,
+            args=(SendIPv6.send_NA, [interface, source_mac, None, source_ip, "ff02::1", 0, 0, 1]))
+
+        # Force multicast joins for aggressive mode, then keep responders running.
+        if ip_mode.ipv6:
+            SendIPv6.send_MLD_report_join(interface, True)
+        if ip_mode.ipv4:
+            SendIPv4.send_igmp_report_join(interface, True)
+
+        # Start multicast responders
+        if ip_mode.ipv6:
+            multicast_ipv6_responder.start()
+        if ip_mode.ipv4:
+            multicast_ipv4_responder.start()
+
+        # Start scan jobs
+        if ip_mode.ipv6:
+            react_to_ns_rs.start()
+            send_ra.start()
+        passive_scan.start()
         time.sleep(0.5)
-        p3.start()
-        p1.join()
-        p2.join()
-        p3.join()
-        p4.join()
+        active_scan.start()
+
+        # Join scan threads
+        if ip_mode.ipv6:
+            send_ra.join()
+            react_to_ns_rs.join()
+        active_scan.join()
+        passive_scan.join()
+
+        # Stop multicast responders after scan workload is done.
+        stop_responder(multicast_ipv6_responder, multicast_ipv6_stop_event)
+        stop_responder(multicast_ipv4_responder, multicast_ipv4_stop_event)
+
+        # Start cleanup jobs
+        if ip_mode.ipv6:
+            multicast_ipv6_unsubscribe.start()
+            flush_router_flag_from_cache.start()
+        if ip_mode.ipv4:
+            multicast_ipv4_unsubscribe.start()
+
+        # Join cleanup threads
+        if ip_mode.ipv6:
+            multicast_ipv6_unsubscribe.join()
+            flush_router_flag_from_cache.join()
+        if ip_mode.ipv4:
+            multicast_ipv4_unsubscribe.join()

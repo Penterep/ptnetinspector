@@ -5,10 +5,15 @@ Extracts XAddrs/endpoints from WS-Discovery packets and persists results.
 import csv
 import re
 import socket
+import logging
 
 from urllib.parse import urlparse
 from scapy.packet import Raw
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.entities._registry import registry
+
+
+logger = logging.getLogger(__name__)
 
 
 def parse_wsdiscovery(packet: bytes) -> list:
@@ -60,7 +65,7 @@ def parse_wsdiscovery(packet: bytes) -> list:
                 found_addresses.append(host)
                 continue
             except socket.error:
-                pass
+                logger.debug("WS-Discovery host is not a valid IP address (%s)", host)
 
     return found_addresses
 
@@ -68,20 +73,19 @@ def parse_wsdiscovery(packet: bytes) -> list:
 class WSDiscovery:
     all_nodes = []
 
-    def __init__(self, mac: str, ip: str):
+    def __init__(self, mac: str, ip: str) -> None:
         self.mac = mac
         self.ip = ip
         WSDiscovery.all_nodes.append(self)
 
-    def save_addresses(self):
-        csv_file = get_csv_path("wsdiscovery.csv")
-        
-        with open(csv_file, 'a+', newline='') as csvfile:
-            csvfile.seek(0)
-            for row in csv.DictReader(csvfile):
-                if row and row['MAC'] == self.mac and row['IP'] == self.ip:
-                    return
+    def save_addresses(self) -> None:
+        key = (self.mac, self.ip)
+        if registry.seen("wsdiscovery", key):
+            return
 
+        csv_file = get_csv_path("wsdiscovery.csv")
+
+        with open(csv_file, 'a', newline='') as csvfile:
             fieldnames = ['MAC', 'IP']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow({
@@ -89,5 +93,5 @@ class WSDiscovery:
                 'MAC': self.mac
             })
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.mac}, {self.ip})"

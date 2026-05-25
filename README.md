@@ -4,7 +4,7 @@
 | |_) / _ \ '_ \| __/ _ \ '__/ _ \ '_ \    | |/ _ \ / _ \| / __|
 |  __/  __/ | | | ||  __/ | |  __/ |_) |   | | (_) | (_) | \__ \
 |_|   \___|_| |_|\__\___|_|  \___| .__/    |_|\___/ \___/|_|___/
-                                 |_|      ptnetinspector v0.1.9
+                                 |_|      ptnetinspector v0.2.0
                                        https://www.penterep.com
 ```
 
@@ -19,17 +19,17 @@ detection capabilities, scanning nodes for known security weaknesses and misconf
 This enables network administrators to proactively identify and mitigate risks.
 
 
-## Install Requirements  
+## Install Requirements 
  
-Before proceeding, it is recommended to update your system to ensure compatibility:  
-```bash  
-sudo apt update && sudo apt upgrade -y  
-```  
+Before proceeding, it is recommended to update your system to ensure compatibility: 
+```bash 
+sudo apt update && sudo apt upgrade -y 
+``` 
 
-This application requires **Python3**. Make sure it is installed, along with the `python3-venv` package, for managing virtual environments:  
-```bash  
-sudo apt install python3 python3-venv -y  
-```  
+This application requires **Python3**. Make sure it is installed, along with the `python3-venv` package, for managing virtual environments: 
+```bash 
+sudo apt install python3 python3-venv -y 
+``` 
 
 ### Installation Methods
 
@@ -52,22 +52,22 @@ pip install ptnetinspector
 
 If you want to modify the code or contribute to development:
 
-##### 1. **Create a Virtual Environment (if not already created)**  
-You can create a virtual environment with any name you prefer. Replace `<env_name>` with your chosen name in the following command:  
+##### 1. **Create a Virtual Environment (if not already created)** 
+You can create a virtual environment with any name you prefer. Replace `<env_name>` with your chosen name in the following command: 
 ```bash
 python3 -m venv <env_name>
 ```
-For example, if you want to name your virtual environment `myenv`, use:  
+For example, if you want to name your virtual environment `myenv`, use: 
 ```bash
 python3 -m venv myenv
 ```
 
-##### 2. **Activate the Virtual Environment**  
-After creating the virtual environment, activate it by specifying its name. Replace `<env_name>` with the name you used during creation:  
+##### 2. **Activate the Virtual Environment** 
+After creating the virtual environment, activate it by specifying its name. Replace `<env_name>` with the name you used during creation: 
 ```bash
 source <env_name>/bin/activate
 ```
-For instance, if the name is `myenv`, use:  
+For instance, if the name is `myenv`, use: 
 ```bash
 source myenv/bin/activate
 ```
@@ -85,12 +85,12 @@ pip install .
 
 Installing with `-e` (editable) lets you edit the source in-place and run the installed command without reinstalling.
 
-### Important Notes  
-For future use, you don’t need to reinstall the dependencies. Simply activate the created virtual environment before running the application:  
-```bash  
+### Important Notes 
+For future use, you don’t need to reinstall the dependencies. Simply activate the created virtual environment before running the application: 
+```bash 
 source myenv/bin/activate 
-```  
-By following these steps, you ensure a clean and consistent installation process while avoiding potential errors due to system-level dependency conflicts or pip management.  
+``` 
+By following these steps, you ensure a clean and consistent installation process while avoiding potential errors due to system-level dependency conflicts or pip management. 
 
 
 ## Usage
@@ -225,7 +225,7 @@ ptnetinspector -t a -i eth0 -target ca:01:08:2b:00:01 00:0c:29:35:45:d8
 ```
 
 ## License
-Copyright (c) 2025 Penterep Security s.r.o.
+Copyright (c) 2026 Penterep Security s.r.o.
 
 ptnetinspector is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

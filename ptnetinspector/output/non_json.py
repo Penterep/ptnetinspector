@@ -5,6 +5,8 @@ consistent, readable format using the accumulated CSV data.
 """
 import csv
 import ipaddress
+import logging
+import os
 import pandas as pd
 from tabulate import tabulate
 from ptlibs import ptprinthelper
@@ -21,9 +23,46 @@ from ptnetinspector.utils.oui import lookup_vendor_from_csv
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test, load_vuln_catalog
 
 
+logger = logging.getLogger(__name__)
+
+
 class Non_json:
     @staticmethod
-    def print_box(string: str):
+    def _resolve_vulnerability_file(preferred_name: str, fallback_name: str | None = None) -> str:
+        preferred = get_csv_path(preferred_name)
+        if has_additional_data(preferred):
+            return preferred
+        if fallback_name:
+            return get_csv_path(fallback_name)
+        return preferred
+
+    @staticmethod
+    def _collect_target_device_vuln_codes(vuln_df: pd.DataFrame, target_macs_set: set[str] | None) -> set[str]:
+        """Collect device vulnerability codes for selected target MACs, including mapped NET codes."""
+        target_device_vuln_codes = set()
+        if target_macs_set is None:
+            return target_device_vuln_codes
+
+        device_vulns = vuln_df[vuln_df['MAC'].str.upper().isin(target_macs_set)]
+        for _, dev_vuln_row in device_vulns.iterrows():
+            dev_code = str(dev_vuln_row.get('Code', '')).strip().upper()
+            if not dev_code:
+                continue
+            if dev_code.endswith('DEV'):
+                target_device_vuln_codes.add(dev_code[:-3])
+            target_device_vuln_codes.add(dev_code)
+        return target_device_vuln_codes
+
+    @staticmethod
+    def _is_correlated_network_vuln(code: str, target_device_vuln_codes: set[str]) -> bool:
+        """Return True if network vulnerability code correlates with selected device vulnerability codes."""
+        code_upper = str(code).strip().upper()
+        if not code_upper or not target_device_vuln_codes:
+            return False
+        return any(code_upper in tcode or tcode in code_upper for tcode in target_device_vuln_codes)
+
+    @staticmethod
+    def print_box(string: str) -> None:
         """
         Print a highlighted heading without box characters.
 
@@ -47,7 +86,7 @@ class Non_json:
         return f"{' ' * indent}{text}"
 
     @staticmethod
-    def get_unique_mac_addresses(csv_file: str):
+    def get_unique_mac_addresses(csv_file: str) -> list[str]:
         """
         Get a list of unique MAC addresses from a CSV file.
 
@@ -69,7 +108,8 @@ class Non_json:
         csv_file_path: str = None,
         target_codes: set[str] | None = None,
         target_macs: set[str] | None = None,
-    ):
+        target_ips: set[str] | None = None,
+    ) -> None:
         """
         Read vulnerability CSV file and create individual tables for each vulnerability,
         showing device/network status with descriptions instead of codes.
@@ -80,9 +120,11 @@ class Non_json:
             csv_file_path (str): Path to vulnerability CSV file.
             target_codes (set[str] | None): Optional Test codes to filter by (e.g., {'4-MDNS', '6-MLDV1'}).
             target_macs (set[str] | None): Optional target MAC addresses to filter devices.
+            target_ips (set[str] | None): Optional target IP addresses to filter addresses.
         """
         if csv_file_path is None:
-            csv_file_path = get_csv_path("vulnerability.csv")
+            csv_file_path = Non_json._resolve_vulnerability_file("vulnerability_ip.csv" if target_ips else "vulnerability_mac.csv")
+        vulnerability_net_path = Non_json._resolve_vulnerability_file("vulnerability_net.csv")
 
         # Load vulnerability catalog for descriptions
         try:
@@ -105,13 +147,15 @@ class Non_json:
             except Exception:
                 # If catalog load fails, treat as no filter
                 target_codes_set = None
-        
+
         # Structure: {code: {description: str, ipver: str, entities: {entity_id: label}}}
         vulnerabilities = {}
-        
+
         # Prepare target MACs set (uppercase)
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
-        
+        target_ips_set = {str(ip).strip() for ip in target_ips} if target_ips else None
+        has_target_filter = bool(target_macs_set or target_ips_set)
+
         # Collect device vulnerability codes for network correlation (when target MACs specified)
         target_device_vuln_codes = set()
 
@@ -122,25 +166,28 @@ class Non_json:
                     code = row.get('Code', '').strip().upper()
                     if target_codes_set and code not in target_codes_set:
                         continue
-                    
+
                     # Filter by target MACs if specified (skip non-target devices)
                     entity_id = row['ID']
-                    if target_macs_set and entity_id != 'Network':
+                    if entity_id == 'Network' and has_target_filter:
+                        continue
+                    if entity_id != 'Network' and has_target_filter:
                         mac = row.get('MAC', '').strip().upper()
-                        if mac not in target_macs_set:
+                        ip_value = str(row.get('IP', '')).strip()
+                        mac_match = bool(target_macs_set and mac in target_macs_set)
+                        ip_match = bool(target_ips_set and ip_value in target_ips_set)
+                        if not (mac_match or ip_match):
                             continue
-                        # Collect device vulnerability codes for network correlation
                         if code.endswith('DEV'):
-                            net_code = code[:-3]  # Remove 'DEV' suffix
-                            target_device_vuln_codes.add(net_code)
+                            target_device_vuln_codes.add(code[:-3])
                         target_device_vuln_codes.add(code)
-                    
+
                     # Do not filter out network vulnerabilities when target MACs are specified
-                    
+
                     ipver_value = row.get('IPver', '').strip()
                     description = row.get('Description', code)
                     label = int(row['Label'])
-                    
+
                     # Check if this vulnerability applies to selected IP versions (handles -4, -6, or both)
                     allowed_versions = set()
                     if ipver.ipv4:
@@ -154,7 +201,7 @@ class Non_json:
                         allowed_versions.update({'4', '6'})
                     if ipver_value not in allowed_versions:
                         continue
-                    
+
                     if code not in vulnerabilities:
                         # Get description from catalog if available
                         catalog_desc = vuln_catalog.get(code, {}).get('Description', description)
@@ -163,8 +210,51 @@ class Non_json:
                             'ipver': ipver_value,
                             'entities': {}
                         }
-                    
+
                     vulnerabilities[code]['entities'][entity_id] = label
+
+        # Network-scoped vulnerabilities are stored in a separate file.
+        if os.path.exists(vulnerability_net_path):
+            with open(vulnerability_net_path, 'r', newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    if row.get('ID', '').strip() != 'Network':
+                        continue
+                    if mode not in row.get('Mode', ''):
+                        continue
+
+                    code = row.get('Code', '').strip().upper()
+                    if target_codes_set and code not in target_codes_set:
+                        continue
+
+                    # Target filtering suppresses network vulnerability tables.
+                    if has_target_filter:
+                        continue
+
+                    ipver_value = row.get('IPver', '').strip()
+                    allowed_versions = set()
+                    if ipver.ipv4:
+                        allowed_versions.add('4')
+                    if ipver.ipv6:
+                        allowed_versions.add('6')
+                    allowed_versions.add('both')
+                    if not (ipver.ipv4 or ipver.ipv6):
+                        allowed_versions.update({'4', '6'})
+                    if ipver_value not in allowed_versions:
+                        continue
+
+                    description = row.get('Description', code)
+                    label = int(row.get('Label', 2))
+
+                    if code not in vulnerabilities:
+                        catalog_desc = vuln_catalog.get(code, {}).get('Description', description)
+                        vulnerabilities[code] = {
+                            'description': catalog_desc,
+                            'ipver': ipver_value,
+                            'entities': {}
+                        }
+
+                    vulnerabilities[code]['entities']['Network'] = label
 
         GREEN = '\033[92m'
         RED = '\033[91m'
@@ -185,58 +275,63 @@ class Non_json:
 
         # Sort vulnerabilities by code for consistent ordering
         sorted_codes = sorted(vulnerabilities.keys())
-        
+
         if not sorted_codes:
             return  # No vulnerabilities to display
-        
+
         # Print header
         Non_json.print_box("Vulnerability Analysis")
         ptprinthelper.ptprint(f"Legend: {RED}✕{END} = Vulnerable | {GREEN}✓{END} = Not Vulnerable | {WHITE}●{END} = N/A", condition=True, indent=4)
         ptprinthelper.ptprint("")  # Empty line for readability
-        
+
         # Print each vulnerability as a separate table
         for idx, code in enumerate(sorted_codes, 1):
             vuln_data = vulnerabilities[code]
             description = vuln_data['description']
-            
+
             # Print vulnerability header with yellow order indicator
             YELLOW = '\033[93m'
             END = '\033[0m'
             order_text = f"[{idx}/{len(sorted_codes)}]"
             ptprinthelper.ptprint(f"\n    {YELLOW}{order_text}{END} {description}", condition=True, indent=4)
-            ptprinthelper.ptprint(f"    ({code})", condition=True, indent=4)
-            
+            ptprinthelper.ptprint(f"    ({code})", condition=True, indent=4) 
+
             # Separate entities into devices and network
             devices = {}
             network_status = None
-            
+
             for entity_id, label in vuln_data['entities'].items():
                 if entity_id == 'Network':
                     network_status = label
                 else:
                     devices[entity_id] = label
-            
+
+            if devices:
+                vulnerable_devices_count = sum(1 for label in devices.values() if label == 1)
+                total_devices_count = len(devices)
+                ptprinthelper.ptprint(f"    {vulnerable_devices_count}/{total_devices_count} devices vulnerable", condition=True, indent=4)
+
             # Build table data with each entity as separate column
             headers = []
             table_row = []
-            
+
             # Add Network column if present
             if network_status is not None:
                 headers.append('Network')
                 table_row.append(get_status_symbol(network_status))
-            
+
             # Add Device columns
             if devices:
                 sorted_device_ids = sorted(devices.keys(), key=lambda x: int(x) if x.isdigit() else x)
                 for device_id in sorted_device_ids:
                     headers.append(f'Device {device_id}')
                     table_row.append(get_status_symbol(devices[device_id]))
-            
+
             # Build table data with single row
             table_data = []
             if table_row:
                 table_data.append(table_row)
-            
+
             # Print table
             if table_data:
                 table = tabulate(table_data, headers=headers, tablefmt='grid', colalign=('center',) * len(headers))
@@ -245,20 +340,20 @@ class Non_json:
                     ptprinthelper.ptprint(line, condition=True, indent=8)
             else:
                 ptprinthelper.ptprint("No entities tested for this vulnerability.", condition=True, indent=8)
-        
+
         # Print summary statistics
         # ptprinthelper.ptprint("\n")
         Non_json.print_box("Vulnerability Summary")
-        
+
         # Aggregate counts by entity and status
         network_vuln_count = 0
         network_not_vuln_count = 0
         network_na_count = 0
         device_vuln_counts = {}  # {device_id: {vuln: count, not_vuln: count, na: count}}
-        
+
         for code in sorted_codes:
             vuln_data = vulnerabilities[code]
-            
+
             for entity_id, label in vuln_data['entities'].items():
                 if entity_id == 'Network':
                     if label == 1:
@@ -270,17 +365,17 @@ class Non_json:
                 else:
                     if entity_id not in device_vuln_counts:
                         device_vuln_counts[entity_id] = {'vuln': 0, 'not_vuln': 0, 'na': 0}
-                    
+
                     if label == 1:
                         device_vuln_counts[entity_id]['vuln'] += 1
                     elif label == 0:
                         device_vuln_counts[entity_id]['not_vuln'] += 1
                     else:
                         device_vuln_counts[entity_id]['na'] += 1
-        
+
         # Build summary table data
         summary_table_data = []
-        
+
         # Add Network row
         if network_vuln_count > 0 or network_not_vuln_count > 0 or network_na_count > 0:
             summary_table_data.append([
@@ -289,7 +384,7 @@ class Non_json:
                 f'{GREEN}{network_not_vuln_count}{END}',
                 f'{WHITE}{network_na_count}{END}'
             ])
-        
+
         # Add Device rows
         sorted_device_ids = sorted(device_vuln_counts.keys(), key=lambda x: int(x) if x.isdigit() else x)
         for device_id in sorted_device_ids:
@@ -300,7 +395,7 @@ class Non_json:
                 f'{GREEN}{counts["not_vuln"]}{END}',
                 f'{WHITE}{counts["na"]}{END}'
             ])
-        
+
         # Print summary table
         if summary_table_data:
             headers = ['Entity', f'{RED}Vulnerable{END}', f'{GREEN}Not Vulnerable{END}', f'{WHITE}N/A{END}']
@@ -310,7 +405,15 @@ class Non_json:
                 ptprinthelper.ptprint(line, condition=True, indent=4)
 
     @staticmethod
-    def output_general(mode: str, ipver: IPMode, addresses_file_name: str = None, target_codes: set[str] | None = None, target_macs: set[str] | None = None):
+    def output_general(
+        mode: str,
+        ipver: IPMode,
+        addresses_file_name: str = None,
+        check_addresses: bool = True,
+        target_codes: set[str] | None = None,
+        target_macs: set[str] | None = None,
+        target_ips: set[str] | None = None,
+    ) -> None:
         """
         Output general device and network information, including vulnerabilities.
 
@@ -318,33 +421,46 @@ class Non_json:
             mode (str): Scan mode.
             ipver (IPMode): Enabled IP versions.
             addresses_file_name (str): Path to addresses CSV file.
+            check_addresses (bool): True when address validation is enabled (default behavior without -nc).
             target_codes (set[str] | None): Optional filter for vulnerability codes.
             target_macs (set[str] | None): Optional filter for target MAC addresses.
+            target_ips (set[str] | None): Optional filter for target IP addresses.
         """
         if addresses_file_name is None:
             addresses_file_name = get_csv_path("addresses.csv")
-        
+
         role_node_file = get_csv_path("role_node.csv")
-        vulnerability_file = get_csv_path("vulnerability.csv")
+        vulnerability_file = Non_json._resolve_vulnerability_file("vulnerability_mac.csv")
+        vulnerability_ip_file = Non_json._resolve_vulnerability_file("vulnerability_ip.csv")
+        vulnerability_net_file = Non_json._resolve_vulnerability_file("vulnerability_net.csv")
         target_codes_set = {code.upper() for code in target_codes} if target_codes else None
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
-        
-        
+        target_ips_set = {str(ip).strip() for ip in target_ips} if target_ips else None
+        has_target_filter = bool(target_macs_set or target_ips_set)
+
+
         if has_additional_data(addresses_file_name) and has_additional_data(role_node_file):
             role_node_df_full = pd.read_csv(role_node_file)
             role_node_df = role_node_df_full.copy()
             addresses_df = pd.read_csv(addresses_file_name)
             addresses_df = filter_ips_by_mode(addresses_df, ipver)
-            
-            # Filter by target MACs if specified - apply to BOTH addresses and role_node DataFrames
-            if target_macs_set:
-                addresses_df = addresses_df[addresses_df['MAC'].str.upper().isin(target_macs_set)]
-                role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(target_macs_set)]
-            
+
+            # Filter by targets (MAC and/or IP).
+            if has_target_filter:
+                address_mask = pd.Series(False, index=addresses_df.index)
+                if target_macs_set:
+                    address_mask = address_mask | addresses_df['MAC'].str.upper().isin(target_macs_set)
+                if target_ips_set:
+                    address_mask = address_mask | addresses_df['IP'].astype(str).isin(target_ips_set)
+                addresses_df = addresses_df[address_mask]
+                selected_macs = set(addresses_df['MAC'].astype(str).str.upper().unique().tolist())
+                role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(selected_macs)]
+
             # Network and device vulnerability testing section
             try:
                 vuln_df = pd.read_csv(vulnerability_file)
-                
+                vuln_net_df = pd.read_csv(vulnerability_net_file)
+
                 # Convert Test codes to vulnerability Codes if target_codes_set is provided
                 target_vuln_codes_set = None
                 if target_codes_set:
@@ -359,39 +475,30 @@ class Non_json:
                         target_vuln_codes_set = vuln_codes if vuln_codes else None
                     except Exception:
                         target_vuln_codes_set = None
-                
+
                 # Collect ALL vulnerabilities (network + device) to determine overall test status
                 all_vuln_results = []
-                
+
                 # Process network vulnerabilities
-                net_vulns = vuln_df[vuln_df['ID'] == "Network"]
-                
+                net_vulns = vuln_net_df[vuln_net_df['ID'] == "Network"]
+
                 # If target MACs specified, collect device vulnerabilities to correlate with network vulns
-                target_device_vuln_codes = set()
-                if target_macs_set:
-                    device_vulns = vuln_df[vuln_df['MAC'].str.upper().isin(target_macs_set)]
-                    for _, dev_vuln_row in device_vulns.iterrows():
-                        dev_code = dev_vuln_row.get('Code', '').strip().upper()
-                        # Map device vuln code to its network counterpart (e.g., MLDV1DEV -> MLDV1)
-                        if dev_code.endswith('DEV'):
-                            net_code = dev_code[:-3]  # Remove 'DEV' suffix
-                            target_device_vuln_codes.add(net_code)
-                        target_device_vuln_codes.add(dev_code)
-                
+                target_device_vuln_codes = Non_json._collect_target_device_vuln_codes(vuln_df, target_macs_set)
+
                 # Collect network vulnerabilities matching criteria
                 network_vuln_results = []
-                for _, vuln_row in net_vulns.iterrows():
-                    code = vuln_row.get('Code', '')
-                    if target_vuln_codes_set and code.strip().upper() not in target_vuln_codes_set:
-                        continue
-                    # No filtering by target device vulns: always show all network vulns
-                    desc = vuln_row.get('Description', '')
-                    label = vuln_row.get('Label', '')
-                    short_code = extract_short_code(code)
-                    if mode in vuln_row['Mode']:
-                        network_vuln_results.append((desc, short_code, label, code))
-                        all_vuln_results.append(label)
-                
+                if not has_target_filter:
+                    for _, vuln_row in net_vulns.iterrows():
+                        code = vuln_row.get('Code', '')
+                        if target_vuln_codes_set and code.strip().upper() not in target_vuln_codes_set:
+                            continue
+                        desc = vuln_row.get('Description', '')
+                        label = vuln_row.get('Label', '')
+                        short_code = extract_short_code(code)
+                        if mode in vuln_row['Mode']:
+                            network_vuln_results.append((desc, short_code, label, code))
+                            all_vuln_results.append(label)
+
                 # Collect device vulnerabilities matching criteria for overall test status
                 if target_vuln_codes_set:
                     # Filter device vulnerabilities based on target_vuln_codes and target_macs
@@ -409,7 +516,7 @@ class Non_json:
                         label = vuln_row.get('Label', '')
                         if mode in vuln_row.get('Mode', ''):
                             all_vuln_results.append(label)
-                
+
                 # Print overall test summary
                 if all_vuln_results:
                     has_any_vuln = any(label == 1 for label in all_vuln_results)
@@ -426,13 +533,13 @@ class Non_json:
                             ptprinthelper.ptprint("Security problem(s) found", "ERROR", colortext=True, condition=True, indent=4)
                         else:
                             ptprinthelper.ptprint("No security problem(s) found", "OK", colortext=True, condition=True, indent=4)
-                
+
                 # Print network vulnerabilities if any exist
-                if network_vuln_results:
+                if (not has_target_filter) and network_vuln_results:
                     all_na = all(label not in (0, 1) for _, _, label, _ in network_vuln_results)
                     header_text = "Network vulnerability test results:" if not all_na else "Network vulnerability test results: N/A"
                     ptprinthelper.ptprint(header_text, "INFO", condition=True, indent=4)
-                    
+
                     # Print individual network vulnerability results
                     for desc, short_code, label, code in network_vuln_results:
                         if label == 1:
@@ -440,19 +547,41 @@ class Non_json:
                         elif label == 0:
                             ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=8)
             except Exception:
-                pass
-            
-            if target_macs_set:
+                logger.debug("Failed to evaluate general vulnerability summary", exc_info=True)
+
+            if has_target_filter:
                 resolved_targets = []
                 missing_targets = []
-                for mac in sorted(target_macs_set):
-                    display_mac = mac.lower()
-                    matches = role_node_df_full[role_node_df_full['MAC'].str.upper() == mac]
-                    if matches.empty:
-                        missing_targets.append(display_mac)
-                        continue
-                    device_numbers = sorted(matches['Device_Number'].tolist(), key=lambda x: int(x) if str(x).isdigit() else str(x))
-                    resolved_targets.append(f"{display_mac} -> Device {', '.join(map(str, device_numbers))}")
+                if target_macs_set:
+                    for mac in sorted(target_macs_set):
+                        display_mac = mac.lower()
+                        matches = role_node_df_full[role_node_df_full['MAC'].str.upper() == mac]
+                        if matches.empty:
+                            missing_targets.append(display_mac)
+                            continue
+                        device_numbers = sorted(matches['Device_Number'].tolist(), key=lambda x: int(x) if str(x).isdigit() else str(x))
+                        resolved_targets.append(f"{display_mac} -> Device {', '.join(map(str, device_numbers))}")
+                if target_ips_set:
+                    all_addresses_df = pd.read_csv(addresses_file_name)
+                    all_addresses_df = filter_ips_by_mode(all_addresses_df, ipver)
+                    for ip in sorted(target_ips_set):
+                        matches = all_addresses_df[all_addresses_df['IP'].astype(str) == ip]
+                        if matches.empty:
+                            missing_targets.append(ip)
+                            continue
+                        mapped_devices = []
+                        for _, arow in matches.iterrows():
+                            mac = str(arow.get('MAC', '')).upper()
+                            dev_rows = role_node_df_full[role_node_df_full['MAC'].str.upper() == mac]
+                            if dev_rows.empty:
+                                continue
+                            for dev in dev_rows['Device_Number'].tolist():
+                                mapped_devices.append(str(dev))
+                        if mapped_devices:
+                            mapped_unique = sorted(set(mapped_devices), key=lambda x: int(x) if x.isdigit() else x)
+                            resolved_targets.append(f"{ip} -> Device {', '.join(mapped_unique)}")
+                        else:
+                            missing_targets.append(ip)
                 if resolved_targets:
                     ptprinthelper.ptprint("Targets matched to devices:", "INFO", condition=True, indent=4)
                     for entry in resolved_targets:
@@ -482,7 +611,8 @@ class Non_json:
                     for ip in ip_addresses:
                         if ipver.ipv6 and is_valid_ipv6(ip):
                             if is_llsnm_ipv6(ip):
-                                if ip not in list_solicited_ip:
+                                # Show unresolved possible addresses only in -nc mode.
+                                if (not check_addresses) and ip not in list_solicited_ip:
                                     ptprinthelper.ptprint(f"IPv6  {in6_getansma(ip)} (possible address)", condition=True, indent=8)
                             elif not is_llsnm_ipv6(ip):
                                 if all_ip.count(ip) >= 2:
@@ -497,14 +627,34 @@ class Non_json:
                                 else:
                                     ptprinthelper.ptprint(f"IPv4  {ip}", condition=True, indent=8)
                             except ipaddress.AddressValueError:
+                                # Ignore non-IPv4 entries while printing mixed address lists.
                                 continue
-                         
+
 
                 vuln_df = pd.read_csv(vulnerability_file)
-                device_vulns = vuln_df[vuln_df['ID'].astype(str) == str(device_number)]
-                # Respect -ts filters for device vulnerabilities as well
-                if target_vuln_codes_set:
-                    device_vulns = device_vulns[device_vulns['Code'].str.upper().isin(target_vuln_codes_set)]
+                if target_ips_set and has_additional_data(vulnerability_ip_file):
+                    vuln_ip_df = pd.read_csv(vulnerability_ip_file)
+                    device_vulns = vuln_ip_df[
+                        (vuln_ip_df['ID'].astype(str) == str(device_number))
+                        & (vuln_ip_df['IP'].astype(str).isin(target_ips_set))
+                    ].copy()
+                    if mode is not None:
+                        device_vulns = device_vulns[device_vulns['Mode'].astype(str).str.contains(mode, regex=False)]
+                    if target_vuln_codes_set:
+                        device_vulns = device_vulns[device_vulns['Code'].astype(str).str.upper().isin(target_vuln_codes_set)]
+                    if not device_vulns.empty:
+                        device_vulns['Label'] = pd.to_numeric(device_vulns['Label'], errors='coerce').fillna(2).astype(int)
+                        device_vulns = (
+                            device_vulns
+                            .sort_values(by=['Code'])
+                            .groupby('Code', as_index=False)
+                            .agg({'Description': 'first', 'IPver': 'first', 'Mode': 'first', 'Label': 'max'})
+                        )
+                else:
+                    device_vulns = vuln_df[vuln_df['ID'].astype(str) == str(device_number)]
+                    # Respect -ts filters for device vulnerabilities as well
+                    if target_vuln_codes_set:
+                        device_vulns = device_vulns[device_vulns['Code'].str.upper().isin(target_vuln_codes_set)]
                 for _, vuln_row in device_vulns.iterrows():
                     code = vuln_row.get('Code', '')
                     desc = vuln_row.get('Description', '')
@@ -525,8 +675,9 @@ class Non_json:
         protocol,
         file_name,
         less_detail=False,
-        target_macs=None
-    ):
+        target_macs=None,
+        target_ips=None,
+    ) -> None:
         """Print human-readable results for a specific protocol.
 
         Args:
@@ -537,13 +688,18 @@ class Non_json:
             file_name (str): Path to protocol CSV file.
             less_detail (bool): If True, show reduced details.
             target_macs (set[str] | None): Optional MAC filter.
+            target_ips (set[str] | None): Optional IP filter.
         """
         start_end_file = get_csv_path("start_end_mode.csv")
         role_node_file = get_csv_path("role_node.csv")
-        vulnerability_file = get_csv_path("vulnerability.csv")
+        vulnerability_file = Non_json._resolve_vulnerability_file("vulnerability_mac.csv")
+        vulnerability_ip_file = Non_json._resolve_vulnerability_file("vulnerability_ip.csv")
+        vulnerability_net_file = Non_json._resolve_vulnerability_file("vulnerability_net.csv")
         localname_file = get_csv_path("localname.csv")
         target_macs_set = {mac.upper() for mac in target_macs} if target_macs else None
-        
+        target_ips_set = {str(ip).strip() for ip in target_ips} if target_ips else None
+        has_target_filter = bool(target_macs_set or target_ips_set)
+
         delete_middle_content_csv(start_end_file)
         if protocol == "time":
             Non_json.print_box("Time running")
@@ -574,7 +730,7 @@ class Non_json:
                         elif label == 0:
                             ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=4)
             except Exception:
-                pass
+                logger.debug("Failed to render 802.1x summary", exc_info=True)
         if protocol in ["MDNS", "LLMNR", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3", "RA", "WS-Discovery"]:
             if has_additional_data(file_name) and has_additional_data(role_node_file):
                 if protocol == "MDNS" and not less_detail:
@@ -595,65 +751,65 @@ class Non_json:
                     Non_json.print_box("WS-Discovery scan")
                 try:
                     vuln_df = pd.read_csv(vulnerability_file)
+                    vuln_net_df = pd.read_csv(vulnerability_net_file)
                     if protocol in ["MDNS", "LLMNR"]:
-                        network_vulns = vuln_df[(vuln_df['ID'] == "Network") & (vuln_df['Code'].str.contains(protocol, case=False, na=False))]
+                        network_vulns = vuln_net_df[(vuln_net_df['ID'] == "Network") & (vuln_net_df['Code'].str.contains(protocol, case=False, na=False))]
                     elif protocol in ["MLDv1", "MLDv2", "WS-Discovery", "IGMPv1/v2", "IGMPv3"]:
-                        network_vulns = vuln_df[(vuln_df['ID'] == "Network") & (vuln_df['Description'].str.contains(protocol, case=False, na=False))]
+                        network_vulns = vuln_net_df[(vuln_net_df['ID'] == "Network") & (vuln_net_df['Description'].str.contains(protocol, case=False, na=False))]
                     else:
                         network_vulns = pd.DataFrame()
-                    
+
                     # If target MACs specified, collect device vulnerabilities to correlate with network vulns
-                    target_device_vuln_codes = set()
-                    if target_macs_set:
-                        device_vulns = vuln_df[vuln_df['MAC'].str.upper().isin(target_macs_set)]
-                        for _, dev_vuln_row in device_vulns.iterrows():
-                            dev_code = dev_vuln_row.get('Code', '').strip().upper()
-                            # Map device vuln code to its network counterpart (e.g., MLDV1DEV -> MLDV1)
-                            if dev_code.endswith('DEV'):
-                                net_code = dev_code[:-3]  # Remove 'DEV' suffix
-                                target_device_vuln_codes.add(net_code)
-                            target_device_vuln_codes.add(dev_code)
-                    
-                    for _, vuln_row in network_vulns.iterrows():
-                        code = vuln_row.get('Code', '')
-                        desc = vuln_row.get('Description', '')
-                        ipver_vuln = vuln_row.get('IPver', '')
-                        label = vuln_row.get('Label', '')
-                        
-                        # If target MACs specified, only show network vulns related to target device vulns
-                        if target_macs_set:
-                            code_upper = code.strip().upper()
-                            # Check if this network vuln correlates with any target device vuln
-                            if not any(code_upper in tcode or tcode in code_upper for tcode in target_device_vuln_codes):
-                                continue
-                        
-                        short_code = extract_short_code(code)
-                        if mode in vuln_row['Mode']:
-                            if label == 1:
-                                ptprinthelper.ptprint(f"{desc} (...{short_code})", "VULN", colortext=True, condition=True, indent=4)
-                            elif label == 0:
-                                ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=4)
+                    target_device_vuln_codes = Non_json._collect_target_device_vuln_codes(vuln_df, target_macs_set)
+
+                    if not has_target_filter:
+                        for _, vuln_row in network_vulns.iterrows():
+                            code = vuln_row.get('Code', '')
+                            desc = vuln_row.get('Description', '')
+                            ipver_vuln = vuln_row.get('IPver', '')
+                            label = vuln_row.get('Label', '')
+
+                            # If target MACs specified, only show network vulns related to target device vulns
+                            if target_macs_set:
+                                # Check if this network vuln correlates with any target device vuln
+                                if not Non_json._is_correlated_network_vuln(code, target_device_vuln_codes):
+                                    continue
+
+                            short_code = extract_short_code(code)
+                            if mode in vuln_row['Mode']:
+                                if label == 1:
+                                    ptprinthelper.ptprint(f"{desc} (...{short_code})", "VULN", colortext=True, condition=True, indent=4)
+                                elif label == 0:
+                                    ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=4)
                 except Exception:
-                    pass
+                    logger.debug("Failed to render protocol-level network vulnerabilities for %s", protocol, exc_info=True)
                 if protocol == "RA" and is_dhcp_slaac() != []:
                     for item in is_dhcp_slaac():
                         ptprinthelper.ptprint(f"{item} is discovered", "INFO", condition=True, indent=4)
                 df = pd.read_csv(file_name)
                 df = filter_ips_by_mode(df, ipver)
-                
-                # Filter by target MACs if specified
-                if target_macs_set and 'MAC' in df.columns:
-                    df = df[df['MAC'].str.upper().isin(target_macs_set)]
-                
+
+                # Filter by targets (MAC and/or IP)
+                if has_target_filter:
+                    filter_mask = pd.Series(False, index=df.index)
+                    if target_macs_set and 'MAC' in df.columns:
+                        filter_mask = filter_mask | df['MAC'].str.upper().isin(target_macs_set)
+                    if target_ips_set and 'IP' in df.columns:
+                        filter_mask = filter_mask | df['IP'].astype(str).isin(target_ips_set)
+                    df = df[filter_mask]
+
                 list_mac_protocol = df['MAC'].drop_duplicates().tolist()
                 unique_devices = df.groupby('MAC')['IP'].nunique()
                 num_devices = unique_devices.count()
                 ptprinthelper.ptprint(f"Number of devices: {num_devices}", "INFO", condition=True, indent=4)
                 role_node_df = pd.read_csv(role_node_file)
-                
-                # Filter role_node by target MACs if specified
-                if target_macs_set:
-                    role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(target_macs_set)]
+
+                # Filter role_node by devices present in filtered protocol rows
+                selected_macs = set(df['MAC'].astype(str).str.upper().unique().tolist()) if 'MAC' in df.columns else set()
+                if selected_macs:
+                    role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(selected_macs)]
+                elif has_target_filter:
+                    role_node_df = role_node_df.iloc[0:0]
                 for index, row in role_node_df.iterrows():
                     mac_address = row['MAC']
                     device_number = row['Device_Number']
@@ -668,7 +824,8 @@ class Non_json:
                                     local_name_df = pd.read_csv(localname_file)
                                     list_local_names = local_name_df.loc[local_name_df['MAC'] == mac_address, 'name'].tolist()
                                     ptprinthelper.ptprint(f"Local name   {list_local_names[0]}", condition=True, indent=8)
-                                except:
+                                except Exception:
+                                    # Local name is optional; continue rendering remaining protocol details.
                                     pass
                             if protocol in ["MLDv1", "IGMPv1/v2"]:
                                 filtered_rows = df[df['MAC'] == mac_address]
@@ -709,11 +866,29 @@ class Non_json:
                     if protocol != "RA":
                         try:
                             vuln_df = pd.read_csv(vulnerability_file)
-                            device_vulns = vuln_df[
-                                (vuln_df['ID'] == str(device_number)) &
-                                (vuln_df['Description'].str.contains(protocol, case=True, na=False)) &
-                                (vuln_df['MAC'].isin(df['MAC']))
-                            ]
+                            if target_ips_set and has_additional_data(vulnerability_ip_file):
+                                vuln_ip_df = pd.read_csv(vulnerability_ip_file)
+                                device_vulns = vuln_ip_df[
+                                    (vuln_ip_df['ID'].astype(str) == str(device_number))
+                                    & (vuln_ip_df['Description'].astype(str).str.contains(protocol, case=True, na=False))
+                                    & (vuln_ip_df['IP'].astype(str).isin(target_ips_set))
+                                ].copy()
+                                if mode is not None:
+                                    device_vulns = device_vulns[device_vulns['Mode'].astype(str).str.contains(mode, regex=False)]
+                                if not device_vulns.empty:
+                                    device_vulns['Label'] = pd.to_numeric(device_vulns['Label'], errors='coerce').fillna(2).astype(int)
+                                    device_vulns = (
+                                        device_vulns
+                                        .sort_values(by=['Code'])
+                                        .groupby('Code', as_index=False)
+                                        .agg({'Description': 'first', 'IPver': 'first', 'Mode': 'first', 'Label': 'max'})
+                                    )
+                            else:
+                                device_vulns = vuln_df[
+                                    (vuln_df['ID'] == str(device_number)) &
+                                    (vuln_df['Description'].str.contains(protocol, case=True, na=False)) &
+                                    (vuln_df['MAC'].isin(df['MAC']))
+                                ]
                             for _, vuln_row in device_vulns.iterrows():
                                 code = vuln_row.get('Code', '')
                                 desc = vuln_row.get('Description', '')
@@ -726,4 +901,4 @@ class Non_json:
                                     elif label == 0:
                                         ptprinthelper.ptprint(f"{desc} (...{short_code})", "OK", colortext=True, condition=True, indent=8)
                         except Exception:
-                            pass
+                            logger.debug("Failed to render device vulnerabilities for protocol %s, device %s", protocol, device_number, exc_info=True)

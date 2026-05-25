@@ -19,10 +19,10 @@ class TestCSVIntegration:
             # Patch get_tmp_path to return our temp directory
             with patch('ptnetinspector.utils.csv_helpers.get_tmp_path') as mock_tmp_path:
                 mock_tmp_path.return_value = tmp_dir
-                
+
                 # Create all CSV files
                 create_csv()
-                
+
                 # Verify all CSV files exist
                 expected_files = [
                     'packets.csv', 'routers.csv', 'MDNS.csv', 'LLMNR.csv',
@@ -34,7 +34,7 @@ class TestCSVIntegration:
                     'dhcp.csv', 'wsdiscovery.csv', 'default_gw.csv',
                     'vulnerability.csv'
                 ]
-                
+
                 for csv_file in expected_files:
                     file_path = Path(tmp_dir) / csv_file
                     assert file_path.exists(), f"{csv_file} not created"
@@ -49,16 +49,16 @@ class TestCSVIntegration:
         with tempfile.TemporaryDirectory() as tmp_dir:
             with patch('ptnetinspector.utils.csv_helpers.get_tmp_path') as mock_tmp_path:
                 mock_tmp_path.return_value = tmp_dir
-                
+
                 # Create CSV
                 create_csv()
                 csv_path = Path(tmp_dir) / 'MDNS.csv'
-                
+
                 # Add data
                 with open(csv_path, 'a', newline='') as f:
                     writer = csv.DictWriter(f, fieldnames=['MAC', 'IP'])
                     writer.writerow({'MAC': '00:11:22:33:44:55', 'IP': '192.168.1.100'})
-                
+
                 # Verify data exists - use str path
                 assert has_additional_data(str(csv_path)) is True
 
@@ -66,7 +66,7 @@ class TestCSVIntegration:
         """Test sorting CSV by MAC address."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             csv_path = Path(tmp_dir) / 'test.csv'
-            
+
             # Create CSV with multiple entries
             with open(csv_path, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=['MAC', 'IP'])
@@ -74,7 +74,7 @@ class TestCSVIntegration:
                 writer.writerow({'MAC': '00:11:22:33:44:55', 'IP': '192.168.1.100'})
                 writer.writerow({'MAC': '00:11:22:33:44:56', 'IP': '192.168.1.101'})
                 writer.writerow({'MAC': '00:11:22:33:44:54', 'IP': '192.168.1.99'})
-            
+
             # Read and verify data was written
             with open(csv_path, 'r') as f:
                 reader = csv.DictReader(f)
@@ -89,7 +89,7 @@ class TestInterfaceOperations:
     def test_interface_initialization_and_methods(self, mock_interfaces):
         """Test Interface class initialization and method calls."""
         iface = Interface('eth0')
-        
+
         # Verify interface object is created
         assert iface is not None
         assert hasattr(iface, 'interface')
@@ -98,11 +98,11 @@ class TestInterfaceOperations:
     def test_interface_status_checks(self, mock_interfaces):
         """Test interface status checking."""
         iface = Interface('eth0')
-        
+
         # Test valid interface
         result = iface.check_interface()
         assert result is not False  # Should be True or interface name
-        
+
         # Test invalid interface
         iface_invalid = Interface('nonexistent')
         result_invalid = iface_invalid.check_interface()
@@ -132,14 +132,14 @@ class TestNetworksIntegration:
                 }
             ]
         }
-        
+
         # Extract subnets - this saves to CSV
         Networks.extract_available_subnets('eth0')
-        
+
         # Get subnets using the getter methods
         ipv4_subnets = Networks.get_ipv4_subnets()
         ipv6_subnets = Networks.get_ipv6_subnets()
-        
+
         # Verify at least one of them has data (depends on implementation)
         assert ipv4_subnets is not None or ipv6_subnets is not None
 
@@ -152,9 +152,9 @@ class TestCLIParameterFlow:
     def test_parameter_control_flow(self, mock_interfaces):
         """Test CLI parameter control flow."""
         from ptnetinspector.utils.cli import parse_args
-        
+
         args = parse_args()
-        
+
         # Verify parsed arguments
         assert args.t == ['p']
         assert args.interface == 'eth0'
@@ -168,7 +168,7 @@ class TestVulnerabilityDetection:
         """Test vulnerability CSV has correct structure."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             csv_path = Path(tmp_dir) / 'vulnerability.csv'
-            
+
             # Create vulnerability CSV
             with open(csv_path, 'w', newline='') as f:
                 fieldnames = ['MAC', 'IP', 'Vulnerability', 'Severity', 'Description']
@@ -181,7 +181,7 @@ class TestVulnerabilityDetection:
                     'Severity': 'High',
                     'Description': 'Test vulnerability'
                 })
-            
+
             # Verify structure
             with open(csv_path, 'r') as f:
                 reader = csv.DictReader(f)

@@ -4,16 +4,20 @@ Handles reading the local manuf database and resolving MAC prefixes to vendor
 names, and exposes helpers used during CSV/JSON enrichment.
 """
 import csv
+import logging
 from collections import OrderedDict
 from pathlib import Path
 
 from ptnetinspector.utils.path import get_csv_path
 
 
+logger = logging.getLogger(__name__)
+
+
 def get_manuf_path() -> Path:
     """
     Get the path to the manuf database file.
-    
+
     Returns:
         Path: Path to the manuf file in the data directory.
     """
@@ -80,7 +84,7 @@ def process_mac_addresses_to_vendors(mac_db: dict) -> None:
     """
     role_node_csv = get_csv_path('role_node.csv')
     vendors_csv = get_csv_path('vendors.csv')
-    
+
     # read MAC addresses from input file, removing duplicates
     unique_macs = OrderedDict()
     try:
@@ -98,6 +102,7 @@ def process_mac_addresses_to_vendors(mac_db: dict) -> None:
                     mac = row[mac_index].strip()
                     unique_macs[mac] = None
     except Exception as e:
+        logger.debug("Failed to read role_node.csv for vendor generation: %s", e)
         return
 
     # write MAC addresses with their vendors to output file
@@ -110,6 +115,7 @@ def process_mac_addresses_to_vendors(mac_db: dict) -> None:
                 vendor = get_vendor(mac, mac_db)
                 writer.writerow([mac, vendor])
     except Exception as e:
+        logger.debug("Failed to write vendors.csv: %s", e)
         return
 
 
@@ -124,7 +130,7 @@ def lookup_vendor_from_csv(mac_address: str) -> str:
         str: The vendor name or "Unknown Vendor" if not found.
     """
     vendors_csv = get_csv_path('vendors.csv')
-    
+
     try:
         with open(vendors_csv, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
@@ -135,6 +141,7 @@ def lookup_vendor_from_csv(mac_address: str) -> str:
                 if len(row) >= 2 and row[0] == mac_address:
                     return row[1]
     except Exception as e:
+        logger.debug("Vendor lookup failed for %s: %s", mac_address, e)
         return "Unknown Vendor"
 
     return "Unknown Vendor"

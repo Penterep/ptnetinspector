@@ -1,0 +1,8 @@
+Function,Source port,Destination port
+send_reverse_ipv6_MDNS,5353,5353
+send_mDNS_ipv6,5353,5353
+send_reverse_ipv6_llmnr,random >= 49152,5355
+send_llmnr_ipv6,random >= 49152,5355
+send_wsdiscovery_probe,random >= 49152,3702
+send_dns_sd_probe,5353,5353
+send_dhcpv6_solicit,546,547

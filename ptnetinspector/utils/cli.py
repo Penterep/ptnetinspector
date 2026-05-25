@@ -4,6 +4,7 @@ Exposes argument parsing, normalization to internal types, and convenience
 helpers to validate network-related inputs and drive scan configuration.
 """
 import argparse
+import ipaddress
 import logging
 import os
 import subprocess
@@ -35,6 +36,8 @@ from ptnetinspector.utils.path import get_output_dir, get_tmp_path, set_current_
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog, load_vuln_catalog_by_test
 from ptnetinspector._version import __version__
 
+
+logger = logging.getLogger(__name__)
 ptjsonlib_object = PtJsonLib()
 SCRIPTNAME = "ptnetinspector"
 _LOGO_SHOWN = False
@@ -46,10 +49,15 @@ def _stringify_error(message) -> str:
     return str(message)
 
 
+def _is_more_detail_enabled() -> bool:
+    """Return True when verbose terminal output is enabled (-vv or -vvv)."""
+    return ('-vv' in sys.argv) or ('-vvv' in sys.argv)
+
+
 def _store_error_outputs(message, json_output: bool, interface: str | None = None, more_detail: bool = False) -> None:
     """Persist error outputs: JSON when -j, text otherwise. With more_detail, stores both formats."""
     msg_str = _stringify_error(message)
-    
+
     # Check if interface is valid (exists in system)
     interface_is_valid = False
     if interface is not None:
@@ -57,15 +65,17 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
             valid_interfaces = netifaces.interfaces()
             interface_is_valid = interface in valid_interfaces
         except Exception:
+            # Interface discovery failed; fall back to generic output directory.
+            logger.debug("Interface discovery failed for %s (falling back to base output dir)", interface)
             pass
-    
+
     # If interface is invalid or None, store in base data directory
     # If valid, store in tmp/interface directory
     if interface_is_valid:
         output_dir = get_tmp_path(interface)
     else:
         output_dir = get_output_dir()
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     json_path = output_dir / "ptnetinspector-output.json"
@@ -78,7 +88,8 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
             ptjsonlib_object.set_status("error", msg_str)
             json_content = ptjsonlib_object.get_result_json()
             json_path.write_text(json_content, encoding="utf-8")
-        except Exception:
+        except Exception as ex:
+            logger.debug("Failed to write JSON error output at %s: %s", json_path, ex)
             pass
         # If not more_detail, remove old txt file; if more_detail, keep both
         if not more_detail:
@@ -86,12 +97,14 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
                 if txt_path.exists():
                     txt_path.unlink()
             except Exception:
+                # Best-effort cleanup of stale text output; safe to ignore failures.
                 pass
         else:
             # Write text file as well when more_detail is True
             try:
                 txt_path.write_text(msg_str + "\n", encoding="utf-8")
-            except Exception:
+            except Exception as ex:
+                logger.debug("Failed to write text error output at %s: %s", txt_path, ex)
                 pass
     else:
         # Remove old JSON file if it exists
@@ -99,11 +112,13 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
             if json_path.exists():
                 json_path.unlink()
         except Exception:
+            # Best-effort cleanup of stale JSON output; safe to ignore failures.
             pass
         # Write text
         try:
             txt_path.write_text(msg_str + "\n", encoding="utf-8")
-        except Exception:
+        except Exception as ex:
+            logger.debug("Failed to write text error output at %s: %s", txt_path, ex)
             pass
 # ============================================================================
 # SECTION 1: ARGUMENT PARSER CLASS & PARSING FUNCTIONS
@@ -112,7 +127,7 @@ def _store_error_outputs(message, json_output: bool, interface: str | None = Non
 class CustomArgumentParser(argparse.ArgumentParser):
     """
     Custom ArgumentParser to handle specific error messages.
-    
+
     Output:
         Error message printed and exits on error.
     """
@@ -135,7 +150,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
         if "invalid choice:" in message:
             msg = "Invalid choice."
             json_output = '-j' in sys.argv
-            more_detail = '-vv' in sys.argv
+            more_detail = _is_more_detail_enabled()
             # Extract interface from sys.argv if present
             interface = None
             if '-i' in sys.argv:
@@ -144,6 +159,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
                     if i_index + 1 < len(sys.argv):
                         interface = sys.argv[i_index + 1]
                 except (ValueError, IndexError):
+                    # Invalid/missing -i argument while constructing error context.
                     pass
             # Show logo for errors unless -j without -vv
             if not json_output or more_detail:
@@ -155,12 +171,12 @@ class CustomArgumentParser(argparse.ArgumentParser):
             if json_output:
                 print(ptjsonlib_object.end_error(msg, ptjsonlib_object))
             sys.exit(2)
-        
+
         for err in error_msgs:
             if err in message:
                 msg = "Expected argument after the prefix or the argument is invalid."
                 json_output = '-j' in sys.argv
-                more_detail = '-vv' in sys.argv
+                more_detail = _is_more_detail_enabled()
                 # Extract interface from sys.argv if present
                 interface = None
                 if '-i' in sys.argv:
@@ -169,6 +185,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
                         if i_index + 1 < len(sys.argv):
                             interface = sys.argv[i_index + 1]
                     except (ValueError, IndexError):
+                        # Invalid/missing -i argument while constructing error context.
                         pass
                 # Show logo for errors unless -j without -vv
                 if not json_output or more_detail:
@@ -185,7 +202,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
 def parse_args() -> argparse.Namespace:
     """
     Parse command-line arguments for ptnetinspector.
-    
+
     Returns:
         argparse.Namespace: Object with parsed arguments.
     """
@@ -193,8 +210,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-t", nargs='+', choices=["802.1x", "p", "a", "a+"], help="first mandatory argument")
     parser.add_argument("-i", dest="interface", help="second mandatory argument")
     parser.add_argument("-j", action="store_true")
-    parser.add_argument("-target", dest="target_macs", nargs="+", action="append", help="target device MAC address(es) for results filtering (space-separated; -target can be repeated)")
+    parser.add_argument("-target", dest="targets", nargs="+", action="append", help="target MAC/IP address(es) for results filtering (space-separated; -target can be repeated)")
     parser.add_argument("-vv", action="store_true", default=False)
+    parser.add_argument("-vvv", action="store_true", default=False)
     parser.add_argument("-less", action="store_true", default=False)
     parser.add_argument("-nc", action="store_false", default=True)
     parser.add_argument("-4", dest="ipv4", action="store_true", default=False)
@@ -242,11 +260,11 @@ def parse_args() -> argparse.Namespace:
 def display_logo(json_output: bool = False, more_detail: bool = False) -> None:
     """
     Display the Penterep Tools logo/banner.
-    
+
     Args:
         json_output: Whether JSON output mode is enabled (-j flag)
         more_detail: Whether verbose mode is enabled (-vv flag)
-    
+
     The logo is displayed unless -j is used without -vv.
     """
     global _LOGO_SHOWN
@@ -277,8 +295,9 @@ def get_help() -> list:
             ["                ", "   a+        Aggressive mode - perform tests as fake router"],
             ["-i              ", "Interface (mandatory)"],
             ["-j              ", "Output in JSON format"],
-            ["-target         ", "Target device MAC address(es) for filtering (space-separated; only show results for these devices)"],
+            ["-target         ", "Target MAC/IP address(es) for filtering (space-separated; MAC => device + all IPs, IP => only that address)"],
             ["-vv             ", "Show full details of network scan"],
+            ["-vvv            ", "Show full details plus DEBUG diagnostics"],
             ["-less           ", "Show minimum details of network scan"],
             ["-nc             ", "Do not check if found addresses are valid"],
             ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
@@ -335,7 +354,7 @@ def get_help() -> list:
             ["      ptnetinspector -ts 4-MDNS 6-LLMNR -i eth0 -j"],
             ["      ptnetinspector -ts 6-MLDV1 -i eth0"],
             ["      ptnetinspector -ts 6-OUTRANGE -i eth0"],
-            ["      ptnetinspector -ts 6-FAKERA -i eth0 -prefix 2001:db8::/64 -dns 2001:4860:4860::8888 (FAKERA requires prefix and DNS)"],
+            ["      ptnetinspector -ts 6-FAKERA -i eth0 -prefix 2000:6675:7272:7900::/64 -dns 2001:4860:4860::8888 (FAKERA requires prefix and DNS)"],
         ]}
     ]
 
@@ -496,7 +515,7 @@ def _normalize_target_codes(target_codes: list[str] | None) -> list[str] | None:
 
 def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_error, list_warning):
     """Validate target Test codes and infer appropriate Mode/IPver if not explicitly provided.
-    
+
     Returns:
         - tuple of (validated_test_codes, inferred_scan_types, inferred_ip_mode, auto_filled_params)
         - or None if validation fails
@@ -587,7 +606,7 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
         # 2. Else if ANY test requires ONLY active mode → use a
         # 3. Else if ANY test requires ONLY passive mode → use p
         # 4. Else (all tests support multiple modes) → prefer active (less intrusive than a+)
-        
+
         if aggressive_only:
             # At least one test requires aggressive mode exclusively
             inferred_scan_types.append("a+")
@@ -614,7 +633,7 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
     # If user didn't specify IP version, infer from test codes
     # Check if user explicitly specified -4 or -6 (not just using defaults)
     user_specified_ipver = ipv4 or ipv6
-    
+
     if not user_specified_ipver:
         # User didn't specify IP version, so infer from test codes
         allowed_ipvers = set()
@@ -622,11 +641,11 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
             ipver = entry.get("IPver", "").strip()
             if ipver:
                 allowed_ipvers.add(ipver)
-        
+
         # Enable only the IP versions that appear in the selected test codes
         ipv4_enabled = "4" in allowed_ipvers
         ipv6_enabled = "6" in allowed_ipvers
-        
+
         inferred_ip_mode = IPMode(ipv4_enabled, ipv6_enabled)
     else:
         # User explicitly specified IP version(s), use that
@@ -637,7 +656,7 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
     for code, entry in associated_vulns.items():
         mode_field = entry.get("Mode", "")
         ipver_field = entry.get("IPver", "").strip()
-        
+
         # Check mode compatibility
         if inferred_scan_types:
             mode_match = False
@@ -646,14 +665,14 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
                 mode_match = any(m in modes for m in inferred_scan_types)
             if not mode_match:
                 continue
-        
+
         # Check IP version compatibility
         ipver_match = True
         if ipver_field == "4" and not inferred_ip_mode.ipv4:
             ipver_match = False
         elif ipver_field == "6" and not inferred_ip_mode.ipv6:
             ipver_match = False
-        
+
         if ipver_match:
             valid_codes.add(code)
 
@@ -698,7 +717,7 @@ def _validate_passive_mode(duration_passive, duration_aggressive, prefix, smac, 
         list_error.append(err)
     else:
         duration_passive = float(duration_passive)
-    
+
     for param, msg in [
         (duration_aggressive, "Aggressive duration is not applied in this mode."),
         (prefix, "Network prefix is not applied in this mode."),
@@ -714,7 +733,7 @@ def _validate_passive_mode(duration_passive, duration_aggressive, prefix, smac, 
             list_error.append(msg)
     if nofwd:
         list_error.append("No forwarding is not applied in this mode.")
-    
+
     return duration_passive
 
 
@@ -738,7 +757,7 @@ def _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, s
         list_error.append("No forwarding is not applied in this mode.")
 
 
-def _validate_active_mode(interface, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning) -> str:
+def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning) -> str:
     """Validate and process active mode parameters."""
     for param, msg in [
         (duration_passive, "Passive duration is not applied in this mode."),
@@ -755,7 +774,7 @@ def _validate_active_mode(interface, duration_passive, duration_aggressive, pref
             list_error.append(msg)
     if nofwd:
         list_error.append("No forwarding is not applied in this mode.")
-    
+
     # MAC address for active mode
     if smac is None:
         smac = get_if_hwaddr(interface)
@@ -764,11 +783,16 @@ def _validate_active_mode(interface, duration_passive, duration_aggressive, pref
     elif smac is not None and not is_valid_mac(smac):
         err = "Invalid inserted MAC address."
         list_error.append(err)
-    
-    if not Interface(interface).check_available_ipv6():
-        err = f"No available IP on the interface: {interface}."
-        list_error.append(err)
-    
+
+    interface_obj = Interface(interface)
+    has_ipv4 = bool(interface_obj.get_interface_ipv4_ips())
+    has_ipv6 = bool(interface_obj.get_interface_ipv6_ips())
+
+    if ip_mode.ipv4 and not has_ipv4:
+        list_error.append(f"No available IPv4 address on the interface: {interface}.")
+    if ip_mode.ipv6 and not has_ipv6:
+        list_error.append(f"No available IPv6 address on the interface: {interface}.")
+
     return smac
 
 
@@ -779,7 +803,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
         list_error.append(err)
     if duration_passive is not None:
         list_error.append("Passive duration is not applied in this mode.")
-    
+
     # Duration
     if duration_aggressive is None:
         duration_aggressive = 30
@@ -790,7 +814,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
         list_error.append(err)
     else:
         duration_aggressive = float(duration_aggressive)
-    
+
     # Prefix
     if not is_valid_ipv6_prefix(prefix):
         if prefix is None:
@@ -806,7 +830,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
     else:
         prefix_len = IPNetwork(prefix).prefixlen
         network = str(IPNetwork(prefix).network)
-    
+
     # MAC address
     if smac is None:
         smac = get_if_hwaddr(interface)
@@ -815,7 +839,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
     elif smac is not None and not is_valid_mac(smac):
         err = "Invalid inserted MAC address."
         list_error.append(err)
-    
+
     # IPv6 address
     if sip is not None and not is_valid_ipv6(sip):
         if Interface(interface).check_available_ipv6():
@@ -836,7 +860,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
         else:
             err = f"No available IP on the interface: {interface}."
             list_error.append(err)
-    
+
     # Preference flag
     if rpref is not None:
         if not check_prefRA(rpref):
@@ -848,7 +872,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
         war = "Missing preference flag, so scanner's flag is set to High"
         list_warning.append(war)
         rpref = convert_preferenceRA_to_numeric("High")
-    
+
     # Period
     if is_non_negative_float(duration_aggressive):
         if period is None:
@@ -865,7 +889,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
     if not is_non_negative_float(duration_aggressive) and period is not None and not is_non_negative_float(period):
         err = "Invalid period (RA sending rate)."
         list_error.append(err)
-    
+
     # Current hop limit
     if chl is None:
         chl = 0
@@ -877,7 +901,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
         else:
             err = "Invalid current hop limit."
             list_error.append(err)
-    
+
     # MTU
     if mtu is None:
         mtu = None
@@ -889,7 +913,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
         else:
             err = "Invalid MTU."
             list_error.append(err)
-    
+
     # DNS
     if dns is None:
         dns = None
@@ -901,7 +925,7 @@ def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_agg
                 err = "Invalid DNS address."
                 list_error.append(err)
                 break
-    
+
     return duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns
 
 
@@ -943,7 +967,7 @@ def _print_warnings(list_warning, json_output, more_detail, less_detail) -> None
                 ptprinthelper.ptprint(f"{GREY}{info}{END}", "WARNING", condition=True, indent=4)
 
 
-def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, target_codes, target_macs, tmp_retention) -> None:
+def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, less_detail, check_addresses, duration_passive, duration_aggressive, network, prefix_len, smac, sip, rpref, period, chl, mtu, dns, nofwd, target_codes, target_macs, target_ips, tmp_retention) -> None:
     """Print information about inserted parameters."""
     if not less_detail:
         Non_json.print_box("Information about inserted parameters")
@@ -958,7 +982,7 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
             ptprinthelper.ptprint("Allowing json output", "INFO", condition=True, indent=4)
         if not json_output:
             ptprinthelper.ptprint("Disabling json output", "INFO", condition=True, indent=4)
-        
+
         for ele in type:
             if ele == "802.1x":
                 ptprinthelper.ptprint(f"Using mode {ele}", "INFO", condition=True, indent=4)
@@ -968,16 +992,18 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
                 ptprinthelper.ptprint(f"Using mode active", "INFO", condition=True, indent=4)
             if ele == "a+":
                 ptprinthelper.ptprint(f"Using mode aggressive", "INFO", condition=True, indent=4)
-        
+
         if more_detail:
             ptprinthelper.ptprint("Displaying full detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
+            if '-vvv' in sys.argv:
+                ptprinthelper.ptprint("Chatty DEBUG diagnostics enabled (-vvv)", "INFO", condition=True, indent=4)
         if not more_detail:
             ptprinthelper.ptprint("Displaying only basic detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
         if check_addresses:
             ptprinthelper.ptprint("Checking the found addresses if they are valid or not", "INFO", condition=True, indent=4)
         if not check_addresses:
             ptprinthelper.ptprint("Not checking the found addresses if they are valid or not", "INFO", condition=True, indent=4)
-        
+
         if "p" in type:
             ptprinthelper.ptprint(f"Passive duration: {duration_passive}s", "INFO", condition=True, indent=4)
         if "a" in type:
@@ -1001,6 +1027,9 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
 
         if target_macs:
             ptprinthelper.ptprint(f"Target devices (MAC addresses): {sorted(m.lower() for m in target_macs)}", "INFO", condition=True, indent=4)
+
+        if target_ips:
+            ptprinthelper.ptprint(f"Target addresses (IP): {sorted(target_ips)}", "INFO", condition=True, indent=4)
 
         ptprinthelper.ptprint(f"Temporary file retention: {tmp_retention}s", "INFO", condition=True, indent=4)
 
@@ -1031,7 +1060,7 @@ def parameter_control(
     nofwd,
     target_codes,
     tmp_retention,
-    target_macs,
+    targets,
 ) -> tuple:
     """
     Checks and validates inserted parameters. Returns all variables if no error, otherwise prints errors and exits.
@@ -1042,12 +1071,11 @@ def parameter_control(
     list_error: list[str] = []
     list_warning: list[str] = []
 
-    logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-
     # Ensure tmp path is interface-scoped for any early errors
     try:
         set_current_interface(interface)
-    except Exception:
+    except Exception as ex:
+        logger.debug("Failed to set interface-scoped tmp context for %s: %s", interface, ex)
         pass
 
     _validate_mandatory_args(type, interface, json_output, more_detail, target_codes)
@@ -1093,7 +1121,7 @@ def parameter_control(
     elif type == ["802.1x"]:
         _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error)
     elif type == ["a"] or ("a" in type and "802.1x" in type and len(type) == 2):
-        smac = _validate_active_mode(interface, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning)
+        smac = _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning)
     if type == ["a+"] or ("a+" in type and ("802.1x" in type or "a" in type)):
         duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns = _validate_aggressive_mode(
             interface, ip_mode, duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning
@@ -1113,21 +1141,29 @@ def parameter_control(
         period = float(period)
 
     validated_target_macs = None
-    if target_macs:
+    validated_target_ips = None
+    if targets:
         # Flatten when -target provided multiple times with nargs+ (list of lists)
         flat_targets = []
-        for item in target_macs:
+        for item in targets:
             if isinstance(item, list):
                 flat_targets.extend(item)
             else:
                 flat_targets.append(item)
-        normalized = set()
-        for mac in flat_targets:
-            mac_upper = mac.upper()
-            if not is_valid_mac(mac_upper):
-                list_error.append(f"Invalid MAC address: {mac}")
-            else:
-                normalized.add(mac_upper)
+        normalized_macs = set()
+        normalized_ips = set()
+        for target in flat_targets:
+            value = str(target).strip()
+            if not value:
+                continue
+            mac_upper = value.upper()
+            if is_valid_mac(mac_upper):
+                normalized_macs.add(mac_upper)
+                continue
+            try:
+                normalized_ips.add(str(ipaddress.ip_address(value)))
+            except ValueError:
+                list_error.append(f"Invalid target value (expected MAC or IP): {target}")
         if list_error:
             _store_error_outputs(list_error, json_output, interface, more_detail)
             if json_output:
@@ -1135,8 +1171,18 @@ def parameter_control(
             else:
                 _print_errors(list_error, json_output, more_detail)
             sys.exit(1)
-        if normalized:
-            validated_target_macs = normalized
+        if normalized_macs and normalized_ips:
+            list_error.append("Invalid target combination: mixing MAC and IP addresses in -target is not allowed.")
+            _store_error_outputs(list_error, json_output, interface, more_detail)
+            if json_output:
+                print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
+            else:
+                _print_errors(list_error, json_output, more_detail)
+            sys.exit(1)
+        if normalized_macs:
+            validated_target_macs = normalized_macs
+        if normalized_ips:
+            validated_target_ips = normalized_ips
 
     if json_output and not (more_detail or less_detail):
         blockPrint()
@@ -1166,6 +1212,7 @@ def parameter_control(
         nofwd,
         validated_target_codes,
         validated_target_macs,
+        validated_target_ips,
         tmp_retention,
     )
 
@@ -1192,4 +1239,5 @@ def parameter_control(
         validated_target_codes,
         tmp_retention,
         validated_target_macs,
+        validated_target_ips,
     )

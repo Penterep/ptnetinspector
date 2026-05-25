@@ -10,6 +10,10 @@ import signal
 import sys
 import warnings
 import json
+import logging
+
+# Suppress Scapy runtime warnings early, before importing modules that load Scapy.
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 from ptnetinspector.output.json import Json
 from ptnetinspector.output.non_json import Non_json
@@ -24,6 +28,7 @@ from ptnetinspector.utils.lock import acquire_global_lock
 from ptnetinspector.utils.runtime import (
     build_run_signature,
     check_interface_status,
+    configure_debug_logging,
     delete_json_output,
     configure_output_flags,
     delete_text_output,
@@ -49,10 +54,14 @@ warnings.filterwarnings("ignore")
 
 ptjsonlib_object = PtJsonLib()
 args = parse_args()
+verbose_output = args.vv or args.vvv
 
 # Display logo at startup unless -j without -vv
 from ptnetinspector.utils.cli import display_logo
-display_logo(args.j, args.vv)
+display_logo(args.j, verbose_output)
+
+# Configure chatty DEBUG diagnostics only for -vvv.
+configure_debug_logging(args.vvv, args.j, verbose_output)
 
 # Validate and process parameters FIRST (before acquiring lock)
 # This ensures invalid parameters cause immediate errors without waiting in queue
@@ -79,11 +88,12 @@ display_logo(args.j, args.vv)
     target_codes,
     tmp_retention,
     target_macs,
+    target_ips,
 ) = parameter_control(
     args.interface,
     args.j,
     args.t,
-    args.vv,
+    verbose_output,
     args.less,
     args.nc,
     args.ipv4,
@@ -101,7 +111,7 @@ display_logo(args.j, args.vv)
     args.nofwd,
     args.target_codes,
     args.tmp_retention,
-    args.target_macs,
+    args.targets,
 )
 
 # Determine lock verbosity: suppress if -j and not -vv
@@ -148,7 +158,7 @@ def check_eap_detected():
         ptprinthelper.ptprint("\033[90m802.1x is detected, so scan will be cancelled\033[0m", "WARNING", condition=True, indent=4)
         if json_output:
             Non_json.print_box("Json output")
-            print(Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode))
+            print(Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses))
         sys.exit(0)
 
 
@@ -184,7 +194,7 @@ def ptnet_eap(combine=False):
     if json_output:
         if not combine:
             enablePrint()
-        _accumulated_json_result = Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode)
+        _accumulated_json_result = Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
 
 
 def ptnet_passive():
@@ -218,12 +228,13 @@ def ptnet_passive():
         target_codes,
         lambda fname: get_csv_path(fname, interface),
         target_macs,
+        target_ips,
     )
 
     # Accumulate JSON result (don't print yet if multiple modes)
     if json_output:
         global _accumulated_json_result
-        _accumulated_json_result = Json.output_object(True, "p", target_codes=target_codes, ipver=ip_mode)
+        _accumulated_json_result = Json.output_object(True, "p", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
 
 
 def ptnet_active():
@@ -258,6 +269,7 @@ def ptnet_active():
         target_codes,
         lambda fname: get_csv_path(fname, interface),
         target_macs,
+        target_ips,
     )
 
 
@@ -313,6 +325,7 @@ def ptnet_aggressive():
         target_codes,
         lambda fname: get_csv_path(fname, interface),
         target_macs,
+        target_ips,
     )
 
     if not REUSE_EXISTING_DATA:
@@ -334,7 +347,7 @@ def execute_scan(scan_types):
         if len(scan_types) > 1:
             check_eap_detected()
             if json_output:
-                Json.output_object(False, "802.1x", target_codes=target_codes, ipver=ip_mode)
+                Json.output_object(False, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
 
     if has_passive:
         Interface_object.shutdown_traffic()
@@ -380,6 +393,9 @@ def main():
         dns,
         target_codes=set(target_codes) if target_codes else None,
         target_macs=set(target_macs) if target_macs else None,
+        target_ips=set(target_ips) if target_ips else None,
+        sip=sip,
+        check_addresses=check_addresses,
     )
 
     json_output_path = get_tmp_path(interface) / "ptnetinspector-output.json"
@@ -407,6 +423,7 @@ def main():
         nofwd,
         target_codes,
         target_macs,
+        target_ips,
     )
 
     required_files = ["addresses.csv", "addresses_unfiltered.csv", "networks.csv"]
@@ -433,14 +450,14 @@ def main():
 
     try:
         execute_scan(scanning_type)
-        
+
         # Print final JSON output at the end
         if json_output:
             enablePrint()
             if more_detail:
                 Non_json.print_box("Json output")
             # Final output reads accumulated CSVs; avoid mode filtering
-            print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs))
+            print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses))
     except KeyboardInterrupt:
         has_active = "a" in scanning_type
         has_aggressive = "a+" in scanning_type
@@ -455,6 +472,7 @@ def main():
             try:
                 Interface_object.restore_traffic()
             except Exception:
+                # Best-effort restore during interruption; shutdown should continue regardless.
                 pass
         print_message("Scan interrupted by user", "WARNING")
     except Exception as e:
@@ -471,6 +489,7 @@ def main():
             try:
                 Interface_object.restore_traffic()
             except Exception:
+                # Best-effort restore after failure path; keep original exception handling flow.
                 pass
         print_message(f"An error occurred: {str(e)}", "ERROR")
         print_message("Terminating ptnetinspector", "INFO", indent=0)
@@ -478,13 +497,14 @@ def main():
     finally:
         # Stop logging output to file
         stop_output_logging()
-        
+
         # Clean up text output file if JSON-only mode (no -vv)
         if json_output and not more_detail:
             if text_output_path.exists():
                 try:
                     text_output_path.unlink()
                 except OSError:
+                    # Ignore cleanup failures for optional text output artifact.
                     pass
 
 

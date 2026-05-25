@@ -8,6 +8,7 @@ import ipaddress
 import csv
 import socket
 import subprocess
+import logging
 from dataclasses import dataclass
 from typing import List
 
@@ -22,6 +23,9 @@ from ptnetinspector.utils.ip_utils import is_global_unicast_ipv6, is_ipv6_ula, i
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.send.send_ipv4 import SendIPv4
 from ptnetinspector.send.send_ipv6 import SendIPv6
+from ptnetinspector.utils.burst_control import sendp_with_retries
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -44,7 +48,15 @@ class Send:
             eapol = Ether(src=src_mac, dst="01:80:c2:00:00:03") / EAPOL(version=1, type=1)
 
             # Send the EAPOL packet on the specified interface
-            sendp(eapol, iface=interface, verbose=False)
+            sendp_with_retries(
+                packets=eapol,
+                interface=interface,
+                logger=logger,
+                context="send-8021x-eapol",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
 
     @staticmethod
     def send_llmnr_mdns(interface, ip_mode):
@@ -54,41 +66,45 @@ class Send:
             interface (str): Network interface name.
             ip_mode (IPMode): Enabled IP versions (IPv4/IPv6).
         """
+        ipv6_targets: list[str] = []
+        ipv4_targets: list[str] = []
+
         csv_file = get_csv_path('addresses.csv')
         with open(csv_file, newline='') as csvfile:
-            # Create a CSV reader object
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
-
-            # Loop over each row in the CSV file
             for row in reader:
-
                 if len(row) < 2:  # Avoid the situation like this [':fffb:8']
                     continue
                 ip_address = row[1]
-
                 if is_valid_ipv6(ip_address) and ip_mode.ipv6:
-                    if is_link_local_ipv6(ip_address):
-                        SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
-
-                    elif is_global_unicast_ipv6(ip_address):
-                        SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
-
-                    elif is_ipv6_ula(ip_address):
-                        SendIPv6.IPv6_test_mdns_llmnr(ip_address, interface)
-
+                    if (
+                        is_link_local_ipv6(ip_address)
+                        or is_global_unicast_ipv6(ip_address)
+                        or is_ipv6_ula(ip_address)
+                    ):
+                        ipv6_targets.append(ip_address)
                 elif ip_mode.ipv4:
                     try:
                         ipv4_address = ipaddress.IPv4Address(ip_address)
-
-                        if ipv4_address.is_link_local:
+                        if ipv4_address.is_link_local or ipv4_address.is_unspecified:
                             continue
-                        elif ipv4_address.is_unspecified:
-                            continue
-                        else:
-                            SendIPv4.IPv4_test_mdns_llmnr(ip_address, interface)
+                        ipv4_targets.append(ip_address)
                     except ipaddress.AddressValueError:
+                        # Ignore non-IPv4 rows while iterating shared addresses CSV.
                         continue
+
+        if ip_mode.ipv6 and ipv6_targets:
+            try:
+                SendIPv6.IPv6_test_mdns_llmnr_batch(ipv6_targets, interface)
+            except Exception as ex:
+                logger.debug("IPv6 reverse batch lookup failed: %s", ex)
+
+        if ip_mode.ipv4 and ipv4_targets:
+            try:
+                SendIPv4.IPv4_test_mdns_llmnr_batch(ipv4_targets, interface)
+            except Exception as ex:
+                logger.debug("IPv4 reverse batch lookup failed: %s", ex)
 
     @staticmethod
     def probe_gateways(interface: str, ip_mode: IPMode) -> None:
@@ -105,7 +121,7 @@ class Send:
             try:
                 socket.inet_pton(socket.AF_INET, address)
                 ans = SendIPv4.send_arp_request(address, interface, True)
-                for _, packet in ans:
+                for _, packet in (ans or []):
                     if ARP in packet and packet[ARP].op == 2 and packet[ARP].psrc == address:
                         DefaultGateway(packet[ARP].hwsrc, address).save_addresses()
 
@@ -113,14 +129,14 @@ class Send:
                 try:
                     socket.inet_pton(socket.AF_INET6, address)
                     ans = SendIPv6.send_ns(address, interface, True)
-                    for _, packet in ans:
+                    for _, packet in (ans or []):
                         if ICMPv6ND_NA in packet and ICMPv6NDOptDstLLAddr in packet:
                             if packet[ICMPv6ND_NA].tgt == address:
                                 DefaultGateway(packet[ICMPv6NDOptDstLLAddr].lladdr, address).save_addresses()
-                except:
-                    pass
-            except:
-                pass
+                except Exception as ex:
+                    logger.debug("IPv6 gateway probe failed for %s: %s", address, ex)
+            except Exception as ex:
+                logger.debug("Gateway probe failed for %s: %s", address, ex)
 
     @staticmethod
     def probe_interesting_network_addresses(interface: str, ip_mode: IPMode) -> None:
@@ -147,13 +163,18 @@ class Send:
                     try:
                         network = ipaddress.ip_network(f"{network_prefix}/{prefix_length}", strict=False)
                         networks.append(network)
-                    except:
-                        pass
+                    except Exception as ex:
+                        logger.debug("Skipping invalid network row %s/%s: %s", network_prefix, prefix_length, ex)
+
+        if ip_mode.ipv6:
+            SendIPv6.probe_ipv6_interesting_addresses(ipaddress.IPv6Network("fe80::/64"), interface)
 
         for network in networks:
             if isinstance(network, ipaddress.IPv4Network) and ip_mode.ipv4:
                 SendIPv4.probe_ipv4_interesting_addresses(network, interface)
             elif isinstance(network, ipaddress.IPv6Network) and ip_mode.ipv6:
+                if network == ipaddress.IPv6Network("fe80::/64"):
+                    continue
                 SendIPv6.probe_ipv6_interesting_addresses(network, interface)
 
     @staticmethod
@@ -231,7 +252,7 @@ def get_gateway_addresses(interface: str, ip_mode: IPMode) -> List[str]:
                     if len(parts) >= 5 and parts[0] == 'default' and parts[1] == 'via':
                         gateway_ip = parts[2]
                         gateways.append(gateway_ip)
-        except subprocess.CalledProcessError:
-            pass
+        except subprocess.CalledProcessError as ex:
+            logger.debug("Failed to read IPv%s route table for %s: %s", ip_version, interface, ex)
 
     return gateways

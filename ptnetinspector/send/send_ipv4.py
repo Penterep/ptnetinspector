@@ -4,8 +4,10 @@ Implements Scapy-based probes for IPv4 (ICMP, mDNS/LLMNR, DHCP, IGMP, etc.)
 that complement passive capture in active/aggressive modes.
 """
 import ipaddress
+import logging
 import random
 import time
+import sys
 import uuid
 from enum import Enum
 
@@ -19,11 +21,22 @@ from scapy.layers.l2 import Ether, ARP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 
 from ptnetinspector.entities.networks import Networks
+from ptnetinspector.prototype.prototype_ipv4 import PrototypeIPv4Packet, IGMP_Type, IGMPV3_RType
+from ptnetinspector.prototype.prototype_l4 import PrototypeL4
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.mdns import MDNS
 from ptnetinspector.entities.llmnr import LLMNR
 from ptnetinspector.utils.ip_utils import reverse_IPadd
+from ptnetinspector.send._scapy_io import SCAPY_IO_LOCK
+from ptnetinspector.utils.burst_control import (
+    resolve_burst_limit,
+    chunked,
+    sendp_adaptive,
+    sendp_with_retries,
+    srp_with_retries,
+)
 
+logger = logging.getLogger(__name__)
 
 class ICMPType(Enum):
     ECHO_REQUEST = 8
@@ -32,142 +45,283 @@ class ICMPType(Enum):
 
 
 class SendIPv4:
-    @staticmethod
-    def send_reverse_ipv4_MDNS(ip_address, interface):
-        # Function to send an IPv4 mDNS PTR query and save the response to get the local name
-        # Checking the existence of the interface
-        exist_interface = Interface(interface).check_interface()
-
-        if exist_interface:
-            src_ip = get_if_addr(interface)
-            if ip_address != src_ip:
-                src_mac = get_if_hwaddr(interface)
-                # Define the IPv4 address to query
-                query = reverse_IPadd(ip_address)
-
-                # Create an mDNS PTR query packet
-                pkt = (Ether(src=src_mac, dst="01:00:5e:00:00:fb") /
-                       IP(src=src_ip, dst="224.0.0.251", ttl=1) /
-                       UDP(sport=5353, dport=5353) /
-                       DNS(rd=1, qd=DNSQR(qname=query, qtype=12)))
-
-                # Send the mDNS packet
-                ans, uans = srp(pkt, multi=True, timeout=0.3, iface=interface, verbose=False)
-                if ans:
-                    try:
-                        rdata = ans[0][1][DNS].an[0].rdata
-                        try:
-                            answer = rdata.decode()
-                            return answer
-                        except (IndexError, AttributeError, KeyError):
-                            return None
-                    except (IndexError, AttributeError, KeyError):
-                        return None
-                return None
+    __icmp_echo_request_sequence_number = 1
+    __ipv4_burst_limit = 0
 
     @staticmethod
-    def send_mDNS_ipv4(query_name, interface):
-        # Function to send an IPv4 mDNS query after getting the name
-        # Checking the existence of the interface
-        exist_interface = Interface(interface).check_interface()
-
-        if exist_interface:
-            src_ip = get_if_addr(interface)
-            src_mac = get_if_hwaddr(interface)
-            # Create the IPv4 and UDP packets and send the mDNS query
-            query_name = MDNS.full_name_MDNS(query_name)
-            pkt_any = (Ether(src=src_mac, dst="01:00:5e:00:00:fb") /
-                       IP(src=src_ip, dst='224.0.0.251', ttl=1) /
-                       UDP(sport=5353, dport=5353) /
-                       DNS(rd=1, qd=DNSQR(qname=query_name, qtype=255, qclass=1)))
-            pkt_a = (Ether(src=src_mac, dst="01:00:5e:00:00:fb") /
-                     IP(src=src_ip, dst='224.0.0.251', ttl=1) /
-                     UDP(sport=5353, dport=5353) /
-                     DNS(rd=1, qd=DNSQR(qname=query_name, qtype=1, qclass=1)))
-            pkt_aaaa = (Ether(src=src_mac, dst="01:00:5e:00:00:fb") /
-                        IP(src=src_ip, dst='224.0.0.251', ttl=1) /
-                        UDP(sport=5353, dport=5353) /
-                        DNS(rd=1, qd=DNSQR(qname=query_name, qtype=28, qclass=1)))
-            pkt = [pkt_a, pkt_aaaa, pkt_any]
-            sendp(pkt, iface=interface, verbose=False)
+    def __effective_burst_limit(requested_limit: int | None, interface: str) -> int:
+        """Resolve burst limit with module default fallback."""
+        return resolve_burst_limit(
+            requested_limit=requested_limit,
+            configured_limit=SendIPv4.__ipv4_burst_limit,
+            interface=interface,
+            logger=logger,
+            context="send-ipv4",
+        )
 
     @staticmethod
-    def send_reverse_ipv4_llmnr(ip_address, interface):
-        # Function to send an IPv4 LLMNR PTR query and save the response to get the local name
-        # Checking the existence of the interface
-        exist_interface = Interface(interface).check_interface()
-
-        if exist_interface:
-            src_ip = get_if_addr(interface)
-            if ip_address != src_ip:
-                src_mac = get_if_hwaddr(interface)
-                # Define the IPv4 address to query
-                query = reverse_IPadd(ip_address)
-
-                # Create an LLMNR PTR query packet
-                pkt = (Ether(src=src_mac, dst="01:00:5e:00:00:fc") /
-                       IP(src=src_ip, dst="224.0.0.252", ttl=1) /
-                       UDP(sport=5355, dport=5355) /
-                       LLMNRQuery(qd=DNSQR(qname=query, qtype="PTR")))
-
-                response = AsyncSniffer(iface=interface)
-                response.start()
-                time.sleep(0.1)
-                sendp(pkt, iface=interface, verbose=False)
-                time.sleep(0.5)
-                # Parse the domain name from the response
-                response.stop()
-
-                for packet in response.results:
-                    if packet.haslayer(UDP) and packet.haslayer(LLMNRResponse) and packet[DNSRR].rrname.decode("utf-8")[:-1] == query:
-                        return packet[DNSRR].rdata.decode("utf-8")
+    def __normalize_qname(value: str) -> str:
+        """Normalize DNS name for tolerant reverse-query matching."""
+        normalized = str(value).strip().rstrip(".").lower()
+        return normalized
 
     @staticmethod
-    def send_llmnr_ipv4(name, interface):
-        # Checking the existence of the interface
-        exist_interface = Interface(interface).check_interface()
-
-        if exist_interface:
-            src_ip = get_if_addr(interface)
-            src_mac = get_if_hwaddr(interface)
-            # Create the IPv4 and UDP packets and send the LLMNR query
-            name = LLMNR.full_name_llmnr(name)
-
-            pkt_any = (Ether(src=src_mac, dst="01:00:5e:00:00:fc") /
-                       IP(src=src_ip, dst="224.0.0.252", ttl=1) /
-                       UDP(sport=53550, dport=5355) /
-                       DNS(rd=1, qd=DNSQR(qname=name, qtype=255, qclass=1)))
-
-            pkt_a = (Ether(src=src_mac, dst="01:00:5e:00:00:fc") /
-                     IP(src=src_ip, dst="224.0.0.252", ttl=1) /
-                     UDP(sport=53550, dport=5355) /
-                     DNS(rd=1, qd=DNSQR(qname=name, qtype=1, qclass=1)))
-
-            pkt_aaaa = (Ether(src=src_mac, dst="01:00:5e:00:00:fc") /
-                        IP(src=src_ip, dst="224.0.0.252", ttl=1) /
-                        UDP(sport=53550, dport=5355) /
-                        DNS(rd=1, qd=DNSQR(qname=name, qtype=28, qclass=1)))
-
-            pkt = [pkt_a, pkt_aaaa, pkt_any]
-            sendp(pkt, iface=interface, verbose=False)
+    def __get_next_icmp_echo_request_id() -> int:
+        """
+        Get the next ICMP Echo Request identifier, incrementing the internal sequence number.
+        Returns:
+            int: The next ICMPv6 Echo Request identifier.
+        """
+        current_id = SendIPv4.__icmp_echo_request_sequence_number
+        SendIPv4.__icmp_echo_request_sequence_number += 1
+        return current_id
 
     @staticmethod
-    def IPv4_test_mdns_llmnr(ip_address, interface):
-        # This function runs various tests on an IPv4 address, including reverse LLMNR, mDNS, and regular LLMNR
+    def send_reverse_ipv4_MDNS(ip_address: str, interface: str) -> str | None:
+        result_map = SendIPv4.send_reverse_ipv4_MDNS_batch([str(ip_address)], interface)
+        return result_map.get(str(ip_address))
+
+    @staticmethod
+    def send_reverse_ipv4_MDNS_batch(ip_addresses: list[str], interface: str, burst_limit: int | None = None, rsp_timeout: float = 0.2) -> dict[str, str | None]:
+        """Send reverse mDNS PTR queries for a list of IPv4 targets."""
+        result: dict[str, str | None] = {str(ip): None for ip in ip_addresses}
+        if not ip_addresses:
+            return result
+
+        iface = Interface(interface)
+        if not iface.check_interface():
+            return result
+
+        src_ip = get_if_addr(interface)
+        src_mac = get_if_hwaddr(interface)
+        interface_ip_addresses = set(iface.get_interface_ips())
+
+        valid_targets: list[str] = []
+        for target in ip_addresses:
+            target_str = str(target)
+            if target_str == src_ip or target_str in interface_ip_addresses:
+                continue
+            try:
+                ipaddress.IPv4Address(target_str)
+            except ipaddress.AddressValueError:
+                continue
+            valid_targets.append(target_str)
+
+        if not valid_targets:
+            return result
+
+        burst = SendIPv4.__effective_burst_limit(burst_limit, interface)
+        for chunk in chunked(valid_targets, burst):
+            packet_to_target: dict[str, str] = {}
+            packets: list[Packet] = []
+            for target in chunk:
+                query = reverse_IPadd(target)
+                p1 = PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, src_ip, query)
+                p2 = PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, src_ip, query, unicastresponse=1)
+                packets.append(p1)
+                packets.append(p2)
+                packet_to_target[SendIPv4.__normalize_qname(query)] = target
+
+            with SCAPY_IO_LOCK:
+                ans, _uans = srp_with_retries(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv4-mdns-reverse",
+                    retries=3,
+                    retry_delay=0.05,
+                    multi=True,
+                    timeout=rsp_timeout,
+                    verbose=False,
+                    threaded=False,
+                )
+
+            if not ans:
+                continue
+
+            for sent, received in ans:
+                try:
+                    query_name = SendIPv4.__normalize_qname(sent[DNS].qd.qname.decode())
+                    target = packet_to_target.get(query_name)
+                    if target is None:
+                        continue
+
+                    rdata = received[DNS].an[0].rdata
+                    answer = rdata.decode() if hasattr(rdata, "decode") else str(rdata)
+                    if answer and result.get(target) is None:
+                        result[target] = answer
+                except Exception:
+                    logger.debug("Failed to parse IPv4 mDNS reverse response", exc_info=True)
+
+        return result
+
+    @staticmethod
+    def send_mDNS_ipv4(query_name: str, interface: str) -> None:
+        SendIPv4.send_mDNS_ipv4_batch([query_name], interface)
+
+    @staticmethod
+    def send_mDNS_ipv4_batch(query_names: list[str], interface: str, burst_limit: int | None = None) -> None:
+        """Send mDNS queries for a list of names in configurable bursts."""
+        if not query_names:
+            return
+
+        iface = Interface(interface)
+        if not iface.check_interface():
+            return
+
+        src_ip = get_if_addr(interface)
+        src_mac = get_if_hwaddr(interface)
+        burst = SendIPv4.__effective_burst_limit(burst_limit, interface)
+
+        for chunk in chunked([str(name) for name in query_names if str(name).strip()], burst):
+            packets: list[Packet] = []
+            for name in chunk:
+                qname = MDNS.full_name_MDNS(name)
+                packets.extend(PrototypeIPv4Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname))
+                packets.extend(PrototypeIPv4Packet.get_frame_mdns_bundle_a_aaaa_any(src_mac, src_ip, qname, unicastresponse=1))
+            if packets:
+                sendp_adaptive(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv4-mdns-batch",
+                    initial_burst=burst,
+                )
+
+    @staticmethod
+    def send_reverse_ipv4_llmnr(ip_address: str, interface: str) -> str | None:
+        result_map = SendIPv4.send_reverse_ipv4_llmnr_batch([str(ip_address)], interface)
+        return result_map.get(str(ip_address))
+
+    @staticmethod
+    def send_reverse_ipv4_llmnr_batch(ip_addresses: list[str], interface: str, burst_limit: int | None = None, rsp_timeout: float = 0.2) -> dict[str, str | None]:
+        """Send reverse LLMNR PTR queries for a list of IPv4 targets."""
+        result: dict[str, str | None] = {str(ip): None for ip in ip_addresses}
+        if not ip_addresses:
+            return result
+
+        iface = Interface(interface)
+        if not iface.check_interface():
+            return result
+
+        src_ip = get_if_addr(interface)
+        src_mac = get_if_hwaddr(interface)
+        interface_ip_addresses = set(iface.get_interface_ips())
+
+        valid_targets: list[str] = []
+        query_to_target: dict[str, str] = {}
+        for target in ip_addresses:
+            target_str = str(target)
+            if target_str == src_ip or target_str in interface_ip_addresses:
+                continue
+            try:
+                ipaddress.IPv4Address(target_str)
+            except ipaddress.AddressValueError:
+                continue
+            query = reverse_IPadd(target_str)
+            valid_targets.append(target_str)
+            query_to_target[SendIPv4.__normalize_qname(query)] = target_str
+
+        if not valid_targets:
+            return result
+
+        burst = SendIPv4.__effective_burst_limit(burst_limit, interface)
+        for chunk in chunked(valid_targets, burst):
+            packets: list[Packet] = []
+            for target in chunk:
+                packets.append(PrototypeIPv4Packet.get_frame_llmnr_ptr(src_mac, src_ip, reverse_IPadd(target)))
+
+            response = AsyncSniffer(iface=interface)
+            response.start()
+            time.sleep(0.05)
+            sendp_adaptive(
+                packets=packets,
+                interface=interface,
+                logger=logger,
+                context="send-ipv4-llmnr-reverse",
+                initial_burst=burst,
+            )
+            time.sleep(rsp_timeout)
+            response.stop()
+
+            for packet in response.results:
+                try:
+                    if not (packet.haslayer(UDP) and packet.haslayer(LLMNRResponse) and packet.haslayer(DNSRR)):
+                        continue
+                    rrname = SendIPv4.__normalize_qname(packet[DNSRR].rrname.decode("utf-8"))
+                    target = query_to_target.get(rrname)
+                    if target is None:
+                        continue
+                    answer = packet[DNSRR].rdata.decode("utf-8")
+                    if answer and result.get(target) is None:
+                        result[target] = answer
+                except Exception:
+                    logger.debug("Failed to parse IPv4 LLMNR reverse response", exc_info=True)
+
+        return result
+
+    @staticmethod
+    def send_llmnr_ipv4(name: str, interface: str) -> None:
+        SendIPv4.send_llmnr_ipv4_batch([name], interface)
+
+    @staticmethod
+    def send_llmnr_ipv4_batch(names: list[str], interface: str, burst_limit: int | None = None) -> None:
+        """Send LLMNR queries for a list of names in configurable bursts."""
+        if not names:
+            return
+
+        iface = Interface(interface)
+        if not iface.check_interface():
+            return
+
+        src_ip = get_if_addr(interface)
+        src_mac = get_if_hwaddr(interface)
+        burst = SendIPv4.__effective_burst_limit(burst_limit, interface)
+
+        for chunk in chunked([str(name) for name in names if str(name).strip()], burst):
+            packets: list[Packet] = []
+            for name in chunk:
+                qname = LLMNR.full_name_llmnr(name)
+                packets.extend(PrototypeIPv4Packet.get_frame_llmnr_bundle_a_aaaa_any(src_mac, src_ip, qname))
+            if packets:
+                sendp_adaptive(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv4-llmnr-batch",
+                    initial_burst=burst,
+                )
+
+    @staticmethod
+    def IPv4_test_mdns_llmnr(ip_address: str, interface: str) -> None:
+        SendIPv4.IPv4_test_mdns_llmnr_batch([str(ip_address)], interface)
+
+    @staticmethod
+    def IPv4_test_mdns_llmnr_batch(ip_addresses: list[str], interface: str, burst_limit: int | None = None) -> dict[str, str | None]:
+        """Batch coordinator for reverse LLMNR/mDNS and follow-up forward queries."""
+        result: dict[str, str | None] = {str(ip): None for ip in ip_addresses}
+        if not ip_addresses:
+            return result
+
         if get_if_addr(interface) == "0.0.0.0":
-            return
-        name = SendIPv4.send_reverse_ipv4_llmnr(ip_address, interface)
+            return result
 
-        if name is not None and name.strip():
-            SendIPv4.send_mDNS_ipv4(name, interface)
-            SendIPv4.send_llmnr_ipv4(name, interface)
-            return
-        name = SendIPv4.send_reverse_ipv4_MDNS(ip_address, interface)
+        llmnr_map = SendIPv4.send_reverse_ipv4_llmnr_batch(ip_addresses, interface, burst_limit=burst_limit)
+        result.update(llmnr_map)
 
-        if name is not None and name.strip():
-            SendIPv4.send_mDNS_ipv4(name, interface)
-            SendIPv4.send_llmnr_ipv4(name, interface)
-            return
+        unresolved = [ip for ip, name in result.items() if not name]
+        if unresolved:
+            mdns_map = SendIPv4.send_reverse_ipv4_MDNS_batch(unresolved, interface, burst_limit=burst_limit)
+            for ip, name in mdns_map.items():
+                if name:
+                    result[ip] = name
+
+        discovered_names = sorted({name for name in result.values() if isinstance(name, str) and name.strip()})
+        if discovered_names:
+            SendIPv4.send_mDNS_ipv4_batch(discovered_names, interface, burst_limit=burst_limit)
+            SendIPv4.send_llmnr_ipv4_batch(discovered_names, interface, burst_limit=burst_limit)
+
+        return result
 
     @staticmethod
     def send_arp_request(address: str, interface: str, wait_for_rsp: bool = False, rsp_timeout: float = 0.1) -> None | SndRcvList:
@@ -181,18 +335,31 @@ class SendIPv4:
             rsp_timeout (float): Timeout for the response. Defaults to 0.1 seconds.
         """
         try:
-            arp_request = ARP(pdst=address)
-            ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-
-            pkt = ether / arp_request
-
+            pkt = PrototypeIPv4Packet.get_frame_arp(address)
             if wait_for_rsp:
-                return srp(pkt, iface=interface, verbose=0, timeout=rsp_timeout)[0]
-
-            sendp(pkt, verbose=0, iface=interface)
-
-        except Exception:
-            pass
+                with SCAPY_IO_LOCK:
+                    return srp_with_retries(
+                        packets=pkt,
+                        interface=interface,
+                        logger=logger,
+                        context="send-ipv4-arp-request",
+                        retries=3,
+                        retry_delay=0.05,
+                        timeout=rsp_timeout,
+                        verbose=0,
+                        threaded=False,
+                    )[0]
+            sendp_with_retries(
+                packets=pkt,
+                interface=interface,
+                logger=logger,
+                context="send-ipv4-arp-request",
+                retries=3,
+                retry_delay=0.05,
+                verbose=0,
+            )
+        except Exception as ex:
+            logger.debug("IPv4 ARP probe failed for %s on %s: %s", address, interface, ex)
 
     @staticmethod
     def probe_ipv4_interesting_addresses(network: ipaddress.IPv4Network, interface: str) -> None:
@@ -206,6 +373,7 @@ class SendIPv4:
         # skip if network has less than 4 addresses
         if network.num_addresses >= 4:
             # first usable address
+            SendIPv4.send_arp_request(str(network.network_address), interface)
             first_addr = network.network_address + 1
             SendIPv4.send_arp_request(str(first_addr), interface)
             # last usable address
@@ -220,33 +388,23 @@ class SendIPv4:
         Args:
             interface (str): The network interface to use
         """
+        packets = []
         exist_interface = Interface(interface).check_interface()
-
         if exist_interface:
+            src_mac = get_if_hwaddr(interface)
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
-
             for source_ipv4_addr in ipv4_addresses:
-                message_id = str(uuid.uuid4())
-
-                soap_payload = f"""<?xml version="1.0" ?>
-<s:Envelope xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery" xmlns:s="http://www.w3.org/2003/05/soap-envelope">
-\t<s:Header>
-\t\t<a:Action>http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe</a:Action>
-\t\t<a:MessageID>urn:uuid:{message_id}</a:MessageID>
-\t\t<a:To>urn:schemas-xmlsoap-org:ws:2005:04:discovery</a:To>
-\t</s:Header>
-\t<s:Body>
-\t\t<d:Probe/>
-\t</s:Body>
-</s:Envelope>
-"""
-                ether = Ether(src=get_if_hwaddr(interface))
-                ipv4 = IP(src=source_ipv4_addr, dst="239.255.255.250", ttl=1)
-                udp = UDP(sport=random.randint(49152, 65535), dport=3702)
-                payload = Raw(load=soap_payload)
-                wsd_packet = ether / ipv4 / udp / payload
-
-                sendp(wsd_packet, verbose=0, iface=interface)
+                packets.append(PrototypeIPv4Packet.get_frame_wsdiscovery(src_mac, source_ipv4_addr))
+            if len(packets) != 0:
+                sendp_with_retries(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv4-ws-discovery",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=0,
+                )
 
     @staticmethod
     def send_igmp_membership_query(version: int, interface: str, spec_group: str = "0.0.0.0") -> None:
@@ -262,23 +420,88 @@ class SendIPv4:
 
         if exist_interface:
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
-
+            src_mac = get_if_hwaddr(interface)
+            packets = []
             for source_ipv4_addr in ipv4_addresses:
+                packets.append(PrototypeIPv4Packet.get_igmp_query_general(version, src_mac, source_ipv4_addr, spec_group))
+            if packets:
+                sendp_with_retries(
+                    packets=packets * 2,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv4-igmp-query",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=0,
+                )
 
-                mac = Ether(src=get_if_hwaddr(interface), dst="01:00:5e:00:00:01")
-                ipv4_packet = IP(src=source_ipv4_addr, dst="224.0.0.1", ttl=1)
+    @staticmethod
+    def send_igmp_report_join(interface, aggressive = False) -> None:
+        exist_interface = Interface(interface).check_interface()
+        if exist_interface:
+            ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+            src_mac = get_if_hwaddr(interface)
+            if aggressive:
+                igmpv3_join = PrototypeIPv4Packet.get_init_igmpv3_aggressive_mode(src_mac, ipv4_addresses)
+            else:
+                igmpv3_join = PrototypeIPv4Packet.get_init_igmpv3_active_mode(src_mac, ipv4_addresses)
+            sendp_with_retries(
+                packets=igmpv3_join * 2,
+                interface=interface,
+                logger=logger,
+                context="send-ipv4-igmpv3-join",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
+            time.sleep(0.1)
+            if aggressive:
+                igmpv2_join = PrototypeIPv4Packet.get_init_igmpv2_aggressive_mode(src_mac, ipv4_addresses)
+            else:
+                igmpv2_join = PrototypeIPv4Packet.get_init_igmpv2_active_mode(src_mac, ipv4_addresses)
+            sendp_with_retries(
+                packets=igmpv2_join * 2,
+                interface=interface,
+                logger=logger,
+                context="send-ipv4-igmpv2-join",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
 
-                match version:
-                    case 1:
-                        igmp_query = IGMP(type=0x11, mrcode=0, gaddr=spec_group)
-                    case 2:
-                        igmp_query = IGMP(type=0x11, mrcode=2, gaddr=spec_group)
-                    case 3:
-                        igmp_query = IGMPv3(type=0x11, mrcode=2) / IGMPv3mq(gaddr=spec_group)
-
-                query = mac / ipv4_packet / igmp_query
-
-                sendp(query*2, verbose=0, iface=interface)
+    @staticmethod
+    def send_igmp_done_leave(interface, aggressive = False) -> None:
+        exist_interface = Interface(interface).check_interface()
+        if exist_interface:
+            ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+            src_mac = get_if_hwaddr(interface)
+            if aggressive:
+                igmpv3_leave = PrototypeIPv4Packet.get_finish_igmpv3_aggressive_mode(src_mac, ipv4_addresses)
+            else:
+                igmpv3_leave = PrototypeIPv4Packet.get_finish_igmpv3_active_mode(src_mac, ipv4_addresses)
+            sendp_with_retries(
+                packets=igmpv3_leave * 2,
+                interface=interface,
+                logger=logger,
+                context="send-ipv4-igmpv3-leave",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
+            time.sleep(0.1)
+            if aggressive:
+                igmpv2_leave = PrototypeIPv4Packet.get_finish_igmpv2_aggressive_mode(src_mac, ipv4_addresses)
+            else:
+                igmpv2_leave = PrototypeIPv4Packet.get_finish_igmpv2_active_mode(src_mac, ipv4_addresses)
+            sendp_with_retries(
+                packets=igmpv2_leave * 2,
+                interface=interface,
+                logger=logger,
+                context="send-ipv4-igmpv2-leave",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
 
     @staticmethod
     def send_local_icmp(address: str, interface: str, icmp_type: ICMPType = ICMPType.ECHO_REQUEST) -> None:
@@ -291,7 +514,7 @@ class SendIPv4:
             icmp_type (ICMPType): The ICMP type. Defaults to ICMPType.ECHO_REQUEST
         """
         exist_interface = Interface(interface).check_interface()
-        id_query = 111
+        id_query = SendIPv4.__get_next_icmp_echo_request_id()
 
         if ipaddress.ip_address(address).is_multicast:
             if icmp_type == ICMPType.ROUTER_SOLICITATION:
@@ -303,7 +526,7 @@ class SendIPv4:
 
         if exist_interface:
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
-
+            packets = []
             for source_ipv4_addr in ipv4_addresses:
 
                 mac = Ether(src=get_if_hwaddr(interface), dst=mac_dst_addr)
@@ -311,8 +534,17 @@ class SendIPv4:
                 icmp_packet = ICMP(id=id_query, type=icmp_type.value)
 
                 icmp_message = mac / ipv4_packet / icmp_packet / "icmp echo request"
-
-                sendp(icmp_message, verbose=0, iface=interface)
+                packets.append(icmp_message)
+            if packets:
+                sendp_with_retries(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv4-local-icmp",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=0,
+                )
 
     @staticmethod
     def send_subnet_broadcast_icmp(interface: str, icmp_type: ICMPType = ICMPType.ECHO_REQUEST) -> None:
@@ -324,7 +556,6 @@ class SendIPv4:
             icmp_type (ICMPType): The ICMP type. Defaults to ICMPType.ECHO_REQUEST
         """
         exist_interface = Interface(interface).check_interface()
-
         if exist_interface:
             for network in Networks.get_ipv4_subnets():
                 SendIPv4.send_local_icmp(str(network.broadcast_address), interface, icmp_type)
@@ -341,17 +572,22 @@ class SendIPv4:
 
         if exist_interface:
             ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
-
+            packets = []
+            src_mac = get_if_hwaddr(interface)
             for source_ipv4_addr in ipv4_addresses:
-
-                ether = Ether(src=get_if_hwaddr(interface))
-                ipv4 = IP(src=source_ipv4_addr, dst="224.0.0.251", ttl=1)
-                udp = UDP(sport=random.randint(49152, 65535), dport=5353)
-                mdns = DNS(id=33, rd=1, qd=DNSQR(qname="_services._dns-sd._udp.local.", qtype="PTR"))
-
-                dns_sd = ether / ipv4 / udp / mdns
-
-                sendp(dns_sd, verbose=0, iface=interface)
+                packets.append(PrototypeIPv4Packet.get_frame_mdns_sd(src_mac, source_ipv4_addr))
+                packets.append(PrototypeIPv4Packet.get_frame_mdns_sd(src_mac, source_ipv4_addr, 
+                unicastresponse=1))
+            if packets:
+                sendp_with_retries(
+                    packets=packets,
+                    interface=interface,
+                    logger=logger,
+                    context="send-ipv4-dns-sd",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=0,
+                )
 
     @staticmethod
     def send_dhcp_discover(interface: str) -> None:
@@ -380,4 +616,81 @@ class SendIPv4:
             ])
 
             dhcp_discover = ether / ip / udp / bootp / dhcp
-            sendp(dhcp_discover, iface=interface, verbose=0)
+            sendp_with_retries(
+                packets=dhcp_discover,
+                interface=interface,
+                logger=logger,
+                context="send-ipv4-dhcp-discover",
+                retries=3,
+                retry_delay=0.05,
+                verbose=0,
+            )
+
+    def react_to_igmp_queries(mode: str, interface: str, duration: float|None, stop_event=None) -> None:
+        """
+        React to IGMP Membership Query packets by sending join reports.
+
+        Behavior:
+            1) Sends reports whenever an IGMP query is received.
+            2) Sends watchdog periodic reports only if no report was sent in the last 10 seconds.
+
+        Args:
+            mode (str): Active mode selector ("a" or "a+").
+            interface (str): Network interface to use.
+            duration (float | None): Total run time in seconds; None means run indefinitely.
+        Output:
+            None
+        """
+        interval_s = 10.0
+        poll_interval_s = 0.5
+        local_mac = get_if_hwaddr(interface)
+        # Do not transmit at responder startup; active/aggressive managers already do explicit joins.
+        last_report_at = time.time()
+
+        def send_reports() -> None:
+            nonlocal last_report_at
+            if mode == "a+":
+                SendIPv4.send_igmp_report_join(interface, aggressive=True)
+            elif mode == "a":
+                SendIPv4.send_igmp_report_join(interface)
+            last_report_at = time.time()
+
+        def send_watchdog_report_if_due() -> None:
+            if time.time() - last_report_at >= interval_s:
+                send_reports()
+
+        def custom_action(packet) -> None:
+            if Ether in packet and packet[Ether].src == local_mac:
+                return
+            if (IGMP in packet and packet[IGMP].type == IGMP_Type.GROUP_MEMBERSHIP_QUERY.value) or \
+               (IGMPv3 in packet and packet[IGMPv3].type == IGMP_Type.GROUP_MEMBERSHIP_QUERY.value):
+                send_reports()
+
+        build_filter = "ip"
+        start_time = time.time()
+
+        try:
+            while True:
+                if stop_event is not None and stop_event.is_set():
+                    break
+
+                if duration is None:
+                    sniff_timeout = poll_interval_s if stop_event is not None else interval_s
+                else:
+                    elapsed = time.time() - start_time
+                    remaining = duration - elapsed
+                    if remaining <= 0:
+                        break
+                    sniff_timeout = min(interval_s, remaining)
+                    if stop_event is not None:
+                        sniff_timeout = min(sniff_timeout, poll_interval_s)
+
+                sniff(iface=interface, filter=build_filter, prn=custom_action, timeout=sniff_timeout)
+
+                if stop_event is not None and stop_event.is_set():
+                    break
+
+                # Re-announce only when there was no report in the last interval.
+                send_watchdog_report_if_due()
+        except KeyboardInterrupt:
+            sys.exit(0)

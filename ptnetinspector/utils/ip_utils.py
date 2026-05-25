@@ -5,6 +5,7 @@ used throughout the scanner to interpret captured data and drive decisions.
 """
 import datetime
 import ipaddress
+import logging
 import socket
 import subprocess
 import csv
@@ -14,11 +15,20 @@ import re
 import netifaces
 
 from netaddr import IPNetwork
+from scapy.plist import PacketList
 from scapy.pton_ntop import inet_pton, inet_ntop
 from scapy.utils6 import in6_and, in6_or
+from scapy.all import sendp, get_if_hwaddr, Packet
+from scapy.layers.inet6 import IPv6
+from scapy.layers.l2 import Ether
 
 from ptnetinspector.utils.csv_helpers import has_additional_data
 from ptnetinspector.utils.path import get_csv_path
+from ptnetinspector.utils.interface import Interface
+from ptnetinspector.utils.burst_control import sendp_with_retries
+
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -30,6 +40,7 @@ def is_non_negative_float(value: str) -> bool:
     try:
         return float(value) >= 0
     except ValueError:
+        # Invalid numeric input should fail validation.
         return False
 
 def is_valid_integer(value: str) -> bool:
@@ -38,6 +49,7 @@ def is_valid_integer(value: str) -> bool:
         value = int(value)
         return 0 <= value <= 255
     except ValueError:
+        # Invalid numeric input should fail validation.
         return False
 
 def is_valid_MTU(value: str) -> bool:
@@ -46,6 +58,7 @@ def is_valid_MTU(value: str) -> bool:
         value = int(value)
         return 0 <= value <= 65535
     except ValueError:
+        # Invalid numeric input should fail validation.
         return False
 
 def is_valid_ipv4(ip: str) -> bool:
@@ -54,6 +67,7 @@ def is_valid_ipv4(ip: str) -> bool:
         ipaddress.IPv4Address(ip)
         return True
     except ipaddress.AddressValueError:
+        # Invalid IPv4 strings are expected during filtering.
         return False
 
 def is_multicast_ipv4(addr: str) -> bool:
@@ -61,12 +75,13 @@ def is_multicast_ipv4(addr: str) -> bool:
     try:
         return ipaddress.IPv4Address(addr).is_multicast
     except:
+        # Treat malformed addresses as non-multicast.
         return False
 
 def is_broadcast_ipv4(addr: str) -> bool:
     """Validate broadcast IPv4 address."""
     return addr in ['255.255.255.255'] or addr.endswith('.255')
-        
+
 def is_valid_ipv6(ip: str) -> bool:
     """Validate IPv6 address using regex."""
     if ip is None or isinstance(ip, (float, int)):
@@ -95,6 +110,7 @@ def is_valid_ipv6_prefix(prefix: str) -> bool:
         ipaddress.IPv6Network(prefix, strict=False)
         return True
     except (ipaddress.AddressValueError, ValueError):
+        # Invalid prefix strings should fail validation.
         return False
 
 def is_valid_mac(mac: str) -> bool:
@@ -131,6 +147,7 @@ def is_global_unicast_ipv6(ipv6_address: str) -> bool:
         addr = ipaddress.IPv6Address(ipv6_address)
         return addr.is_global and not addr.is_multicast
     except ipaddress.AddressValueError:
+        # Invalid IPv6 strings are expected during filtering.
         return False
 
 def is_link_local_ipv6(address: str) -> bool:
@@ -139,6 +156,7 @@ def is_link_local_ipv6(address: str) -> bool:
         ip = ipaddress.ip_address(address)
         return ip.version == 6 and ip.is_link_local
     except ValueError:
+        # Invalid address strings are expected during filtering.
         return False
 
 def is_ipv6_ula(address: str) -> bool:
@@ -148,6 +166,7 @@ def is_ipv6_ula(address: str) -> bool:
         # ULA: fc00::/7 (fc00::0 - fdff:ffff:...)
         return ip.version == 6 and (0xfc00 <= int(ip) >> 112 <= 0xfdff)
     except (ipaddress.AddressValueError, ValueError):
+        # Invalid address strings are expected during filtering.
         return False
 
 def is_llsnm_ipv6(ipv6: str) -> bool:
@@ -162,6 +181,7 @@ def is_ipv6_predictable(ip: str, mac: str) -> bool:
         try:
             ipv6_full = ipaddress.ip_address(ipv6).exploded
         except ValueError:
+            # Not a valid IPv6 address for EUI-64 predictability checks.
             return False
         last_64_bits = "".join(ipv6_full.split(":")[4:])
         if last_64_bits[6:10] != 'fffe':
@@ -175,39 +195,33 @@ def is_ipv6_predictable(ip: str, mac: str) -> bool:
     if check_eui64(ip, mac):
         return True
 
-    zero_sequences = ip.split(':')
-    zero_count = sum(1 for part in zero_sequences if part == '' or part == '0000')
-    if zero_count >= 4:
-        return True
+    try:
+        ipv6_int = int(ipaddress.IPv6Address(ip))
+    except ipaddress.AddressValueError:
+        # Invalid IPv6 strings are not predictable by definition.
+        return False
 
-    if "::" in ip:
-        double_colon_count = ip.count("::")
-        if double_colon_count == 1:
-            expanded_zero_count = 8 - len([part for part in zero_sequences if part])
-            if expanded_zero_count >= 4:
-                return True
-
-    octet_count = {}
-    for part in zero_sequences:
-        if part and part != '0000':
-            octet_count[part] = octet_count.get(part, 0) + 1
-            if octet_count[part] >= 4:
-                return True
-
-    predictable_patterns_last_octet = [
-        "::1", "::2", "::3", "::4", "::5", "::6", "::7", "::8", "::9", "::a", "::b", "::c", "::d", "::e", "::f"
-    ]
-    predictable_patterns_anywhere = [
-        "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999",
-        "aaaa", "bbbb", "cccc", "dddd", "eeee", "ffff"
+    # Evaluate only the lower 64 bits (interface identifier).
+    lower_64 = ipv6_int & ((1 << 64) - 1)
+    lower_hextets = [
+        (lower_64 >> 48) & 0xFFFF,
+        (lower_64 >> 32) & 0xFFFF,
+        (lower_64 >> 16) & 0xFFFF,
+        lower_64 & 0xFFFF,
     ]
 
-    if any(ip.lower().endswith(pattern) for pattern in predictable_patterns_last_octet):
+    def has_only_low_nibble_nonzero(hextet: int) -> bool:
+        # Consider only the 4 LSB of each hextet as potentially non-zero.
+        return (hextet & 0xFFF0) == 0
+
+    # Predictable if each lower hextet uses only its 4 LSB.
+    # Examples: 0000..000f
+    if all(has_only_low_nibble_nonzero(hextet) for hextet in lower_hextets):
         return True
 
-    for pattern in predictable_patterns_anywhere:
-        if ip.lower().count(pattern) >= 3:
-            return True
+    # Predictable if only the last byte may be non-zero (IID in range ::0..::ff).
+    if (lower_64 >> 8) == 0:
+        return True
 
     return False
 
@@ -223,6 +237,7 @@ def check_ipv6_addresses_generated_from_prefix(ip: str, prefix: str) -> bool:
         ipv6_address = ipaddress.IPv6Address(ip)
         return ipv6_address in ipv6_network
     except ValueError:
+        # Invalid IP/prefix inputs cannot satisfy the prefix match.
         return False
 
 def belongs_to_any_prefix(ipv6_address: str, prefixes: list) -> bool:
@@ -235,6 +250,7 @@ def belongs_to_any_prefix(ipv6_address: str, prefixes: list) -> bool:
                 return True
         return False
     except ValueError:
+        # Invalid address strings are treated as non-matching.
         return False
 
 
@@ -372,6 +388,7 @@ def extract_interface_id(link_local_address: str) -> str:
         interface_id = link_local_address.exploded.split(":", 4)[-1]
         return interface_id
     except ipaddress.AddressValueError as e:
+        # Keep legacy behavior by returning parse error text.
         return str(e)
 
 def count_octets(ipv6_part: str) -> int:
@@ -394,6 +411,7 @@ def generate_global_ipv6(prefix: str, link_local_address: str) -> str | None:
         else:
             return None
     except Exception:
+        # Invalid inputs or prefix math errors should not break caller flow.
         return None
 
 
@@ -522,6 +540,7 @@ def get_status_ip(mac: str, ip: str) -> str:
     try:
         ip_obj = ipaddress.ip_address(ip)
     except ValueError:
+        # Non-IP values are expected here and are treated as unknown status.
         return None
 
     if ip_obj.version == 4:
@@ -586,6 +605,8 @@ def is_dhcp_slaac() -> list:
                             if status not in lst_result:
                                 lst_result.append(status)
                 except Exception:
+                    # Malformed DHCP row could indicate file corruption; log for debug.
+                    logger.debug("Malformed DHCP row (skipping): %s", row)
                     continue
 
     if has_additional_data(ra_file_path):
@@ -629,6 +650,8 @@ def IPv4_IPv6_filter(input_filename: str) -> None:
                     if not ip.is_link_local and not ip.is_multicast and not ip.is_unspecified:
                         ipv6_writer.writerow([ip_str])
             except ValueError:
+                # Malformed address in CSV could indicate file corruption; log for debug.
+                logger.debug("Malformed address in IPv4/IPv6 filter: %s (skipping)", ip_str)
                 pass
 
 
@@ -648,6 +671,8 @@ def extract_ipv6_addresses(config_string: str) -> list:
             ipaddress.IPv6Address(ip)
             valid_ipv6.append(ip)
         except ValueError:
+            # Malformed IPv6 literal in config field could indicate data corruption; log for debug.
+            logger.debug("Malformed IPv6 literal in config string (skipping): %s", ip)
             continue
     return valid_ipv6
 
@@ -684,3 +709,124 @@ def collect_unique_items(dictionary: dict) -> list:
         for item in value_list:
             unique_items.add(item)
     return list(unique_items)
+
+#
+# PACKET SENDING LOOPS
+#
+
+def send_ipv6_all_nodes_multicast(interface: str, payload: Packet) -> PacketList|None:
+    """
+    Send an IPv6 packet to the all-nodes multicast address (ff02::1) from all available IPv6 addresses on the interface.
+    Includes both global and link-local addresses. The destination MAC address is set to the corresponding multicast MAC (33:33:00:00:00:01).
+    Args:
+        interface (str): Network interface to use.
+        payload (Packet): The IPv6 payload to send.
+    Output:
+        list[Packet]: The list of packets sent.
+    """
+    return send_ipv6_from_all_addresses(interface, payload, dst_ip="ff02::1", dst_mac="33:33:00:00:00:01")
+
+def send_ipv6_from_all_addresses(interface: str, payload: Packet, dst_ip: str, dst_mac: str|None = None) -> PacketList|None:
+    """
+    Send an IPv6 packet to the specified destination IP and MAC address from all available IPv6 addresses on the interface.
+    Includes both global and link-local addresses. If dst_mac is None, it will be determined automatically based on the destination IP.
+    Args:
+        interface (str): Network interface to use.
+        payload (Packet): The IPv6 payload to send.
+        dst_ip (str): The destination IPv6 address.
+        dst_mac (str, optional): The destination MAC address. If None, it is determined automatically.
+    Output:
+        list[Packet]: The list of packets sent.
+    """
+    packets = None
+    ips = []
+    iface = Interface(interface)
+    exist_interface = iface.check_interface()
+    if exist_interface:
+        avail_ipv6 = iface.check_available_ipv6()
+        if avail_ipv6:
+            ip_addresses = iface.get_interface_ips()
+            src_mac = get_if_hwaddr(interface)
+            for ip in ip_addresses:
+                try:
+                    ipaddress.IPv4Address(ip)
+                    continue
+                except ipaddress.AddressValueError:
+                    # Not IPv4, continue validation as IPv6 candidate.
+                    pass
+                try:
+                    ipaddress.IPv6Address(ip)
+                    ips.append(ip)
+                except ipaddress.AddressValueError:
+                    # Ignore malformed interface address entries.
+                    pass
+            if len(ips) != 0:
+                pkt = (Ether(src=src_mac, dst=dst_mac) /
+                    IPv6(src=ips, dst=dst_ip) /
+                    payload)
+                result = sendp_with_retries(
+                    packets=pkt,
+                    interface=interface,
+                    logger=logger,
+                    context="ip-utils-send-ipv6-all-addresses",
+                    retries=3,
+                    retry_delay=0.05,
+                    verbose=False,
+                )
+                if result is not None:
+                    if packets is None:
+                        packets = result
+                    else:
+                        packets += result
+    return packets
+
+def send_ipv6_all_routers_multicast(interface: str, payload: Packet) -> PacketList|None:
+    """
+    Send an IPv6 packet to the all-routers multicast address (ff02::2) from all available link-local IPv6 addresses on the interface.
+    The destination MAC address is set to the corresponding multicast MAC (33:33:00:00:00:02).
+    Args:
+        interface (str): Network interface to use.
+        payload (Packet): The IPv6 payload to send.
+    Output:
+        list[Packet]: The list of packets sent.
+    """
+    return send_ipv6_from_all_lla_addresses(interface, payload, dst_ip="ff02::2", dst_mac="33:33:00:00:00:02")
+
+def send_ipv6_from_all_lla_addresses(interface: str, payload: Packet, dst_ip: str, dst_mac: str|None = None) -> PacketList|None:
+    """
+    Send an IPv6 packet to the specified destination IP and MAC address from all available link-local IPv6 addresses on the interface.
+    If dst_mac is None, it will be determined automatically based on the destination IP.
+    Args:
+        interface (str): Network interface to use.
+        payload (Packet): The IPv6 payload to send.
+        dst_ip (str): The destination IPv6 address.
+        dst_mac (str, optional): The destination MAC address. If None, it is determined automatically.
+    Output:
+        list[Packet]: The list of packets sent.
+    """
+    packets = None
+    iface = Interface(interface)
+    exist_interface = iface.check_interface()
+    if exist_interface:
+        avail_ipv6 = iface.check_available_ipv6()
+        if avail_ipv6:
+            ip_addresses = iface.get_interface_link_local_list()
+            src_mac = get_if_hwaddr(interface)
+            pkt = (Ether(src=src_mac, dst=dst_mac) /
+                IPv6(src=ip_addresses, dst=dst_ip) /
+                payload)
+            result = sendp_with_retries(
+                packets=pkt,
+                interface=interface,
+                logger=logger,
+                context="ip-utils-send-ipv6-lla-addresses",
+                retries=3,
+                retry_delay=0.05,
+                verbose=False,
+            )
+            if result is not None:
+                if packets is None:
+                    packets = result
+                else:
+                    packets += result
+    return packets

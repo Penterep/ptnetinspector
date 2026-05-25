@@ -25,6 +25,7 @@ def _is_process_running(pid: int) -> bool:
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
+        # PID does not exist anymore.
         return False
     except PermissionError:
         # Lack of permission likely means the process exists but is owned elsewhere
@@ -47,6 +48,7 @@ def _cleanup_stale_lock(lock_file: Path) -> bool:
         lock_file.unlink(missing_ok=True)
         return True
     except OSError:
+        # Could not remove stale lock file due to filesystem race/permissions.
         return False
 
 
@@ -58,10 +60,12 @@ def _release_lock() -> None:
     try:
         fcntl.flock(_LOCK_FD, fcntl.LOCK_UN)
     except OSError:
+        # Best-effort unlock on process shutdown.
         pass
     try:
         os.close(_LOCK_FD)
     except OSError:
+        # Descriptor may already be closed.
         pass
     _LOCK_FD = None
 
@@ -115,6 +119,7 @@ def _wait_for_lock_release(lock_file: Path, verbose: bool = True) -> None:
             except OSError:
                 os.close(fd_test)
         except OSError:
+            # Lock may still be held by an active process.
             pass
 
         time.sleep(_QUEUE_CHECK_INTERVAL)
