@@ -4,7 +4,7 @@
 | |_) / _ \ '_ \| __/ _ \ '__/ _ \ '_ \    | |/ _ \ / _ \| / __|
 |  __/  __/ | | | ||  __/ | |  __/ |_) |   | | (_) | (_) | \__ \
 |_|   \___|_| |_|\__\___|_|  \___| .__/    |_|\___/ \___/|_|___/
-                                 |_|      ptnetinspector v0.1.9
+                                 |_|      ptnetinspector v0.2.0
                                        https://www.penterep.com
 ```
 
@@ -225,7 +225,7 @@ ptnetinspector -t a -i eth0 -target ca:01:08:2b:00:01 00:0c:29:35:45:d8
 ```
 
 ## License
-Copyright (c) 2025 Penterep Security s.r.o.
+Copyright (c) 2026 Penterep Security s.r.o.
 
 ptnetinspector is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
