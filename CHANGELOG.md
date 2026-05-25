@@ -69,3 +69,7 @@ Version 0.2.0
 - Numerous bugfixes (scapy locking, race conditions, socket handling)
 - Documentation and example Wireshark captures/filters updated
 - Removed transitive dependencies
+
+Version 0.2.1
+-------------
+- Improved query-response pairing
