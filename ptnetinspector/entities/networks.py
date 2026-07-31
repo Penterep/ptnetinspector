@@ -42,6 +42,41 @@ class Networks:
         return ipv4_subnets, ipv6_subnets
 
     @staticmethod
+    def load_ra_prefixes() -> list[ipaddress.IPv6Network]:
+        """Load on-link IPv6 prefixes advertised in observed Router Advertisements.
+
+        The scanner's own addresses only reveal the prefixes it configured itself.
+        Routers commonly advertise several prefixes on one link, so RA-derived
+        prefixes are needed to recognise neighbour addresses as local.
+
+        Returns:
+            list: IPv6 networks advertised on the link (empty if none were seen).
+        """
+        prefixes: list[ipaddress.IPv6Network] = []
+
+        ra_file = get_csv_path("RA.csv")
+        try:
+            with open(ra_file, 'r') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    raw = (row.get('Prefix') or '').strip()
+                    if not raw or '/' not in raw:
+                        continue
+                    try:
+                        network = ipaddress.ip_network(raw, strict=False)
+                    except ValueError as ex:
+                        logger.debug("Skipping invalid RA prefix %s: %s", raw, ex)
+                        continue
+                    if isinstance(network, ipaddress.IPv6Network) and network not in prefixes:
+                        prefixes.append(network)
+        except FileNotFoundError:
+            logger.debug("RA.csv not present; no RA-derived prefixes available")
+        except Exception as ex:
+            logger.debug("Failed to read RA prefixes from %s: %s", ra_file, ex)
+
+        return prefixes
+
+    @staticmethod
     def get_ipv4_subnets() -> list[ipaddress.IPv4Network]:
         """
         Load and return a list of IPv4 subnets.

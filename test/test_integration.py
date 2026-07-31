@@ -32,7 +32,7 @@ class TestCSVIntegration:
                     'time_all.csv', 'time_incoming.csv', 'time_outgoing.csv',
                     'start_end_mode.csv', 'eap.csv', 'remote_node.csv',
                     'dhcp.csv', 'wsdiscovery.csv', 'default_gw.csv',
-                    'vulnerability.csv'
+                    'vulnerability_mac.csv', 'vulnerability_ip.csv', 'vulnerability_net.csv'
                 ]
 
                 for csv_file in expected_files:

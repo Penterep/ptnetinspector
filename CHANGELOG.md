@@ -73,3 +73,39 @@ Version 0.2.0
 Version 0.2.1
 -------------
 - Improved query-response pairing
+
+Version 0.2.2
+-------------
+- Fixed analysis of every mode after the first in a multi-mode run: the packet timeline
+  was cached for the whole run, so later modes assessed only the packets captured before
+  they started (`-t 802.1x a` reported 1 of 9 network findings)
+- Findings re-evaluated by a later mode now supersede the earlier verdict
+- Fixed mode filtering treating `a` as a prefix of `a+`, which showed aggressive-only
+  findings inside the active-scan results
+- 802.1x results are now displayed: the verdict was stored and returned in JSON while the
+  terminal printed nothing (wrong source file, no analysis tables, findings without an IP
+  family dropped by the `-4`/`-6` filter, and the verdict forced to N/A)
+- Network-scoped findings are printed even when no device was discovered
+- Added a vulnerability matrix table: codes as rows, network and devices as columns
+- Fixed duplicated devices and addresses in JSON output for passive and 802.1x modes
+- JSON output no longer falls back to the unfiltered capture, which could report remote
+  hosts seen in transit as addresses of a local device
+- 802.1x mode now applies the local-network address filter, so remote hosts are no longer
+  reported as gateway addresses
+- Network vulnerabilities are no longer appended once per evaluation pass, and the network
+  file is sorted and deduplicated like the MAC and IP files
+- Network-scoped rows are no longer copied into the device-scoped file
+- mDNS parsing now requires UDP port 5353; ordinary unicast DNS responses were recorded as
+  mDNS, attributing answered addresses to whichever device relayed them
+- `-nc` reworked: no ARP/Neighbour-Solicitation probes are sent and every observed address
+  is reported, with solicited-node groups retained to reveal unconfirmed addresses
+- Local-scope address filtering now also accepts RA-advertised prefixes and unique local
+  addresses, so on-link neighbours are no longer discarded
+- Dual-stack is the default; a single-stack interface now skips the missing family with a
+  warning instead of failing
+- Vulnerability tables adapt to the terminal width instead of overflowing on large subnets
+- The raw address capture is shown under `-vv` in all modes
+- Error exits now return a non-zero status
+- Reachability-check status is reported only in modes that actually probe
+- Fixed "Destionation" typo in ICMPv6 and IPv6 option-header findings
+- Documentation updated for `-nc`, `-4`/`-6` defaults, and IP-version behaviour

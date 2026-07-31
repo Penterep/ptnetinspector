@@ -704,9 +704,12 @@ def handle_output(
         return
 
     if (not json_output) or more_detail:
+        # addresses.csv is the local-network view in both modes; -nc changes what
+        # goes into it (no probing, solicited-node groups kept), not which file wins.
         Non_json.output_general(
             scan_type,
             ip_mode,
+            get_csv_path_fn("addresses.csv"),
             check_addresses=check_addresses,
             target_codes=target_codes,
             target_macs=target_macs,
@@ -717,18 +720,19 @@ def handle_output(
         if more_detail:
             time_file = get_csv_path_fn("time_incoming.csv")
             Non_json.output_protocol(interface, ip_mode, scan_type, "time", time_file, less_detail, target_macs=target_macs, target_ips=target_ips)
-            if check_addresses:
-                Non_json.print_box("Unfiltered found addresses")
-                addr_file = get_csv_path_fn("addresses_unfiltered.csv")
-                Non_json.output_general(
-                    scan_type,
-                    ip_mode,
-                    addr_file,
-                    check_addresses=check_addresses,
-                    target_codes=target_codes,
-                    target_macs=target_macs,
-                    target_ips=target_ips,
-                )
+            # The raw capture is a -vv diagnostic and is written in every mode, so
+            # show it regardless of -nc rather than only when probing was enabled.
+            Non_json.print_box("Unfiltered found addresses")
+            addr_file = get_csv_path_fn("addresses_unfiltered.csv")
+            Non_json.output_general(
+                scan_type,
+                ip_mode,
+                addr_file,
+                check_addresses=check_addresses,
+                target_codes=target_codes,
+                target_macs=target_macs,
+                target_ips=target_ips,
+            )
 
             output_protocols(scan_type, protocols_basic, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs, target_ips)
 
@@ -736,8 +740,8 @@ def handle_output(
                 output_protocols(scan_type, protocols_detailed, ip_mode, interface, less_detail, target_codes, get_csv_path_fn, target_macs, target_ips)
 
 
-def handle_addresses(interface, ip_mode, passive: bool = False) -> None:
+def handle_addresses(interface, ip_mode, passive: bool = False, check_addresses: bool = True) -> None:
     try:
-        validate_addresses_mapping(interface, ip_mode, passive=passive)
+        validate_addresses_mapping(interface, ip_mode, passive=passive, verify=check_addresses)
     except Exception:
         ptprinthelper.ptprint("\033[90mFailed to validate addresses mapping\033[0m", "WARNING", condition=True, indent=4)

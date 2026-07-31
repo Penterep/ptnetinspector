@@ -248,7 +248,7 @@ def parse_args() -> argparse.Namespace:
             ptprinthelper.ptprint(msg, "ERROR")
         if args.j:
             print(ptjsonlib_object.end_error(msg, ptjsonlib_object))
-        sys.exit(0)
+        sys.exit(2)
 
     return args
 
@@ -299,9 +299,10 @@ def get_help() -> list:
             ["-vv             ", "Show full details of network scan"],
             ["-vvv            ", "Show full details plus DEBUG diagnostics"],
             ["-less           ", "Show minimum details of network scan"],
-            ["-nc             ", "Do not check if found addresses are valid"],
+            ["-nc             ", "Do not probe found addresses for reachability (reports all observed addresses)"],
             ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
             ["-6              ", "Only IPv6 traffic"],
+            ["                ", "   default: both IPv4 and IPv6 are scanned"],
             ["-ts             ", "Filter vulnerabilities by Test code (space-separated, e.g., -ts 4-MDNS 6-LLMNR)"],
             ["-tmpret         ", "Temporary file retention in seconds (default: 1800; set small for dev reset)"],
             ["-h              ", "Show this help message and exit"]
@@ -757,8 +758,13 @@ def _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, s
         list_error.append("No forwarding is not applied in this mode.")
 
 
-def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning) -> str:
-    """Validate and process active mode parameters."""
+def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning, ipver_explicit=True) -> tuple:
+    """Validate and process active mode parameters.
+
+    Returns:
+        tuple: (smac, ip_mode). ip_mode may be narrowed when the user did not
+        explicitly request an IP version via -4/-6 and the interface lacks one.
+    """
     for param, msg in [
         (duration_passive, "Passive duration is not applied in this mode."),
         (duration_aggressive, "Aggressive duration is not applied in this mode."),
@@ -788,12 +794,23 @@ def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggress
     has_ipv4 = bool(interface_obj.get_interface_ipv4_ips())
     has_ipv6 = bool(interface_obj.get_interface_ipv6_ips())
 
+    # A family the user asked for explicitly (-4/-6) must be present; a family
+    # only enabled by the dual-stack default is dropped with a warning instead,
+    # so single-stack interfaces still scan the family they do have.
     if ip_mode.ipv4 and not has_ipv4:
-        list_error.append(f"No available IPv4 address on the interface: {interface}.")
+        if ipver_explicit or not has_ipv6:
+            list_error.append(f"No available IPv4 address on the interface: {interface}.")
+        else:
+            ip_mode = IPMode(False, ip_mode.ipv6)
+            list_warning.append(f"No IPv4 address on interface {interface}, so IPv4 scanning is skipped")
     if ip_mode.ipv6 and not has_ipv6:
-        list_error.append(f"No available IPv6 address on the interface: {interface}.")
+        if ipver_explicit or not has_ipv4:
+            list_error.append(f"No available IPv6 address on the interface: {interface}.")
+        else:
+            ip_mode = IPMode(ip_mode.ipv4, False)
+            list_warning.append(f"No IPv6 address on interface {interface}, so IPv6 scanning is skipped")
 
-    return smac
+    return smac, ip_mode
 
 
 def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning) -> tuple:
@@ -943,17 +960,17 @@ def _print_errors(list_error, json_output, more_detail) -> None:
                 ptprinthelper.ptprint(info, "ERROR", condition=True, indent=4)
             # Print JSON error next
             print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
-            sys.exit(0)
+            sys.exit(1)
         else:
             # -j without -vv: emit only JSON error payload
             print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
-            sys.exit(0)
+            sys.exit(1)
 
     # Text mode only
     Non_json.print_box("Errors about inserted parameters")
     for info in list_error:
         ptprinthelper.ptprint(info, "ERROR", condition=True, indent=4)
-    sys.exit(0)
+    sys.exit(1)
 
 
 def _print_warnings(list_warning, json_output, more_detail, less_detail) -> None:
@@ -999,10 +1016,13 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
                 ptprinthelper.ptprint("Chatty DEBUG diagnostics enabled (-vvv)", "INFO", condition=True, indent=4)
         if not more_detail:
             ptprinthelper.ptprint("Displaying only basic detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
-        if check_addresses:
-            ptprinthelper.ptprint("Checking the found addresses if they are valid or not", "INFO", condition=True, indent=4)
-        if not check_addresses:
-            ptprinthelper.ptprint("Not checking the found addresses if they are valid or not", "INFO", condition=True, indent=4)
+        # Reachability probes only exist in the modes that may transmit; passive and
+        # 802.1x never probe, so reporting a check there would be misleading.
+        if any(mode in type for mode in ("a", "a+")):
+            if check_addresses:
+                ptprinthelper.ptprint("Checking the found addresses if they are valid or not", "INFO", condition=True, indent=4)
+            else:
+                ptprinthelper.ptprint("Not checking the found addresses if they are valid or not", "INFO", condition=True, indent=4)
 
         if "p" in type:
             ptprinthelper.ptprint(f"Passive duration: {duration_passive}s", "INFO", condition=True, indent=4)
@@ -1082,7 +1102,8 @@ def parameter_control(
     _validate_type_combination(type, json_output, more_detail)
     _validate_interface(interface, json_output, more_detail)
 
-    ip_mode = IPMode(ipv4, ipv6) if (ipv4 or ipv6) else IPMode(False, True)
+    # Neither -4 nor -6 given: scan both families (dual-stack default).
+    ip_mode = IPMode(ipv4, ipv6) if (ipv4 or ipv6) else IPMode(True, True)
 
     _validate_detail_flags(more_detail, less_detail, json_output)
 
@@ -1121,7 +1142,7 @@ def parameter_control(
     elif type == ["802.1x"]:
         _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error)
     elif type == ["a"] or ("a" in type and "802.1x" in type and len(type) == 2):
-        smac = _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning)
+        smac, ip_mode = _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning, ipver_explicit=bool(ipv4 or ipv6))
     if type == ["a+"] or ("a+" in type and ("802.1x" in type or "a" in type)):
         duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns = _validate_aggressive_mode(
             interface, ip_mode, duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning
@@ -1129,11 +1150,7 @@ def parameter_control(
 
     if list_error:
         _store_error_outputs(list_error, json_output, interface, more_detail)
-        if json_output:
-            print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
-        else:
-            _print_errors(list_error, json_output, more_detail)
-        sys.exit(1)
+        _print_errors(list_error, json_output, more_detail)
 
     if duration_aggressive is not None:
         duration_aggressive = float(duration_aggressive)
@@ -1166,19 +1183,11 @@ def parameter_control(
                 list_error.append(f"Invalid target value (expected MAC or IP): {target}")
         if list_error:
             _store_error_outputs(list_error, json_output, interface, more_detail)
-            if json_output:
-                print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
-            else:
-                _print_errors(list_error, json_output, more_detail)
-            sys.exit(1)
+            _print_errors(list_error, json_output, more_detail)
         if normalized_macs and normalized_ips:
             list_error.append("Invalid target combination: mixing MAC and IP addresses in -target is not allowed.")
             _store_error_outputs(list_error, json_output, interface, more_detail)
-            if json_output:
-                print(ptjsonlib_object.end_error(list_error, ptjsonlib_object))
-            else:
-                _print_errors(list_error, json_output, more_detail)
-            sys.exit(1)
+            _print_errors(list_error, json_output, more_detail)
         if normalized_macs:
             validated_target_macs = normalized_macs
         if normalized_ips:

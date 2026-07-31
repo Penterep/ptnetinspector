@@ -340,7 +340,11 @@ class Save:
                                 except Exception as ex:
                                     logger.debug("Failed to parse LLMNR answer for %s: %s", packet[0].src, ex)
 
-            if packet is not None and DNSRR in packet and DNS in packet:
+            # mDNS runs on UDP/5353. Without the port check every ordinary unicast
+            # DNS response matched here, so answers about remote hosts were recorded
+            # as addresses of whichever device relayed them (LLMNR guards on 5355).
+            if (packet is not None and DNSRR in packet and DNS in packet
+                    and UDP in packet and 5353 in (packet[UDP].sport, packet[UDP].dport)):
                 Node(packet[0].src, packet[0][1].src).save_addresses()
                 MDNS(packet[0].src, packet[0][1].src).save_MDNS()
                 if hasattr(packet[1][DNS], 'an') and packet[1][DNS].an is not None:

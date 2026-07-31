@@ -132,9 +132,6 @@ REUSE_EXISTING_DATA = False
 Interface_object = Interface(interface)
 Vulnerability_object = None  # Will be initialized in main() after setting interface context
 
-# Global accumulator for JSON results when running multiple modes
-_accumulated_json_result = None
-
 
 def setup_iptables(rule_type):
     if not IptablesRule.check(rule_type, ip_mode.ipv4, ip_mode.ipv6, nofwd if rule_type == "a+" else False):
@@ -166,35 +163,64 @@ def cleanup_and_exit():
     sys.exit()
 
 
+def output_802_1x_results():
+    """Render the 802.1x results the same way every other mode renders its own.
+
+    The verdict is network-scoped and the devices are whatever the short EAPOL
+    capture saw; both were stored and returned in JSON while the terminal printed
+    nothing but the scan heading.
+    """
+    Non_json.output_general(
+        "802.1x",
+        ip_mode,
+        get_csv_path("addresses.csv", interface),
+        check_addresses=check_addresses,
+        target_codes=target_codes,
+        target_macs=target_macs,
+        target_ips=target_ips,
+    )
+    Non_json.read_vulnerability_table(
+        "802.1x",
+        ip_mode,
+        target_codes=target_codes,
+        target_macs=target_macs,
+        target_ips=target_ips,
+    )
+
+
 def ptnet_eap(combine=False):
     from ptnetinspector.utils.runtime import _suppress_non_json
-    global _accumulated_json_result
     if REUSE_EXISTING_DATA:
         print_message("Reusing cached 802.1x results (within retention window)", indent=4)
         if not _suppress_non_json:
             eap_file = get_csv_path("eap.csv", interface)
             Non_json.output_protocol(interface, ip_mode, "802.1x", "802.1x", eap_file, less_detail)
+            output_802_1x_results()
             if more_detail:
                 ptprint_info_warning("802.1x scan (cached)", "INFO", condition=True)
         if json_output and not combine:
             enablePrint()
         return
 
+    # The local prefixes are what tells an on-link neighbour from a host merely
+    # routed through the gateway, so they are needed before any filtering.
+    prepare_networks_file(interface, get_csv_path("networks.csv", interface))
     Run.run_normal_mode(interface, "802.1x", ip_mode, 3)
+    # Sniffing for EAPOL also records every address seen in transit, so the
+    # local-scope filter has to run here too; without it the report would list
+    # remote hosts as addresses of the gateway. Probing stays off (passive):
+    # 802.1x is tested before authentication, so the scan must stay quiet.
+    handle_addresses(interface, ip_mode, passive=True, check_addresses=check_addresses)
     create_vendor_csv()
     Vulnerability_object.handle_vulnerabilities("802.1x")
 
     if not _suppress_non_json:
         eap_file = get_csv_path("eap.csv", interface)
         Non_json.output_protocol(interface, ip_mode, "802.1x", "802.1x", eap_file, less_detail)
-        if more_detail:
-            ptprint_info_warning("802.1x scan (cached)", "INFO", condition=True)
+        output_802_1x_results()
 
-    # Accumulate JSON result (don't print yet if multiple modes)
-    if json_output:
-        if not combine:
-            enablePrint()
-        _accumulated_json_result = Json.output_object(True, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
+    if json_output and not combine:
+        enablePrint()
 
 
 def ptnet_passive():
@@ -206,7 +232,7 @@ def ptnet_passive():
         check_interface_status(Interface_object, interface)
         prepare_networks_file(interface, get_csv_path("networks.csv", interface))
         Run.run_normal_mode(interface, "p", ip_mode, duration_passive)
-        handle_addresses(interface, ip_mode, passive=True)
+        handle_addresses(interface, ip_mode, passive=True, check_addresses=check_addresses)
         create_vendor_csv()
         sort_all_csv(interface)
         Vulnerability_object.handle_vulnerabilities("p")
@@ -231,11 +257,6 @@ def ptnet_passive():
         target_ips,
     )
 
-    # Accumulate JSON result (don't print yet if multiple modes)
-    if json_output:
-        global _accumulated_json_result
-        _accumulated_json_result = Json.output_object(True, "p", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
-
 
 def ptnet_active():
     from ptnetinspector.utils.runtime import _suppress_non_json
@@ -247,7 +268,7 @@ def ptnet_active():
         prepare_networks_file(interface, get_csv_path("networks.csv", interface))
         setup_iptables("a")
         Run.run_normal_mode(interface, "a", ip_mode, None)
-        handle_addresses(interface, ip_mode)
+        handle_addresses(interface, ip_mode, check_addresses=check_addresses)
         create_vendor_csv()
         sort_all_csv(interface)
         Vulnerability_object.handle_vulnerabilities("a")
@@ -303,7 +324,7 @@ def ptnet_aggressive():
             mtu,
             dns,
         )
-        handle_addresses(interface, ip_mode)
+        handle_addresses(interface, ip_mode, check_addresses=check_addresses)
         create_vendor_csv()
         sort_all_csv(interface)
         Vulnerability_object.handle_vulnerabilities("a+")

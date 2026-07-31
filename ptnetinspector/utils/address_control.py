@@ -24,6 +24,7 @@ from scapy.utils6 import get_source_addr_from_candidate_set
 
 from ptnetinspector.entities.networks import Networks
 from ptnetinspector.utils.interface import Interface
+from ptnetinspector.utils.ip_utils import is_llsnm_ipv6
 from ptnetinspector.send.send import IPMode
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.burst_control import resolve_burst_limit, sendp_adaptive
@@ -57,9 +58,42 @@ def check_ip_in_subnets(ip: Union[ipaddress.IPv4Address, ipaddress.IPv6Address],
     return any(ip in subnet for subnet in subnets)
 
 
-def filter_unicast_addresses(mappings: List[AddressMapping], ip_mode: IPMode) -> List[AddressMapping]:
+_ULA_NETWORK = ipaddress.ip_network("fc00::/7")
+
+
+def _is_local_ipv6(ip: ipaddress.IPv6Address, ipv6_subnets) -> bool:
+    """Decide whether an observed IPv6 address belongs to a node on this link.
+
+    Besides the scanner's own prefixes, neighbours legitimately use unique local
+    addresses and prefixes advertised by other routers, so those count as local.
+    """
+    if ip.is_link_local or ip in _ULA_NETWORK:
+        return True
+    return not ipv6_subnets or check_ip_in_subnets(ip, ipv6_subnets)
+
+
+def filter_unicast_addresses(
+    mappings: List[AddressMapping],
+    ip_mode: IPMode,
+    keep_solicited_node: bool = False,
+) -> List[AddressMapping]:
+    """Keep only addresses that plausibly belong to a node on the local link.
+
+    Args:
+        mappings: Observed MAC/IP pairs.
+        ip_mode: Enabled IP versions.
+        keep_solicited_node: True under -nc, where solicited-node multicast groups
+            are retained because they reveal addresses that were never confirmed
+            by a reachability probe.
+    """
     result = []
     ipv4_subnets, ipv6_subnets = Networks.load_networks()
+
+    # Extend the local prefix set with prefixes advertised on the link, otherwise
+    # neighbours addressed from a router prefix the scanner did not adopt are lost.
+    for ra_prefix in Networks.load_ra_prefixes():
+        if ra_prefix not in ipv6_subnets:
+            ipv6_subnets.append(ra_prefix)
 
     # Dynamically check if non-JSON output should be suppressed (avoid circular import)
     try:
@@ -77,8 +111,14 @@ def filter_unicast_addresses(mappings: List[AddressMapping], ip_mode: IPMode) ->
         try:
             ip = ipaddress.ip_address(mapping.ip)
             if is_valid_unicast_ip(ip):
-                if ip.is_link_local or (isinstance(ip, ipaddress.IPv4Address) and (not ipv4_subnets or check_ip_in_subnets(ip, ipv4_subnets))) or \
-                   (isinstance(ip, ipaddress.IPv6Address) and (not ipv6_subnets or check_ip_in_subnets(ip, ipv6_subnets))):
+                if isinstance(ip, ipaddress.IPv4Address):
+                    keep = ip.is_link_local or not ipv4_subnets or check_ip_in_subnets(ip, ipv4_subnets)
+                else:
+                    keep = _is_local_ipv6(ip, ipv6_subnets)
+                if keep:
+                    result.append(mapping)
+            elif keep_solicited_node and ip_mode.ipv6 and isinstance(ip, ipaddress.IPv6Address):
+                if is_llsnm_ipv6(mapping.ip):
                     result.append(mapping)
         except ValueError:
             # Malformed address in CSV could indicate file corruption; log for debug.
@@ -232,17 +272,26 @@ class AddressValidator:
         return await asyncio.to_thread(self._verify_mappings_bulk, mappings)
 
 
-def validate_addresses_mapping(interface: str, ip_mode: IPMode, passive: bool = False) -> None:
+def validate_addresses_mapping(interface: str, ip_mode: IPMode, passive: bool = False, verify: bool = True) -> None:
+    """Persist discovered MAC/IP mappings, optionally probing them for reachability.
+
+    Args:
+        interface: Interface the scan ran on.
+        ip_mode: Enabled IP versions.
+        passive: True for passive scans, which never emit probes.
+        verify: False when -nc is used; skips the ARP/NS reachability probes so no
+            extra traffic is generated and unresponsive addresses are kept.
+    """
     validator = AddressValidator(interface)
 
     original_mappings = read_mappings()
-    filtered_mapping = filter_unicast_addresses(original_mappings, ip_mode)
+    filtered_mapping = filter_unicast_addresses(original_mappings, ip_mode, keep_solicited_node=not verify)
 
     csv_file = get_csv_path('addresses.csv')
     unfiltered_file = Path(str(csv_file).replace('.csv', '_unfiltered.csv'))
     write_mappings(original_mappings, file_path=unfiltered_file)
 
-    if not passive:
+    if not passive and verify:
         filtered_mapping = asyncio.run(validator.verify_all_mappings(filtered_mapping))
 
     write_mappings(filtered_mapping)
@@ -251,7 +300,8 @@ def validate_addresses_mapping(interface: str, ip_mode: IPMode, passive: bool = 
 def delete_tmp_mapping_file():
     try:
         csv_file = get_csv_path('addresses.csv')
-        unfiltered_file = csv_file.replace('.csv', '_unfiltered.csv')
+        # get_csv_path returns a Path; Path.replace() renames, so operate on the string.
+        unfiltered_file = str(csv_file).replace('.csv', '_unfiltered.csv')
         os.remove(unfiltered_file)
     except FileNotFoundError:
         # Optional file may not exist on first run or after cleanup.

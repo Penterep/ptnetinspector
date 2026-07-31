@@ -88,6 +88,25 @@ def transform_role_print(role: str) -> str:
     return " | ".join(result)
 
 
+def mode_matches(mode: str | None, mode_field: str) -> bool:
+    """Whether a finding recorded for `mode_field` belongs to scan mode `mode`.
+
+    The Mode column holds a comma-separated list ("a,a+"), so it has to be compared
+    entry by entry: a substring test makes "a" match an aggressive-only "a+" row and
+    reports aggressive findings inside the active-scan section.
+
+    Args:
+        mode (str | None): Scan mode being rendered; None means no filtering.
+        mode_field (str): Value of the Mode column.
+
+    Returns:
+        bool: True when the finding applies to this mode.
+    """
+    if mode is None:
+        return True
+    return str(mode).strip() in {entry.strip() for entry in str(mode_field).split(',')}
+
+
 def extract_short_code(code: str) -> str:
     """Extract short vulnerability code format.
 

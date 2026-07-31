@@ -4,7 +4,7 @@
 | |_) / _ \ '_ \| __/ _ \ '__/ _ \ '_ \    | |/ _ \ / _ \| / __|
 |  __/  __/ | | | ||  __/ | |  __/ |_) |   | | (_) | (_) | \__ \
 |_|   \___|_| |_|\__\___|_|  \___| .__/    |_|\___/ \___/|_|___/
-                                 |_|      ptnetinspector v0.2.1
+                                 |_|      ptnetinspector v0.2.2
                                        https://www.penterep.com
 ```
 
@@ -112,9 +112,10 @@ The following options are applicable to all scan modes:
 | `-j`    | Output in JSON format. Displays only JSON output unless used with other options. Includes errors if present. |
 | `-vv` | Displays full details of the network scan. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown. |
 | `-less` | Displays minimum details of the network scan. When used with `-j`, outputs minimal and JSON data. Default: Basic details are shown. |
-| `-nc`   | Disables checking if found addresses are valid and responsive. |
+| `-nc`   | Disables checking if found addresses are valid and responsive. No ARP/Neighbour-Solicitation probes are sent, and every observed address is reported instead of only the ones that answered. |
 | `-4`    | Only scan IPv4 traffic (cannot be used alone for `a+` mode). |
 | `-6`    | Only scan IPv6 traffic. |
+| *(neither `-4` nor `-6`)* | Both IPv4 and IPv6 are scanned. On a single-stack interface the unavailable family is skipped with a warning. |
 | `-ts`   | Filter vulnerabilities by Test code (space-separated). Only selected tests will be scanned and reported. The tool will **automatically infer and schedule the required scan mode(s)**. Example: `-ts 4-MDNS 4-LLMNR 6-OUTRANGE` will auto-infer mode `a` (active). Mixed modes like `-ts 6-OUTRANGE 802-1X` will infer `[802.1x, a]`. |
 | `-tmpret` | Temporary file retention in seconds (default: 1800). Set a small value for quick cleanup during development. |
 | `-h`    | Displays help message and exits. |

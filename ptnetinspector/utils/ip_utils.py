@@ -446,6 +446,19 @@ def in6_getansma(a: str) -> str:
     return addr
 
 
+def normalize_ipv6(a: str) -> str:
+    """Return the canonical text form of an IPv6 address for reliable comparison.
+
+    Addresses read back from CSV may be spelled differently (expanded groups,
+    leading zeros) than the ones this module computes, so both sides are
+    normalized before being compared. Unparseable input is returned unchanged.
+    """
+    try:
+        return str(ipaddress.ip_address(str(a).strip()))
+    except ValueError:
+        return str(a).strip()
+
+
 # ============================================================================
 # IPv6 ADDRESS GENERATION FUNCTIONS
 # ============================================================================

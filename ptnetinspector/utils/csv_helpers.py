@@ -333,9 +333,13 @@ def sort_all_csv(interface: str) -> None:
 
 def sort_and_deduplicate_vul_csv(filepath: str) -> None:
     """
-    Sorts the CSV vulnerability file based on the first column (ID, assumed numeric), then by Code, then Description.
-    Removes duplicate rows. When rows are identical except for Label, keeps the one with Label=1.
-    When rows share same ID, Mode, IPver, Code but differ only in Description, keeps the one with longest Description.
+    Sorts a vulnerability CSV by device ID (numeric first, network rows last) and
+    removes duplicates. When rows are identical except for Label, keeps the one with
+    Label=1. When rows differ only in Description, keeps the longest Description.
+
+    Columns are resolved from the header rather than by position, because the three
+    vulnerability files have different shapes: vulnerability_mac.csv is keyed by MAC,
+    vulnerability_ip.csv by IP, and vulnerability_net.csv has no identity column at all.
 
     Args:
         filepath (str): Path to the CSV file.
@@ -348,69 +352,66 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
         header = next(reader)
         rows = list(reader)
 
-    # Create a dictionary to track rows by their key (all columns except Label)
+    def column(name: str) -> int | None:
+        return header.index(name) if name in header else None
+
+    label_idx = column('Label')
+    desc_idx = column('Description')
+    id_idx = column('ID')
+    # MAC or IP, whichever this file uses to identify the finding; absent for net rows.
+    identity_idx = column('MAC') if 'MAC' in header else column('IP')
+    ipver_idx = column('IPver')
+    code_idx = column('Code')
+
+    if label_idx is None or desc_idx is None or id_idx is None:
+        # Unknown layout: leave the file untouched rather than reshuffling it blindly.
+        return
+
+    def field(row: list, idx: int | None) -> str:
+        return row[idx] if idx is not None and idx < len(row) else ""
+
+    # Collapse rows that differ only in Label, keeping the most recent verdict.
+    # Rows are appended in evaluation order and every pass re-assesses the whole
+    # packet timeline, so a later row was computed from a superset of the evidence
+    # the earlier one saw — including the modes that ran in between.
     row_dict = {}
     for row in rows:
-        if not row:
+        if not row or len(row) < len(header):
             continue
-        # Key is all columns except the last one (Label)
-        key = tuple(row[:-1])
-        label = row[-1]
+        key = tuple(value for i, value in enumerate(row) if i != label_idx)
+        row_dict[key] = row
 
-        # If key exists, keep the row with Label='1'
-        if key in row_dict:
-            existing_label = row_dict[key][-1]
-            # Keep Label='1' if either current or existing has it
-            if label == '1' or existing_label != '1':
-                row_dict[key] = row
-        else:
-            row_dict[key] = row
-
-    # Get unique rows from dictionary
-    unique_rows = list(row_dict.values())
-
-    # Deduplicate by code while preserving identity column (MAC/IP).
-    # For vulnerability_ip.csv, using only ID/Mode/IPver/Code would incorrectly collapse
-    # multiple IP rows of the same device into one.
+    # Collapse rows that differ only in Description, keeping the most detailed one.
+    # The identity column stays in the key: without it vulnerability_ip.csv would
+    # fold every address of a device into a single row.
     code_dict = {}
-    for row in unique_rows:
-        if not row or len(row) < 7:
-            continue
-        # Key: ID, identity(MAC or IP), Mode, IPver, Code
-        code_key = (row[0], row[1], row[2], row[3], row[4])
-
-        if code_key in code_dict:
-            existing_row = code_dict[code_key]
-            existing_desc_len = len(existing_row[5])
-            current_desc_len = len(row[5])
-            # Keep row with longer description
-            if current_desc_len > existing_desc_len:
-                code_dict[code_key] = row
-        else:
+    for row in row_dict.values():
+        code_key = tuple(
+            value for i, value in enumerate(row) if i not in (label_idx, desc_idx)
+        )
+        existing = code_dict.get(code_key)
+        if existing is None or len(row[desc_idx]) > len(existing[desc_idx]):
             code_dict[code_key] = row
 
-    # Get deduplicated rows
-    deduplicated_rows = list(code_dict.values())
-
-    # Separate numeric and network rows
+    # Device rows first, ordered by device number; network rows after them.
     numeric_rows = []
     network_rows = []
-    for row in deduplicated_rows:
-        if row and row[0].isdigit():
-            numeric_rows.append(row)
-        else:
-            network_rows.append(row)
+    for row in code_dict.values():
+        (numeric_rows if field(row, id_idx).isdigit() else network_rows).append(row)
 
-    # Sort rows
-    numeric_rows.sort(key=lambda r: (int(r[0]), r[1], r[3], r[4], r[5]))
-    network_rows.sort(key=lambda r: (r[4], r[5]))
-    sorted_rows = numeric_rows + network_rows
+    numeric_rows.sort(key=lambda r: (
+        int(field(r, id_idx)),
+        field(r, identity_idx),
+        field(r, ipver_idx),
+        field(r, code_idx),
+        field(r, desc_idx),
+    ))
+    network_rows.sort(key=lambda r: (field(r, code_idx), field(r, desc_idx)))
 
-    # Write back to file
     with open(filepath, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)
-        writer.writerows(sorted_rows)
+        writer.writerows(numeric_rows + network_rows)
 
 def remove_duplicates_from_csv(input_csv: str) -> None:
     """

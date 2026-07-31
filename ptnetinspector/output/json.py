@@ -11,12 +11,12 @@ import pandas as pd
 from ptlibs.app_dirs import AppDirs
 from ptnetinspector.utils.path import get_csv_path, get_output_dir, get_tmp_path
 from ptnetinspector.utils.csv_helpers import delete_middle_content_csv
-from ptnetinspector.utils.output_helpers import filter_ips_by_mode, convert_role_to_list
+from ptnetinspector.utils.output_helpers import filter_ips_by_mode, convert_role_to_list, mode_matches
 from ptnetinspector.utils.ip_utils import (
     has_additional_data, is_global_unicast_ipv6, is_ipv6_ula, is_link_local_ipv6,
     is_valid_ipv6, is_llsnm_ipv6, is_dhcp_slaac
 )
-from ptnetinspector.utils.ip_utils import in6_getansma, in6_getnsma
+from ptnetinspector.utils.ip_utils import in6_getansma, in6_getnsma, normalize_ipv6
 from ptnetinspector.utils.oui import lookup_vendor_from_csv
 from ptnetinspector.utils.cli import ptjsonlib_object
 from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
@@ -57,7 +57,7 @@ class Json:
         vuln_codes: list[str] = []
         device_vulns = vuln_df[vuln_df['ID'].astype(str) == id_value]
         for _, vuln_row in device_vulns.iterrows():
-            if mode is not None and mode not in vuln_row.get('Mode', ''):
+            if not mode_matches(mode, vuln_row.get('Mode', '')):
                 continue
             code = vuln_row.get('Code', '')
             if not code:
@@ -86,7 +86,7 @@ class Json:
 
         vuln_codes: list[str] = []
         for _, vuln_row in ip_vulns.iterrows():
-            if mode is not None and mode not in vuln_row.get('Mode', ''):
+            if not mode_matches(mode, vuln_row.get('Mode', '')):
                 continue
             code = vuln_row.get('Code', '')
             if not code:
@@ -226,13 +226,14 @@ class Json:
                 return False
 
             source_ips = device_ips if device_ips is not None else all_ip
-            list_solicited_ip = [
-                in6_getnsma(addr)
+            # Compare in canonical form so a non-compressed CSV spelling still matches.
+            list_solicited_ip = {
+                normalize_ipv6(in6_getnsma(addr))
                 for addr in source_ips
                 if is_valid_ipv6(addr) and not is_llsnm_ipv6(addr)
-            ]
+            }
 
-            if ip not in list_solicited_ip:
+            if normalize_ipv6(ip) not in list_solicited_ip:
                 node = ptjsonlib_object.create_node_object(
                     node_type="Address", parent_type=None,
                     parent=key_node_ele, properties={
@@ -351,13 +352,19 @@ class Json:
             return ptjsonlib_object.get_result_json()
 
         addresses_file = get_csv_path("addresses.csv")
-        addresses_unfiltered_file = get_csv_path("addresses_unfiltered.csv")
         role_node_file = get_csv_path("role_node.csv")
         vulnerability_ip_file = Json._resolve_vulnerability_file("vulnerability_ip.csv")
 
-        if (has_additional_data(addresses_file) or has_additional_data(addresses_unfiltered_file)) and has_additional_data(role_node_file):
+        # The graph is rebuilt from the CSVs on every call, so drop what a previous
+        # call put there; add_node() appends and would otherwise emit each device twice.
+        ptjsonlib_object.json_object["results"]["nodes"] = []
+
+        # addresses.csv is the vetted local view and the only source the terminal
+        # output uses; addresses_unfiltered.csv is the raw capture (it still holds
+        # remote hosts seen in transit) and must not leak into the report.
+        if has_additional_data(addresses_file) and has_additional_data(role_node_file):
             role_node_df = pd.read_csv(role_node_file)
-            addresses_df = pd.read_csv(addresses_file) if has_additional_data(addresses_file) else pd.read_csv(addresses_unfiltered_file)
+            addresses_df = pd.read_csv(addresses_file)
             addresses_df = filter_ips_by_mode(addresses_df, ipver)
 
             # Always ignore scanner device and all its addresses.
@@ -414,7 +421,7 @@ class Json:
                         ip_val = str(ip_row.get('IP', '')).strip()
                         if not ip_val:
                             continue
-                        if mode is not None and mode not in str(ip_row.get('Mode', '')):
+                        if not mode_matches(mode, ip_row.get('Mode', '')):
                             continue
                         code_val = str(ip_row.get('Code', '')).strip().upper()
                         if target_codes_set and code_val and code_val not in target_codes_set:
