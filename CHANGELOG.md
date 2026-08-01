@@ -86,7 +86,10 @@ Version 0.2.2
   terminal printed nothing (wrong source file, no analysis tables, findings without an IP
   family dropped by the `-4`/`-6` filter, and the verdict forced to N/A)
 - Network-scoped findings are printed even when no device was discovered
-- Added a vulnerability matrix table: codes as rows, network and devices as columns
+- Added a vulnerability matrix table: codes as rows, network and devices as columns, with
+  entities the finding does not apply to marked distinctly from a tested N/A result
+- Fixed the dynamic burst limit being recomputed and re-logged on every send batch under
+  `-vvv`; it is now resolved once per interface and reported once per sender
 - Fixed duplicated devices and addresses in JSON output for passive and 802.1x modes
 - JSON output no longer falls back to the unfiltered capture, which could report remote
   hosts seen in transit as addresses of a local device

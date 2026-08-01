@@ -51,6 +51,19 @@ def estimate_dynamic_burst_limit(
     return burst
 
 
+# The estimate derives from the interface queue length and the socket write buffer,
+# neither of which changes during a run, so it is computed once per interface. Every
+# send batch used to recompute it and emit the same DEBUG line again.
+_dynamic_burst_by_interface: dict[str, int] = {}
+_dynamic_burst_logged: set[tuple[str, str]] = set()
+
+
+def reset_dynamic_burst_cache() -> None:
+    """Forget memoized burst estimates (used by tests and long-lived processes)."""
+    _dynamic_burst_by_interface.clear()
+    _dynamic_burst_logged.clear()
+
+
 def resolve_burst_limit(
     requested_limit: int | None,
     configured_limit: int,
@@ -68,14 +81,21 @@ def resolve_burst_limit(
     if candidate_int > 0:
         return candidate_int
 
-    dynamic = estimate_dynamic_burst_limit(interface)
-    logger.debug(
-        "Dynamic burst selected for %s: %s (requested=%s, configured=%s)",
-        context,
-        dynamic,
-        requested_limit,
-        configured_limit,
-    )
+    dynamic = _dynamic_burst_by_interface.get(interface)
+    if dynamic is None:
+        dynamic = estimate_dynamic_burst_limit(interface)
+        _dynamic_burst_by_interface[interface] = dynamic
+
+    # One line per sender, not per batch: the value is identical every time.
+    if (interface, context) not in _dynamic_burst_logged:
+        _dynamic_burst_logged.add((interface, context))
+        logger.debug(
+            "Dynamic burst selected for %s: %s (requested=%s, configured=%s)",
+            context,
+            dynamic,
+            requested_limit,
+            configured_limit,
+        )
     return dynamic
 
 

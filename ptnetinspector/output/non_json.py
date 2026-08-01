@@ -260,7 +260,14 @@ class Non_json:
         GREEN = '\033[92m'
         RED = '\033[91m'
         WHITE = '\033[97m'
+        GREY = '\033[90m'
         END = '\033[0m'
+
+        # An entity the check never applied to — a device column for a network-scoped
+        # finding, or the network column for a device-scoped one. Distinct from N/A,
+        # which means the entity was tested and the result was neither positive nor
+        # negative.
+        not_applicable_symbol = f"{GREY}—{END}"
 
         def get_status_symbol(label):
             """Return colored symbol based on label value.
@@ -410,18 +417,28 @@ class Non_json:
         # Print the per-code matrix (codes as rows, entities as columns)
         ptprinthelper.ptprint("")
         Non_json.print_box("Vulnerability Matrix")
-        ptprinthelper.ptprint(f"Legend: {RED}✕{END} = Vulnerable | {GREEN}✓{END} = Not Vulnerable | {WHITE}●{END} = N/A / not tested", condition=True, indent=4)
+        ptprinthelper.ptprint(
+            f"Legend: {RED}✕{END} = Vulnerable | {GREEN}✓{END} = Not Vulnerable | "
+            f"{WHITE}●{END} = N/A (tested, no verdict) | {not_applicable_symbol} = does not apply to this entity",
+            condition=True, indent=4,
+        )
         ptprinthelper.ptprint("")
-        Non_json._print_vulnerability_matrix(sorted_codes, vulnerabilities, get_status_symbol)
+        Non_json._print_vulnerability_matrix(
+            sorted_codes, vulnerabilities, get_status_symbol, not_applicable_symbol
+        )
 
     @staticmethod
-    def _print_vulnerability_matrix(vuln_codes, vulnerabilities, get_status_symbol) -> None:
+    def _print_vulnerability_matrix(vuln_codes, vulnerabilities, get_status_symbol,
+                                    not_applicable_symbol) -> None:
         """Render one grid with vulnerability codes as rows and entities as columns.
 
-        Cells hold the same symbols as the per-vulnerability tables; an entity that
-        was never tested for a given code shows the N/A symbol. A subnet easily has
-        more devices than fit side by side, so the entity columns are split into
-        chunks that fit the terminal and printed one block after another.
+        A cell holds the entity's stored verdict, including N/A when the entity was
+        tested without reaching one. Entities the check never applied to — devices
+        under a network-scoped finding, the network under a device-scoped one — are
+        marked separately, because "not measurable here" is not a result.
+
+        A subnet easily has more devices than fit side by side, so the entity columns
+        are split into chunks that fit the terminal and printed one block after another.
         """
         indent = 4
 
@@ -470,7 +487,10 @@ class Non_json:
             rows = []
             for code in vuln_codes:
                 entities = vulnerabilities[code]['entities']
-                rows.append([code] + [get_status_symbol(entities.get(key, 2)) for key, _ in chunk])
+                rows.append([code] + [
+                    get_status_symbol(entities[key]) if key in entities else not_applicable_symbol
+                    for key, _ in chunk
+                ])
 
             headers = [label_header] + [header for _, header in chunk]
             table = tabulate(rows, headers=headers, tablefmt='grid',

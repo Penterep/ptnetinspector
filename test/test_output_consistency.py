@@ -232,6 +232,111 @@ class TestIpVersionSelection:
             assert Non_json._ipver_selected('both', ip_mode)
 
 
+MAC_FIELDS = ['ID', 'MAC', 'Mode', 'IPver', 'Code', 'Description', 'Label']
+
+
+class TestMatrixDistinguishesNotApplicable:
+    """A cell with no result is not the same as a tested-but-undecided one.
+
+    A network-scoped finding says nothing about an individual device, and a
+    device-scoped one says nothing about the network; both used to be rendered
+    with the N/A symbol, which claims the entity was tested.
+    """
+
+    @pytest.fixture
+    def matrix(self, temp_dir):
+        import ptnetinspector.output.non_json as NJ
+        import ptnetinspector.utils.csv_helpers as CH
+        import io
+        import contextlib
+        import re
+
+        csv_path = lambda name, iface=None: temp_dir / name
+        with patch('ptnetinspector.utils.path.get_tmp_path', lambda i=None: temp_dir), \
+             patch.object(CH, 'get_tmp_path', lambda i=None: temp_dir):
+            CH.create_csv()
+
+        _write_csv(temp_dir / "vulnerability_net.csv", NET_FIELDS, [
+            {'ID': 'Network', 'Mode': 'a', 'IPver': '4', 'Code': 'PTV-NET-TEST',
+             'Description': 'Network allows X', 'Label': '1'},
+        ])
+        _write_csv(temp_dir / "vulnerability_mac.csv", MAC_FIELDS, [
+            {'ID': '1', 'MAC': '00:11:22:00:00:01', 'Mode': 'a', 'IPver': '4',
+             'Code': 'PTV-NET-TESTDEV', 'Description': 'Device does X', 'Label': '2'},
+        ])
+
+        from ptnetinspector.output.non_json import Non_json
+        with patch('ptnetinspector.utils.path.get_tmp_path', lambda i=None: temp_dir), \
+             patch('ptnetinspector.utils.ip_utils.get_csv_path', csv_path), \
+             patch.object(NJ, 'get_csv_path', csv_path):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                Non_json.read_vulnerability_table("a", IPMode(True, True))
+        text = re.sub(r'\x1b\[[0-9;]*m', '', buf.getvalue())
+        section = text.split("Vulnerability Matrix")[1]
+        rows = {line.split('|')[1].strip(): line for line in section.splitlines()
+                if line.count('|') > 2 and 'PTV-' in line}
+        return rows, section
+
+    def test_device_column_of_a_network_finding_is_not_applicable(self, matrix):
+        rows, _ = matrix
+        row = rows['PTV-NET-TEST']
+        assert '—' in row, "a device cannot hold a network-scoped verdict"
+        assert '●' not in row, "that is not the same as tested-without-verdict"
+
+    def test_network_column_of_a_device_finding_is_not_applicable(self, matrix):
+        rows, _ = matrix
+        row = rows['PTV-NET-TESTDEV']
+        assert '—' in row
+        assert '●' in row, "the device itself was tested and reached no verdict"
+
+    def test_legend_explains_both_meanings(self, matrix):
+        _, section = matrix
+        legend = next(l for l in section.splitlines() if l.strip().startswith("Legend"))
+        assert "N/A (tested, no verdict)" in legend
+        assert "does not apply to this entity" in legend
+
+
+class TestBurstDiagnosticsAreNotRepeated:
+    """The dynamic burst estimate is constant per interface; log it once per sender."""
+
+    def test_logged_once_per_sender(self):
+        from unittest.mock import MagicMock
+        from ptnetinspector.utils import burst_control
+
+        burst_control.reset_dynamic_burst_cache()
+        logger = MagicMock()
+        for _ in range(5):
+            burst_control.resolve_burst_limit(
+                requested_limit=None, configured_limit=0, interface="lo",
+                logger=logger, context="send-ipv6")
+        assert logger.debug.call_count == 1
+
+        burst_control.resolve_burst_limit(
+            requested_limit=None, configured_limit=0, interface="lo",
+            logger=logger, context="send-ipv4")
+        assert logger.debug.call_count == 2, "each sender still reports its own limit once"
+
+    def test_value_is_stable_across_calls(self):
+        from unittest.mock import MagicMock
+        from ptnetinspector.utils import burst_control
+
+        burst_control.reset_dynamic_burst_cache()
+        logger = MagicMock()
+        limits = {burst_control.resolve_burst_limit(None, 0, "lo", logger, "send-ipv6")
+                  for _ in range(3)}
+        assert len(limits) == 1
+
+    def test_explicit_limit_bypasses_the_estimate(self):
+        from unittest.mock import MagicMock
+        from ptnetinspector.utils import burst_control
+
+        burst_control.reset_dynamic_burst_cache()
+        logger = MagicMock()
+        assert burst_control.resolve_burst_limit(32, 0, "lo", logger, "send-ipv6") == 32
+        assert logger.debug.call_count == 0
+
+
 class TestModeMatching:
     """The Mode column is a list, so 'a' must not be treated as a prefix of 'a+'."""
 
