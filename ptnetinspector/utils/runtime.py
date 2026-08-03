@@ -156,7 +156,7 @@ def print_message(message: str, level: str = "INFO", indent: int = 0, condition:
     _emit(_format_message(level, message), level, indent, condition)
 
 
-# Output policy flags set from main/CLI to control terminal verbosity when -j/-less/-vv
+# Output policy flags set from main/CLI to control terminal verbosity when -j/-less/-v/-vv
 _suppress_info_when_json_less = False
 _suppress_non_json = False
 
@@ -164,20 +164,20 @@ _suppress_non_json = False
 def configure_output_flags(json_output: bool, more_detail: bool, less_detail: bool) -> None:
     """Configure runtime output policy based on CLI flags.
 
-    - If -j without -vv: suppress all non-JSON output and INFO/WARNING chatter.
-    - If -j with -vv: show both non-JSON and JSON.
+    - If -j without -v/-vv: suppress all non-JSON output and INFO/WARNING chatter.
+    - If -j with -v/-vv: show both non-JSON and JSON.
     - If -j with -less: suppress non-JSON; only show JSON.
     - If no -j: show all by default.
     """
     global _suppress_info_when_json_less, _suppress_non_json
-    # Suppress INFO/WARNING when -j -less (no -vv)
+    # Suppress INFO/WARNING when -j -less (no -v/-vv)
     _suppress_info_when_json_less = bool(json_output and less_detail and not more_detail)
-    # Suppress all non-JSON output when -j but not -vv
+    # Suppress all non-JSON output when -j but not -v/-vv
     _suppress_non_json = bool(json_output and not more_detail)
 
 
 def configure_debug_logging(chatty_debug: bool, json_output: bool, more_detail: bool) -> None:
-    """Configure optional DEBUG diagnostics for -vvv output mode.
+    """Configure optional DEBUG diagnostics for -vv output mode.
 
     DEBUG diagnostics are rendered through ptprinthelper so they follow the
     same terminal style as standard runtime messages.

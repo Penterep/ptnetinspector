@@ -50,8 +50,8 @@ def _stringify_error(message) -> str:
 
 
 def _is_more_detail_enabled() -> bool:
-    """Return True when verbose terminal output is enabled (-vv or -vvv)."""
-    return ('-vv' in sys.argv) or ('-vvv' in sys.argv)
+    """Return True when verbose terminal output is enabled (-v or -vv)."""
+    return ('-v' in sys.argv) or ('-vv' in sys.argv)
 
 
 def _store_error_outputs(message, json_output: bool, interface: str | None = None, more_detail: bool = False) -> None:
@@ -211,8 +211,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-i", dest="interface", help="second mandatory argument")
     parser.add_argument("-j", action="store_true")
     parser.add_argument("-target", dest="targets", nargs="+", action="append", help="target MAC/IP address(es) for results filtering (space-separated; -target can be repeated)")
-    parser.add_argument("-vv", action="store_true", default=False)
-    parser.add_argument("-vvv", action="store_true", default=False)
+    parser.add_argument("-v", dest="v", action="store_true", default=False)
+    parser.add_argument("-vv", dest="vv", action="store_true", default=False)
     parser.add_argument("-less", action="store_true", default=False)
     parser.add_argument("-nc", action="store_false", default=True)
     parser.add_argument("-4", dest="ipv4", action="store_true", default=False)
@@ -240,11 +240,12 @@ def parse_args() -> argparse.Namespace:
 
     if unknown_args:
         msg = "Unexpected arguments found."
-        # Show logo for errors unless -j without -vv
-        if not args.j or args.vv:
+        verbose_output = args.v or args.vv
+        # Show logo for errors unless -j without -v/-vv
+        if not args.j or verbose_output:
             ptprinthelper.print_banner(SCRIPTNAME, __version__)
-        _store_error_outputs(msg, args.j, args.interface, args.vv)
-        if not args.j or args.vv:
+        _store_error_outputs(msg, args.j, args.interface, verbose_output)
+        if not args.j or verbose_output:
             ptprinthelper.ptprint(msg, "ERROR")
         if args.j:
             print(ptjsonlib_object.end_error(msg, ptjsonlib_object))

@@ -54,14 +54,14 @@ warnings.filterwarnings("ignore")
 
 ptjsonlib_object = PtJsonLib()
 args = parse_args()
-verbose_output = args.vv or args.vvv
+verbose_output = args.v or args.vv
 
-# Display logo at startup unless -j without -vv
+# Display logo at startup unless -j without -v/-vv
 from ptnetinspector.utils.cli import display_logo
 display_logo(args.j, verbose_output)
 
-# Configure chatty DEBUG diagnostics only for -vvv.
-configure_debug_logging(args.vvv, args.j, verbose_output)
+# Configure chatty DEBUG diagnostics only for -vv.
+configure_debug_logging(args.vv, args.j, verbose_output)
 
 # Validate and process parameters FIRST (before acquiring lock)
 # This ensures invalid parameters cause immediate errors without waiting in queue
