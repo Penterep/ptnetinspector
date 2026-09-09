@@ -18,6 +18,7 @@ from scapy.layers.llmnr import LLMNRResponse
 
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.mdns import MDNS
+from ptnetinspector.entities.dnssd import DNSSD
 from ptnetinspector.entities.llmnr import LLMNR
 from ptnetinspector.utils.ip_utils import is_global_unicast_ipv6, has_additional_data
 from ptnetinspector.utils.ip_utils import generate_global_ipv6, generate_random_global_ipv6, collect_unique_items
@@ -25,6 +26,7 @@ from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.ip_utils import reverse_IPadd
 from ptnetinspector.prototype.prototype_ipv6 import PrototypeIPv6Packet, MLDV2_RType
 from ptnetinspector.prototype.prototype_l4 import PrototypeL4
+from ptnetinspector.prototype.prototype_l7 import PrototypeL7
 from ptnetinspector.utils.ip_utils import send_ipv6_all_nodes_multicast, send_ipv6_all_routers_multicast, send_ipv6_from_all_addresses, send_ipv6_from_all_lla_addresses
 from ptnetinspector.send._scapy_io import SCAPY_IO_LOCK
 from ptnetinspector.utils.burst_control import (
@@ -1158,6 +1160,173 @@ class SendIPv6:
                         retry_delay=0.05,
                         verbose=0,
                     ) 
+
+    @staticmethod
+    def send_ni_queries(interface: str, addresses: list[str] | None = None, burst_limit: int | None = None) -> None:
+        """
+        Send ICMPv6 Node Information Queries (RFC 4620) to the link and to known nodes.
+
+        A responder returns its hostname and its complete address list, which
+        surfaces addresses that are never advertised and that address enumeration
+        would not guess. Coverage is uneven - many BSD/macOS stacks answer, Linux
+        generally does not - so treat a silence as "no support", not "no host".
+
+        Args:
+            interface (str): The network interface to use.
+            addresses (list[str] | None): Nodes to query; the all-nodes group is
+                always included so hosts the scan has not seen yet can answer.
+            burst_limit (int | None): Optional chunk size for sending.
+        Output:
+            None
+        """
+        if not Interface(interface).check_interface():
+            return
+        if not Interface(interface).check_available_ipv6():
+            return
+
+        src_mac = get_if_hwaddr(interface)
+        source_ips = Interface(interface).get_interface_ipv6_ips()
+        if not source_ips:
+            return
+        # Link-local is the correct source for on-link node information.
+        src_ip = next((ip for ip in source_ips if ip.lower().startswith("fe80")), source_ips[0])
+
+        targets = ["ff02::1"]
+        for address in (addresses or []):
+            candidate = str(address).strip()
+            if not candidate or candidate in targets:
+                continue
+            # Only unicast neighbours: multicast groups have no node to answer.
+            if is_global_unicast_ipv6(candidate) or candidate.lower().startswith("fe80"):
+                targets.append(candidate)
+
+        packets = []
+        for target in targets:
+            for query in ("name", "ipv6", "ipv4"):
+                packets.append(PrototypeIPv6Packet.get_frame_ni_query(src_mac, src_ip, target, query))
+
+        if not packets:
+            return
+
+        effective_limit = SendIPv6.__effective_burst_limit(burst_limit, interface)
+        sendp_adaptive(
+            packets=packets,
+            interface=interface,
+            logger=logger,
+            context="send-ipv6-ni-query",
+            initial_burst=effective_limit,
+        )
+
+    @staticmethod
+    def send_dnssd_walk(interface: str, burst_limit: int | None = None) -> None:
+        """
+        Walk the DNS-SD service tree instead of only announcing interest in it.
+
+        The existing probe asks `_services._dns-sd._udp.local` and stops. This
+        follows up on what that returned: a PTR for every service type seen, then
+        SRV and TXT for every instance, which turns "a host is up" into a named
+        device with a port and a model string.
+
+        Args:
+            interface (str): The network interface to use.
+            burst_limit (int | None): Optional chunk size for sending.
+        Output:
+            None
+        """
+        if not Interface(interface).check_interface():
+            return
+        if not Interface(interface).check_available_ipv6():
+            return
+
+        service_types, instances = DNSSD.collect_targets()
+        if not service_types and not instances:
+            return
+
+        src_mac = get_if_hwaddr(interface)
+        source_ips = Interface(interface).get_interface_ipv6_ips()
+        if not source_ips:
+            return
+
+        packets = []
+        for source_ip in source_ips:
+            for service in service_types:
+                packets.append(PrototypeIPv6Packet.get_frame_mdns_ptr(src_mac, source_ip, service + "."))
+            for instance in instances:
+                for payload in PrototypeL7.get_dns_srv_txt(instance + "."):
+                    packets.append(
+                        PrototypeIPv6Packet.get_frame_mdns_custom_payload(src_mac, source_ip, payload)
+                    )
+
+        if not packets:
+            return
+
+        effective_limit = SendIPv6.__effective_burst_limit(burst_limit, interface)
+        sendp_adaptive(
+            packets=packets,
+            interface=interface,
+            logger=logger,
+            context="send-ipv6-dnssd-walk",
+            initial_burst=effective_limit,
+        )
+
+    @staticmethod
+    def send_dhcpv6_inforequest(interface: str) -> None:
+        """
+        Send a DHCPv6 Information-Request to harvest the stateless option set.
+
+        Solicit asks for an address; Information-Request is what characterises a
+        stateless DHCPv6 deployment - resolvers, domain search list, NTP/SNTP and
+        SIP servers, boot-file URL - and identifies the server by its DUID.
+
+        Args:
+            interface (str): Network interface to send packet on.
+        Output:
+            None
+        """
+        send_ipv6_from_all_lla_addresses(
+            interface,
+            PrototypeIPv6Packet.get_l3payload_dhcpv6_inforequest(get_if_hwaddr(interface)),
+            dst_ip=PrototypeIPv6Packet.DHCPV6_IPV6_MULTICAST_IPS,
+        )
+
+    @staticmethod
+    def send_mld_snoop_probe(interface: str, group: str = "ff02::1:3fff:fffe") -> None:
+        """
+        Join a group nothing else uses, to see whether the switch snoops MLD.
+
+        If traffic for a group only this scanner joined still reaches ports that
+        never joined it, the switch is flooding rather than snooping. The result
+        is inferential and depends on switch configuration, so it is reported as
+        an observation rather than a verdict.
+
+        Args:
+            interface (str): The network interface to use.
+            group (str): The otherwise-unused multicast group to join.
+        Output:
+            None
+        """
+        if not Interface(interface).check_interface():
+            return
+        if not Interface(interface).check_available_ipv6():
+            return
+
+        source_ips = Interface(interface).get_interface_ipv6_ips()
+        link_local = next((ip for ip in source_ips if ip.lower().startswith("fe80")), None)
+        if not link_local:
+            return
+
+        packet = PrototypeIPv6Packet.get_frame_mld_snoop_probe(
+            get_if_hwaddr(interface), link_local, group
+        )
+        sendp_with_retries(
+            packets=[packet],
+            interface=interface,
+            logger=logger,
+            context="send-ipv6-mld-snoop",
+            retries=2,
+            retry_delay=0.05,
+            verbose=0,
+        )
 
     @staticmethod
     def send_dhcpv6_solicit(interface: str) -> None:

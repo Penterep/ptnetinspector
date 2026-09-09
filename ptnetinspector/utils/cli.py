@@ -168,9 +168,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
             # Print to terminal if not json_output OR if more_detail is set
             if not json_output or more_detail:
                 ptprinthelper.ptprint(msg, "ERROR")
-            if json_output:
-                print(ptjsonlib_object.end_error(msg, ptjsonlib_object))
-            sys.exit(2)
+            _exit_usage_error(msg, json_output)
 
         for err in error_msgs:
             if err in message:
@@ -194,9 +192,21 @@ class CustomArgumentParser(argparse.ArgumentParser):
                 # Print to terminal if not json_output OR if more_detail is set
                 if not json_output or more_detail:
                     ptprinthelper.ptprint(msg, "ERROR")
-                if json_output:
-                    print(ptjsonlib_object.end_error(msg, ptjsonlib_object))
-                sys.exit(2)
+                _exit_usage_error(msg, json_output)
+
+
+def _exit_usage_error(msg: str, json_output: bool) -> None:
+    """Emit a usage error and exit with the conventional usage status (2).
+
+    ptlibs' end_error() terminates the process itself with os._exit(1), which
+    made the same invalid invocation exit 2 in text mode and 1 under -j. Anything
+    driving the tool from a script needs one answer, so the payload is written
+    here and the exit status is ours.
+    """
+    if json_output:
+        ptjsonlib_object.set_status("error", msg)
+        print(ptjsonlib_object.get_result_json())
+    sys.exit(2)
 
 
 def parse_args() -> argparse.Namespace:
@@ -228,6 +238,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-dns", dest="dns", action="store", nargs="+", help="the IPv6 address of DNS server (separated by space if more than 1 address is inserted).")
     parser.add_argument("-mtu", action="store", help="the MTU of RA in aggressive mode.")
     parser.add_argument("-nofwd", action="store_true", default=False)
+    parser.add_argument("-rdns", dest="reverse_dns", action="store_true", default=False)
     parser.add_argument("-ts", dest="target_codes", nargs="+", help="filter vulnerabilities by code (space-separated)")
     parser.add_argument("-tmpret", dest="tmp_retention", type=float, default=1800.0, help="temporary file retention in seconds (default: 1800)")
 
@@ -247,9 +258,7 @@ def parse_args() -> argparse.Namespace:
         _store_error_outputs(msg, args.j, args.interface, verbose_output)
         if not args.j or verbose_output:
             ptprinthelper.ptprint(msg, "ERROR")
-        if args.j:
-            print(ptjsonlib_object.end_error(msg, ptjsonlib_object))
-        sys.exit(2)
+        _exit_usage_error(msg, args.j)
 
     return args
 
@@ -301,6 +310,8 @@ def get_help() -> list:
             ["-vvv            ", "Show full details plus DEBUG diagnostics"],
             ["-less           ", "Show minimum details of network scan"],
             ["-nc             ", "Do not probe found addresses for reachability (reports all observed addresses)"],
+            ["-rdns           ", "Reverse-resolve discovered addresses (PTR) against the DNS servers found on the link"],
+            ["                ", "   sends unicast DNS off-link, so it is off by default"],
             ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
             ["-6              ", "Only IPv6 traffic"],
             ["                ", "   default: both IPv4 and IPv6 are scanned"],
@@ -1082,6 +1093,7 @@ def parameter_control(
     target_codes,
     tmp_retention,
     targets,
+    reverse_dns=False,
 ) -> tuple:
     """
     Checks and validates inserted parameters. Returns all variables if no error, otherwise prints errors and exits.
@@ -1250,4 +1262,5 @@ def parameter_control(
         tmp_retention,
         validated_target_macs,
         validated_target_ips,
+        bool(reverse_dns),
     )

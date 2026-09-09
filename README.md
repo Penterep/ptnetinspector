@@ -112,12 +112,13 @@ The following options are applicable to all scan modes:
 | `-j`    | Output in JSON format. Displays only JSON output unless used with other options. Includes errors if present. |
 | `-vv` | Displays full details of the network scan. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown. |
 | `-less` | Displays minimum details of the network scan. When used with `-j`, outputs minimal and JSON data. Default: Basic details are shown. |
-| `-nc`   | Disables checking if found addresses are valid and responsive. No ARP/Neighbour-Solicitation probes are sent, and every observed address is reported instead of only the ones that answered. |
+| `-nc`   | Disables checking if found addresses are valid and responsive. No ARP/Neighbour-Solicitation probes are sent, and every observed address is reported instead of only the ones that answered — including neighbours on a private range outside the auto-detected subnets. Publicly routable addresses seen in transit stay excluded (they belong to hosts beyond the router, not to the device that relayed the frame); the raw view is always in `addresses_unfiltered.csv`. |
 | `-4`    | Only scan IPv4 traffic (cannot be used alone for `a+` mode). |
 | `-6`    | Only scan IPv6 traffic. |
 | *(neither `-4` nor `-6`)* | Both IPv4 and IPv6 are scanned. On a single-stack interface the unavailable family is skipped with a warning. |
 | `-ts`   | Filter vulnerabilities by Test code (space-separated). Only selected tests will be scanned and reported. The tool will **automatically infer and schedule the required scan mode(s)**. Example: `-ts 4-MDNS 4-LLMNR 6-OUTRANGE` will auto-infer mode `a` (active). Mixed modes like `-ts 6-OUTRANGE 802-1X` will infer `[802.1x, a]`. |
 | `-tmpret` | Temporary file retention in seconds (default: 1800). Set a small value for quick cleanup during development. |
+| `-rdns` | Reverse-resolves every discovered address (PTR in `ip6.arpa` / `in-addr.arpa`) against the DNS servers found on the link via RA/RDNSS or DHCPv6. Off by default: it is the only probe that sends traffic off-link. |
 | `-h`    | Displays help message and exits. |
 
 ### Specific Options for Passive Scanning
@@ -146,6 +147,41 @@ The following options are applicable to all scan modes:
 | `-mtu`     | MTU advertised on the link. Excluded if not specified. |
 | `-dns`     | IPv6 address(es) of DNS server(s). Multiple addresses can be space-separated. Excluded if not specified. Required for FAKERADNS vulnerability testing (part of FAKERA tests). |
 | `-nofwd`   | Prevents the scanner from forwarding packets (MiTM). Forwarding is allowed by default. |
+
+## Output Files
+
+Every run writes its artifacts to the interface's output directory
+(`~/.local/share/ptnetinspector/tmp/<interface>/`):
+
+| File | Contents |
+|------|----------|
+| `ptnetinspector-output.json` | Full normalized JSON report (written with `-j`). |
+| `ptnetinspector-output.txt` | The terminal report as text. |
+| `devices.csv` / `devices.txt` | Device inventory: MAC, vendor, role, hostname and addresses, one device per row, with no findings mixed in. Useful when a segment has many devices and the per-device report becomes hard to read. |
+| `network-intel.txt` | Recon detail collected during the scan: Router Advertisement options, discovered DNS-SD services, Node Information replies, the multicast querier, DHCPv6 options, passive fingerprints and reverse-DNS results. |
+
+## What a Scan Collects
+
+Beyond the vulnerability findings, a scan extracts:
+
+- **Router Advertisement options** — every advertised prefix (not just the first), all
+  RDNSS servers, DNSSL search domains (RFC 8106), Route Information (RFC 4191),
+  PREF64/NAT64 (RFC 8781) and Captive Portal (RFC 8910).
+- **Passive fingerprints** — initial hop limit and the interface-identifier scheme
+  (EUI-64, low-bit/manual, or randomized stable-privacy/temporary). Derived from packets
+  already captured, so they cost no extra traffic. These are heuristics and are reported
+  as *likely*, not as fact.
+- **Node Information** (RFC 4620) — hostnames and full address lists from stacks that
+  answer NI Queries. Many BSD and macOS stacks do; Linux generally does not, so silence
+  means "no support", not "no host".
+- **DNS-SD service tree** — service types, instances, and the SRV host/port plus TXT
+  metadata each instance publishes.
+- **DHCPv6 options** — from an Information-Request: resolvers, domain search list,
+  NTP/SNTP and SIP servers, boot-file URL, vendor class and the server's DUID.
+- **Multicast querier and L2 snooping** — which device sends MLD/IGMP General Queries,
+  plus a join to an otherwise unused group to probe whether the switch snoops. The
+  snooping result is inferential and depends on switch configuration.
+- **Duplicate Address Detection** — addresses caught at the moment a host claims them.
 
 ## Examples
 
@@ -205,6 +241,13 @@ ptnetinspector -ts 6-MLDV1 6-OUTRANGE -i eth0 -j
 Mixed 802.1x and other tests (auto-infers modes `[802.1x, a]`):
 ```
 ptnetinspector -ts 802-1X 6-OUTRANGE 4-MULTIECHO -i eth0
+```
+
+### Reverse DNS Resolution
+Resolve discovered addresses through the resolvers found on the link. Sends unicast DNS
+off-link, so it is opt-in.
+```
+ptnetinspector -t a -i eth0 -rdns
 ```
 
 ### Target-Specific Device Filtering

@@ -6,6 +6,7 @@ tmp/cache management, and final JSON/text output. It wires together utilities fr
 `utils`, emits human-friendly terminal output via `output.non_json`, and produces the
 final normalized JSON via `output.json` by reading the accumulated CSVs.
 """
+import atexit
 import signal
 import sys
 import warnings
@@ -16,12 +17,15 @@ import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 from ptnetinspector.output.json import Json
+from ptnetinspector.output.devices import write_device_inventory
+from ptnetinspector.output.intel import print_report as print_intel_report, write_report as write_intel_report
+from ptnetinspector.send.reverse_dns import resolve_discovered_addresses
 from ptnetinspector.output.non_json import Non_json
 from ptnetinspector.scan import Run
 from ptnetinspector.utils.address_control import delete_tmp_mapping_file
 from ptnetinspector.utils.cli import enablePrint, parameter_control, parse_args
 from ptnetinspector.utils.csv_helpers import create_csv, sort_all_csv, has_additional_data
-from ptnetinspector.utils.interface import Interface, IptablesRule
+from ptnetinspector.utils.interface import Interface, IptablesRule, flush_tagged_rules
 from ptnetinspector.utils.oui import create_vendor_csv
 from ptnetinspector.utils.path import del_tmp_path, get_csv_path, get_output_dir, get_tmp_path, set_current_interface
 from ptnetinspector.utils.lock import acquire_global_lock
@@ -89,6 +93,7 @@ configure_debug_logging(args.vv, args.j, verbose_output)
     tmp_retention,
     target_macs,
     target_ips,
+    reverse_dns,
 ) = parameter_control(
     args.interface,
     args.j,
@@ -112,6 +117,7 @@ configure_debug_logging(args.vv, args.j, verbose_output)
     args.target_codes,
     args.tmp_retention,
     args.targets,
+    args.reverse_dns,
 )
 
 # Determine lock verbosity: suppress if -j and not -vv
@@ -120,21 +126,71 @@ lock_verbose = not (json_output and not more_detail)
 # This is done AFTER parameter validation to avoid queueing with invalid parameters
 acquire_global_lock(verbose=lock_verbose)
 
+# SIGKILL is untrappable, so a previous run can have left tagged DROP rules on
+# the interface. The lock above guarantees no other instance is live, which makes
+# this the safe moment to clear anything left behind.
+flush_tagged_rules()
+
+
+_TERMINATING_SIGNAL = None
+
 
 def custom_signal_handler(sig, frame):
+    global _TERMINATING_SIGNAL
+    _TERMINATING_SIGNAL = sig
     raise KeyboardInterrupt()
 
 
+# SIGINT alone was trapped, so a `kill`, a timeout wrapper, a systemd stop or a
+# session hangup during a passive scan skipped every restore path and left the
+# interface with DROP rules on INPUT/OUTPUT/FORWARD - the operator's box off the
+# network until they flushed iptables by hand. Route the catchable termination
+# signals through the same cleanup as Ctrl-C.
 signal.signal(signal.SIGINT, custom_signal_handler)
+signal.signal(signal.SIGTERM, custom_signal_handler)
+signal.signal(signal.SIGHUP, custom_signal_handler)
 
 REUSE_EXISTING_DATA = False
 
 Interface_object = Interface(interface)
 Vulnerability_object = None  # Will be initialized in main() after setting interface context
 
+# Tracks whether this run has state on the host that must be undone. Registered
+# once; a no-op when nothing was changed.
+_HOST_STATE_DIRTY = False
+
+
+def _restore_host_state():
+    """Undo every firewall/forwarding change this run made.
+
+    Runs from the signal path, the exception path and atexit, so any exit short
+    of SIGKILL leaves the host as it was found. Each step is independent: one
+    failing must not skip the rest.
+    """
+    global _HOST_STATE_DIRTY
+    if not _HOST_STATE_DIRTY:
+        return
+    _HOST_STATE_DIRTY = False
+
+    for step in (
+        lambda: cleanup_iptables("a") if ("a" in scanning_type or "a+" in scanning_type) else None,
+        lambda: cleanup_iptables("a+") if "a+" in scanning_type else None,
+        lambda: Interface_object.restore_traffic() if "p" in scanning_type else None,
+    ):
+        try:
+            step()
+        except Exception:
+            # Best-effort: a failing restore must not prevent the others.
+            logging.getLogger(__name__).debug("Host state restore step failed", exc_info=True)
+
+
+atexit.register(_restore_host_state)
+
 
 def setup_iptables(rule_type):
+    global _HOST_STATE_DIRTY
     if not IptablesRule.check(rule_type, ip_mode.ipv4, ip_mode.ipv6, nofwd if rule_type == "a+" else False):
+        _HOST_STATE_DIRTY = True
         IptablesRule.add(rule_type, ip_mode.ipv4, ip_mode.ipv6, nofwd if rule_type == "a+" else False)
         if rule_type == "a":
             print_message("Adding rules in configuration to perform active scanning", condition=True, indent=4)
@@ -358,6 +414,7 @@ def ptnet_aggressive():
 
 
 def execute_scan(scan_types):
+    global _HOST_STATE_DIRTY
     has_eap = "802.1x" in scan_types
     has_passive = "p" in scan_types
     has_active = "a" in scan_types
@@ -371,6 +428,7 @@ def execute_scan(scan_types):
                 Json.output_object(False, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
 
     if has_passive:
+        _HOST_STATE_DIRTY = True
         Interface_object.shutdown_traffic()
         print_message("Interface traffic shutdown", condition=True, indent=4)
         ptnet_passive()
@@ -445,6 +503,7 @@ def main():
         target_codes,
         target_macs,
         target_ips,
+        reverse_dns,
     )
 
     required_files = ["addresses.csv", "addresses_unfiltered.csv", "networks.csv"]
@@ -472,6 +531,38 @@ def main():
     try:
         execute_scan(scanning_type)
 
+        # -rdns is the one probe that leaves the link, so it is opt-in.
+        if reverse_dns:
+            resolved = resolve_discovered_addresses(ip_mode)
+            print_message(
+                f"Reverse DNS resolved {resolved} name(s) from the discovered resolvers",
+                "INFO",
+                indent=4,
+            )
+
+        # Recon detail the extended parsers collected: RA options, discovered
+        # services, node information, the querier, DHCPv6 options, fingerprints.
+        from ptnetinspector.utils.runtime import _suppress_non_json as suppress_output
+        if not suppress_output:
+            print_intel_report(detailed=more_detail)
+        intel_path, _ = write_intel_report()
+        if intel_path:
+            print_message(f"Network intelligence written: {intel_path}", "INFO", indent=4)
+
+        # A flat device list, written separately from the per-device findings.
+        # On a segment with many hosts the interleaved report is unreadable, and
+        # an operator usually wants "what is out there" before "what is wrong".
+        device_count, inventory_dir = write_device_inventory(
+            ip_mode, include_solicited_node=not check_addresses
+        )
+        if device_count and inventory_dir:
+            print_message(
+                f"Device inventory written for {device_count} device(s): "
+                f"{inventory_dir}/devices.csv, {inventory_dir}/devices.txt",
+                "INFO",
+                indent=4,
+            )
+
         # Print final JSON output at the end
         if json_output:
             enablePrint()
@@ -480,38 +571,14 @@ def main():
             # Final output reads accumulated CSVs; avoid mode filtering
             print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses))
     except KeyboardInterrupt:
-        has_active = "a" in scanning_type
-        has_aggressive = "a+" in scanning_type
-        has_passive = "p" in scanning_type
-
         terminate_child_processes()
-        if has_active or has_aggressive:
-            cleanup_iptables("a")
-        if has_aggressive:
-            cleanup_iptables("a+")
-        if has_passive:
-            try:
-                Interface_object.restore_traffic()
-            except Exception:
-                # Best-effort restore during interruption; shutdown should continue regardless.
-                pass
+        _restore_host_state()
         print_message("Scan interrupted by user", "WARNING")
+        # 128 + signal number is what a shell reports for a signalled process.
+        sys.exit(128 + (_TERMINATING_SIGNAL or signal.SIGINT))
     except Exception as e:
-        has_active = "a" in scanning_type
-        has_aggressive = "a+" in scanning_type
-        has_passive = "p" in scanning_type
-
         terminate_child_processes()
-        if has_active or has_aggressive:
-            cleanup_iptables("a")
-        if has_aggressive:
-            cleanup_iptables("a+")
-        if has_passive:
-            try:
-                Interface_object.restore_traffic()
-            except Exception:
-                # Best-effort restore after failure path; keep original exception handling flow.
-                pass
+        _restore_host_state()
         print_message(f"An error occurred: {str(e)}", "ERROR")
         print_message("Terminating ptnetinspector", "INFO", indent=0)
         sys.exit(1)

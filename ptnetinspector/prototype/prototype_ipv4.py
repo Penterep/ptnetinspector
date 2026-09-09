@@ -344,6 +344,23 @@ class PrototypeIPv4Packet:
         return [PrototypeIPv4Packet.__get_igmpv3_join(src_mac, src_ip, PrototypeIPv4Packet.MULTICAST_GROUPS_ACTIVE)]
 
     @staticmethod
+    def get_igmp_snoop_probe(src_mac: str|list[str]|None, src_ip: str|list[str]|None, group: str) -> Packet:
+        """
+        Builds an IGMPv3 join for a group nothing else on the link uses.
+
+        Whether frames for a group only this scanner joined still reach ports
+        that never joined it distinguishes an IGMP-snooping switch from one that
+        floods. Inferential: the answer depends on switch configuration.
+        Args:
+            src_mac: Source MAC address.
+            src_ip: Source IPv4 address.
+            group: The otherwise unused multicast group to join.
+        Output:
+            Packet: Scapy packet representing the IGMPv3 Membership Report.
+        """
+        return PrototypeIPv4Packet.__get_igmpv3_join(src_mac, src_ip, group)
+
+    @staticmethod
     def get_init_igmpv2_active_mode(src_mac: str|list[str]|None, src_ip: str|list[str]|None) -> list[Packet]:
         """
         Builds IGMPv2 join packets for each active-mode multicast group individually.

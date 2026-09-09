@@ -3,10 +3,15 @@
 Provides shared CSV persistence and loading utilities for specialized entities.
 """
 import csv
+import ipaddress
+import logging
 import subprocess
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.ip_utils import has_additional_data
 from ptnetinspector.entities._registry import registry
+
+
+logger = logging.getLogger(__name__)
 
 
 class Node:
@@ -111,57 +116,105 @@ class Node:
             })
 
     @staticmethod
-    def get_ipv6_route_metrics_and_addresses(timeout: float = 10.0) -> None:
+    def _run_ip_route(arguments: list[str], timeout: float) -> list[str] | None:
+        """Read the routing table through iproute2.
+
+        net-tools' `route` is not installed by default on current Debian,
+        Ubuntu, Fedora or Arch. Its absence raises FileNotFoundError, which is
+        neither CalledProcessError nor TimeoutExpired, so the routing tables
+        silently vanished from the report on any modern host.
+        """
         try:
-            # Use numeric output (-n) to avoid reverse-DNS stalls when resolver is unavailable.
-            route_output = subprocess.check_output(["route", "-n", "-A", "inet6"], timeout=timeout).decode("utf-8")
-
-            # Split the route output into lines
-            route_lines = route_output.splitlines()[2:]
-
-            for line in route_lines:
-                # Split each line into fields using whitespace as the delimiter
-                fields = line.split()
-
-                # Extract the fields of interest (Destination, Nexthop, Flag, Metric, Refcnt, Use, If)
-                if len(fields) >= 7:
-                    Destination, Nexthop, Flag, Metric, Refcnt, Use, If = fields[:7]
-                    Node.save_ipv6_routing_table(Destination, Nexthop, Flag, Metric, Refcnt, Use, If)
-
-        except subprocess.CalledProcessError as e:
-            print("Error running 'ip' command:", e)
-            return
+            output = subprocess.check_output(
+                ["ip"] + arguments,
+                timeout=timeout,
+                stderr=subprocess.DEVNULL,
+            ).decode("utf-8")
+        except FileNotFoundError:
+            logger.debug("iproute2 ('ip') not available; skipping routing table capture")
+            return None
+        except subprocess.CalledProcessError as error:
+            logger.debug("'ip %s' failed: %s", " ".join(arguments), error)
+            return None
         except subprocess.TimeoutExpired:
-            print("Timeout while running 'route -n -A inet6' command")
+            logger.debug("'ip %s' timed out", " ".join(arguments))
+            return None
+        return output.splitlines()
+
+    @staticmethod
+    def _parse_route_line(line: str) -> tuple[str, dict[str, str]] | None:
+        """Split one `ip route` line into its destination and its key/value tail."""
+        fields = line.split()
+        if not fields:
+            return None
+        destination = fields[0]
+        attributes: dict[str, str] = {}
+        index = 1
+        while index < len(fields):
+            key = fields[index]
+            if index + 1 < len(fields) and key in (
+                "via", "dev", "proto", "metric", "src", "pref", "scope", "expires", "mtu"
+            ):
+                attributes[key] = fields[index + 1]
+                index += 2
+            else:
+                attributes.setdefault(key, "")
+                index += 1
+        return destination, attributes
+
+    @staticmethod
+    def get_ipv6_route_metrics_and_addresses(timeout: float = 10.0) -> None:
+        lines = Node._run_ip_route(["-6", "route", "show"], timeout)
+        if lines is None:
             return
 
-        except Exception as e:
-            print("An error occurred:", e)
-            return
+        for line in lines:
+            parsed = Node._parse_route_line(line)
+            if parsed is None:
+                continue
+            destination, attributes = parsed
+            Node.save_ipv6_routing_table(
+                destination,
+                attributes.get("via", "::"),
+                attributes.get("proto", ""),
+                attributes.get("metric", ""),
+                "0",
+                "0",
+                attributes.get("dev", ""),
+            )
 
     @staticmethod
     def get_ipv4_route_metrics_and_addresses(timeout: float = 10.0) -> None:
-        try:
-            route_output = subprocess.check_output(["route", "-n"], timeout=timeout).decode("utf-8")
-            route_lines = route_output.splitlines()[2:]
-
-            for line in route_lines:
-                fields = line.split()
-
-                if len(fields) >= 8:
-                    Destination, Gateway, Genmask, Flags, Metric, Ref, Use, Iface = fields[:8]
-                    Node.save_ipv4_routing_table(Destination, Gateway, Genmask, Flags, Metric, Ref, Use, Iface)
-
-        except subprocess.CalledProcessError as e:
-            print("Error running 'route' command:", e)
-            return
-        except subprocess.TimeoutExpired:
-            print("Timeout while running 'route -n' command")
+        lines = Node._run_ip_route(["route", "show"], timeout)
+        if lines is None:
             return
 
-        except Exception as e:
-            print("An error occurred:", e)
-            return
+        for line in lines:
+            parsed = Node._parse_route_line(line)
+            if parsed is None:
+                continue
+            destination, attributes = parsed
+            if destination == "default":
+                network, genmask = "0.0.0.0", "0.0.0.0"
+            elif "/" in destination:
+                try:
+                    net = ipaddress.IPv4Network(destination, strict=False)
+                    network, genmask = str(net.network_address), str(net.netmask)
+                except ValueError:
+                    network, genmask = destination, ""
+            else:
+                network, genmask = destination, "255.255.255.255"
+
+            Node.save_ipv4_routing_table(
+                network,
+                attributes.get("via", "0.0.0.0"),
+                genmask,
+                attributes.get("proto", ""),
+                attributes.get("metric", ""),
+                "0",
+                "0",
+                attributes.get("dev", ""),
+            )
 
     @staticmethod
     def get_status_ip(ip):

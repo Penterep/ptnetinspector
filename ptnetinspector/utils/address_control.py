@@ -61,6 +61,21 @@ def check_ip_in_subnets(ip: Union[ipaddress.IPv4Address, ipaddress.IPv6Address],
 _ULA_NETWORK = ipaddress.ip_network("fc00::/7")
 
 
+def _is_private_scope(ip) -> bool:
+    """True for addresses that cannot belong to a host beyond the local router.
+
+    Used only under -nc, to keep a neighbour on a private range the subnet
+    auto-detection missed while still rejecting the public addresses that appear
+    in transit traffic and would otherwise be attributed to the relaying device.
+    """
+    # "Not globally routable" is the stable way to express this across Python
+    # versions: it covers RFC 1918, link-local, ULA and carrier-grade NAT space,
+    # while the classification of individual ranges under is_private has moved
+    # between releases. Multicast, loopback and unspecified are already excluded
+    # by is_valid_unicast_ip before this is reached.
+    return not ip.is_global
+
+
 def _is_local_ipv6(ip: ipaddress.IPv6Address, ipv6_subnets) -> bool:
     """Decide whether an observed IPv6 address belongs to a node on this link.
 
@@ -76,6 +91,7 @@ def filter_unicast_addresses(
     mappings: List[AddressMapping],
     ip_mode: IPMode,
     keep_solicited_node: bool = False,
+    keep_offlink: bool = False,
 ) -> List[AddressMapping]:
     """Keep only addresses that plausibly belong to a node on the local link.
 
@@ -85,6 +101,18 @@ def filter_unicast_addresses(
         keep_solicited_node: True under -nc, where solicited-node multicast groups
             are retained because they reveal addresses that were never confirmed
             by a reachability probe.
+        keep_offlink: True under -nc. The on-link test drops every address outside
+            the auto-detected subnets, which also removed real neighbours living
+            on a second private range of the same segment - a host-only or
+            secondary interface range, for instance. Under -nc such addresses are
+            kept.
+
+            The test is not dropped altogether, because addresses are attributed
+            to the MAC that sent the frame: a packet routed through the gateway
+            carries the gateway's MAC and the *remote* host's address, so keeping
+            everything would report public addresses as the gateway's own. Only
+            private-scope addresses, which cannot be a host beyond the router,
+            are kept; the raw view stays in addresses_unfiltered.csv.
     """
     result = []
     ipv4_subnets, ipv6_subnets = Networks.load_networks()
@@ -115,6 +143,8 @@ def filter_unicast_addresses(
                     keep = ip.is_link_local or not ipv4_subnets or check_ip_in_subnets(ip, ipv4_subnets)
                 else:
                     keep = _is_local_ipv6(ip, ipv6_subnets)
+                if not keep and keep_offlink:
+                    keep = _is_private_scope(ip)
                 if keep:
                     result.append(mapping)
             elif keep_solicited_node and ip_mode.ipv6 and isinstance(ip, ipaddress.IPv6Address):
@@ -280,12 +310,18 @@ def validate_addresses_mapping(interface: str, ip_mode: IPMode, passive: bool = 
         ip_mode: Enabled IP versions.
         passive: True for passive scans, which never emit probes.
         verify: False when -nc is used; skips the ARP/NS reachability probes so no
-            extra traffic is generated and unresponsive addresses are kept.
+            extra traffic is generated, and reports every observed address -
+            unresponsive ones and ones outside the detected subnets alike.
     """
     validator = AddressValidator(interface)
 
     original_mappings = read_mappings()
-    filtered_mapping = filter_unicast_addresses(original_mappings, ip_mode, keep_solicited_node=not verify)
+    filtered_mapping = filter_unicast_addresses(
+        original_mappings,
+        ip_mode,
+        keep_solicited_node=not verify,
+        keep_offlink=not verify,
+    )
 
     csv_file = get_csv_path('addresses.csv')
     unfiltered_file = Path(str(csv_file).replace('.csv', '_unfiltered.csv'))

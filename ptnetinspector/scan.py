@@ -6,18 +6,24 @@ facts into CSV artifacts, used later for both human-readable and JSON outputs.
 import csv
 import multiprocessing
 import logging
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 import pandas as pd
 from scapy.all import *
 from scapy.contrib.igmp import IGMP
-from scapy.contrib.igmpv3 import IGMPv3, IGMPv3mr
+from scapy.contrib.igmpv3 import IGMPv3, IGMPv3mr, IGMPv3mq
 from scapy.layers.eap import EAP, EAPOL
 from scapy.layers.inet import IP, UDP
 from scapy.layers.inet6 import IPv6, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, \
     ICMPv6MLReport2, ICMPv6MLDMultAddrRec, ICMPv6MLReport, ICMPv6MLDone, ICMPv6EchoReply, ICMPv6EchoRequest, \
-    ICMPv6ND_NA, ICMPv6DestUnreach, ICMPv6ParamProblem, ICMPv6ND_Redirect
+    ICMPv6ND_NA, ICMPv6ND_NS, ICMPv6DestUnreach, ICMPv6ParamProblem, ICMPv6ND_Redirect, \
+    ICMPv6MLQuery2, ICMPv6MLQuery, ICMPv6NDOptDNSSL, ICMPv6NDOptRouteInfo, ICMPv6NDOptPREF64, \
+    ICMPv6NDOptCaptivePortal, ICMPv6NDOptAdvInterval, \
+    ICMPv6NIReplyName, ICMPv6NIReplyIPv6, ICMPv6NIReplyIPv4
 from scapy.layers.dhcp6 import DHCP6OptIAAddress, DHCP6_Request, DHCP6_Rebind, DHCP6_Release, \
-    DHCP6_Renew, DHCP6_Decline, DHCP6_Confirm, DHCP6_Advertise, DHCP6OptServerId
+    DHCP6_Renew, DHCP6_Decline, DHCP6_Confirm, DHCP6_Advertise, DHCP6OptServerId, DHCP6_Reply, \
+    DHCP6OptDNSServers, DHCP6OptDNSDomains, DHCP6OptSNTPServers, DHCP6OptNTPServer, \
+    DHCP6OptSIPDomains, DHCP6OptSIPServers, DHCP6OptBootFileUrl, DHCP6OptVendorClass, \
+    DHCP6OptVendorSpecificInfo
 from scapy.layers.dhcp import DHCP
 from scapy.layers.dns import DNSRR, DNS
 from scapy.layers.l2 import Ether, Dot3, ARP
@@ -30,6 +36,12 @@ from ptnetinspector.utils.ip_utils import belongs_to_any_prefix, check_ipv6_addr
     find_requested_addr, extract_mac_from_duid
 from ptnetinspector.utils.csv_helpers import remove_duplicates_from_csv, sort_csv_role_node, delete_middle_content_csv
 from ptnetinspector.entities.wsdiscovery import parse_wsdiscovery, WSDiscovery
+from ptnetinspector.entities.dnssd import DNSSD
+from ptnetinspector.entities.fingerprint import Fingerprint, guess_os_from_hop_limit
+from ptnetinspector.entities.querier import Querier
+from ptnetinspector.entities.dhcpv6_options import DHCPv6Options
+from ptnetinspector.entities.ra_options import RAOption
+from ptnetinspector.entities.node_info import NodeInfo
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.router import Router
 from ptnetinspector.entities.node import Node
@@ -45,11 +57,56 @@ from ptnetinspector.entities.eap import EAP
 from ptnetinspector.send.send_ipv4 import SendIPv4, ICMPType
 from ptnetinspector.send.send_ipv6 import SendIPv6
 from ptnetinspector.send.send import Send, IPMode
-from ptnetinspector.utils.ip_utils import convert_OnOff, convert_preferenceRA, convert_mldv2_igmpv3_rtype, convert_timestamp_to_date
+from ptnetinspector.utils.ip_utils import convert_OnOff, convert_preferenceRA, convert_mldv2_igmpv3_rtype, convert_timestamp_to_date, classify_ipv6_iid
 from ptnetinspector.utils.csv_helpers import sort_csv
 
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _protocol_guard(protocol, mac):
+    """Isolate one protocol parser so a malformed frame cannot abort the scan.
+
+    The record counts and option lists below come straight off the wire, so a
+    truncated or crafted packet used to raise out of save_packets and discard
+    every result the mode had collected. Each block now absorbs its own errors
+    and the remaining protocols still get parsed.
+    """
+    try:
+        yield
+    except Exception as ex:
+        logger.debug("Skipping malformed %s data from %s: %s", protocol, mac, ex)
+
+
+def _iter_layers(packet, layer_cls, limit=None):
+    """Yield every instance of a layer, not just the first one Scapy indexes.
+
+    ``packet[cls]`` returns only the first match, which silently dropped every
+    prefix after the first in a multi-prefix RA.
+    """
+    count = 0
+    layer = packet.getlayer(layer_cls)
+    while layer is not None:
+        yield layer
+        count += 1
+        if limit is not None and count >= limit:
+            return
+        layer = layer.payload.getlayer(layer_cls)
+
+
+def _dhcp_message_type(packet):
+    """Return the DHCPv4 message-type option value, or None when absent.
+
+    RFC 2131 does not require message-type to be the first option, and a
+    truncated packet can carry the magic cookie with no options at all, so the
+    list is searched instead of being indexed positionally.
+    """
+    options = getattr(packet[DHCP], "options", None) or []
+    for option in options:
+        if isinstance(option, tuple) and len(option) >= 2 and option[0] == "message-type":
+            return option[1]
+    return None
 
 
 def _close_inherited_scapy_sockets():
@@ -189,7 +246,8 @@ class Save:
                         'destination IP': packet[IPv6].dst,
                         'src MAC': packet[Ether].src,
                         'des MAC': packet[Ether].dst,
-                        'protocol': packet[IPv6].nh
+                        'protocol': packet[IPv6].nh,
+                        'length': len(packet)
                     })
                 elif i == 1:
                     writer.writerow({
@@ -198,25 +256,29 @@ class Save:
                         'destination IP': packet[IP].dst,
                         'src MAC': packet[Ether].src,
                         'des MAC': packet[Ether].dst,
-                        'protocol': packet[IP].proto
+                        'protocol': packet[IP].proto,
+                        'length': len(packet)
                     })
                 elif i == 2:
                     writer.writerow({
                         'time': packet.time,
                         'src MAC': packet[Dot3].src,
                         'des MAC': packet[Dot3].dst,
+                        'length': len(packet)
                     })
                 elif i == 3:
                     writer.writerow({
                         'time': packet.time,
                         'src MAC': packet[Ether].src,
                         'des MAC': packet[Ether].dst,
+                        'length': len(packet)
                     })
                 elif i == 4:
                     writer.writerow({
                         'time': packet.time,
                         'src MAC': packet[Dot11].src,
                         'des MAC': packet[Dot11].dst,
+                        'length': len(packet)
                     })
 
     @staticmethod
@@ -231,7 +293,17 @@ class Save:
         src_mac = get_if_hwaddr(interface)
 
         for packet in packets:
+            # Cooked (SLL) and "any" captures carry no Ethernet header, so the
+            # link-layer source is empty and every row would be keyed on "".
+            if not packet.haslayer(Ether) and not packet.haslayer(Dot3):
+                logger.debug("Skipping packet without a link-layer header (cooked capture?)")
+                continue
+
             mac_src = packet[0].src
+            if not mac_src:
+                logger.debug("Skipping packet with an empty source MAC")
+                continue
+
             packet_time = convert_timestamp_to_date(packet.time)
             packet_line = Save.packet_to_one_line(packet)
 
@@ -260,64 +332,75 @@ class Save:
                         Remote_node(packet[0].src, packet[0][1].src, packet[0].dst, packet[0][1].dst).save_remote_node()
 
             if packet is not None and ICMPv6ND_RA in packet:
-                dns, mtu, prefix, valid_lft, preferred_lft = "", "", "", "", ""
-                A_flag, L_flag = "Not exist", "Not exist"
-                if ICMPv6NDOptRDNSS in packet:
-                    dns = str(packet[ICMPv6NDOptRDNSS].dns)
-                if ICMPv6NDOptMTU in packet:
-                    mtu = str(packet[ICMPv6NDOptMTU].mtu)
-                if ICMPv6NDOptPrefixInfo in packet:
-                    prefix = packet[ICMPv6NDOptPrefixInfo].prefix + "/" + str(packet[ICMPv6NDOptPrefixInfo].prefixlen)
-                    valid_lft = str(packet[ICMPv6NDOptPrefixInfo].validlifetime)
-                    preferred_lft = str(packet[ICMPv6NDOptPrefixInfo].preferredlifetime)
-                    A_flag = packet[ICMPv6ND_RA].A
-                    L_flag = packet[ICMPv6ND_RA].L
-
-                Router(packet[0].src, packet[0][1].src, convert_OnOff(packet[ICMPv6ND_RA].M),
-                        convert_OnOff(packet[ICMPv6ND_RA].O), convert_OnOff(packet[ICMPv6ND_RA].H),
-                        convert_OnOff(A_flag), convert_OnOff(L_flag),
-                        convert_preferenceRA(packet[ICMPv6ND_RA].prf), str(packet[ICMPv6ND_RA].routerlifetime),
-                        str(packet[ICMPv6ND_RA].reachabletime), str(packet[ICMPv6ND_RA].retranstimer),
-                        dns, mtu, prefix, valid_lft, preferred_lft).save_RA()
-                Node(packet[0].src, packet[0][1].src).save_addresses()
-                Router.save_router_address(packet[0].src)
+                with _protocol_guard("RA", mac_src):
+                    Save.save_router_advertisement(packet)
 
             if packet is not None and ICMPv6MLReport2 in packet:
-                for i in range(packet[0][ICMPv6MLReport2].records_number):
-                    MLDv2(packet[0].src, packet[0][1].src, 'Report v2',
-                          convert_mldv2_igmpv3_rtype(packet[0][ICMPv6MLDMultAddrRec][i].rtype),
-                          packet[0][ICMPv6MLDMultAddrRec][i].dst,
-                          packet[0][ICMPv6MLDMultAddrRec][i].sources).save_MLDv2()
-                    if in6_isllsnmaddr(packet[0][ICMPv6MLDMultAddrRec][i].dst):
-                        Node(packet[0].src, packet[0][ICMPv6MLDMultAddrRec][i].dst).save_addresses()
+                with _protocol_guard("MLDv2 report", mac_src):
+                    # records_number is attacker-controlled; the parsed record list
+                    # is the only trustworthy bound.
+                    for record in packet[ICMPv6MLReport2].records or []:
+                        MLDv2(packet[0].src, packet[0][1].src, 'Report v2',
+                              convert_mldv2_igmpv3_rtype(record.rtype),
+                              record.dst,
+                              record.sources).save_MLDv2()
+                        if in6_isllsnmaddr(record.dst):
+                            Node(packet[0].src, record.dst).save_addresses()
 
             if packet is not None and ICMPv6MLReport in packet:
-                MLDv1(packet[0].src, packet[0][1].src, 'Report v1', packet[0].mladdr).save_MLDv1()
-                if in6_isllsnmaddr(packet[0].mladdr):
-                    Node(packet[0].src, packet[0].mladdr).save_addresses()
+                with _protocol_guard("MLDv1 report", mac_src):
+                    MLDv1(packet[0].src, packet[0][1].src, 'Report v1', packet[0].mladdr).save_MLDv1()
+                    if in6_isllsnmaddr(packet[0].mladdr):
+                        Node(packet[0].src, packet[0].mladdr).save_addresses()
 
             if packet is not None and ICMPv6MLDone in packet:
-                MLDv1(packet[0].src, packet[0][1].src, 'Done v1', packet[0].mladdr).save_MLDv1()
-                if in6_isllsnmaddr(packet[0].mladdr):
-                    Node(packet[0].src, packet[0].mladdr).save_addresses()
+                with _protocol_guard("MLDv1 done", mac_src):
+                    MLDv1(packet[0].src, packet[0][1].src, 'Done v1', packet[0].mladdr).save_MLDv1()
+                    if in6_isllsnmaddr(packet[0].mladdr):
+                        Node(packet[0].src, packet[0].mladdr).save_addresses()
+
+            if packet is not None and ICMPv6MLQuery2 in packet:
+                with _protocol_guard("MLDv2 query", mac_src):
+                    Save.save_mld_querier(packet)
 
             if packet is not None and (IGMPv3 in packet and packet[IGMPv3].type == 0x22):
-                for i in range(packet[IGMPv3mr].numgrp):
-                    IGMPv3_ptnet(packet[0].src, packet[IP].src, 'Report v3',
-                           convert_mldv2_igmpv3_rtype(packet[IGMPv3mr].records[i].rtype),
-                           packet[IGMPv3mr].records[i].maddr,
-                           packet[IGMPv3mr].records[i].srcaddrs).save()
+                with _protocol_guard("IGMPv3 report", mac_src):
+                    # numgrp is attacker-controlled the same way records_number is.
+                    for record in packet[IGMPv3mr].records or []:
+                        IGMPv3_ptnet(packet[0].src, packet[IP].src, 'Report v3',
+                               convert_mldv2_igmpv3_rtype(record.rtype),
+                               record.maddr,
+                               record.srcaddrs).save()
 
             if packet is not None and (IGMP in packet and packet[IGMP].type == 0x16):
-                IGMPv1v2(packet[0].src, packet[IP].src, 'Report v2', packet[IGMP].gaddr).save()
+                with _protocol_guard("IGMPv2 report", mac_src):
+                    IGMPv1v2(packet[0].src, packet[IP].src, 'Report v2', packet[IGMP].gaddr).save()
 
             if packet is not None and (IGMP in packet and packet[IGMP].type == 0x12):
-                IGMPv1v2(packet[0].src, packet[IP].src, 'Report v1', packet[IGMP].gaddr).save()
+                with _protocol_guard("IGMPv1 report", mac_src):
+                    IGMPv1v2(packet[0].src, packet[IP].src, 'Report v1', packet[IGMP].gaddr).save()
+
+            if packet is not None and (IGMP in packet and packet[IGMP].type == 0x11):
+                with _protocol_guard("IGMP query", mac_src):
+                    Save.save_igmp_querier(packet)
 
             if packet is not None and ICMPv6ND_NA in packet:
                 Node(packet[0].src, packet[0][1].src).save_addresses()
                 if packet[ICMPv6ND_NA].R == 1:
                     Router.save_router_address(packet[0].src)
+
+            if packet is not None and (ICMPv6NIReplyName in packet
+                                       or ICMPv6NIReplyIPv6 in packet
+                                       or ICMPv6NIReplyIPv4 in packet):
+                with _protocol_guard("Node Information reply", mac_src):
+                    Save.save_node_information(packet)
+
+            if packet is not None and ICMPv6ND_NS in packet:
+                with _protocol_guard("DAD", mac_src):
+                    # An unspecified source marks Duplicate Address Detection: the
+                    # target is an address the sender is claiming right now.
+                    if packet[0][1].src == "::" and in6_isllsnmaddr(packet[0][1].dst):
+                        Node(packet[0].src, packet[ICMPv6ND_NS].tgt).save_addresses()
 
             if packet is not None and UDP in packet:
                 if packet[UDP].sport == 5355:
@@ -358,13 +441,17 @@ class Save:
                                     Node(packet[0].src, packet.an[i].rdata).save_addresses()
                                     MDNS(packet[0].src, packet.an[i].rdata).save_MDNS()
                                 elif packet.an[i].type == 12:
-                                    Node.save_local_name(packet[0].src, packet.an[i].rdata.decode())
+                                    if not Save._is_service_discovery_ptr(packet.an[i]):
+                                        Node.save_local_name(packet[0].src, packet.an[i].rdata.decode())
                         except AttributeError as ex:
                             logger.debug("Skipping malformed mDNS answer for %s: %s", packet[0].src, ex)
                             continue
                         except IndexError as ex:
                             logger.debug("mDNS answer index out of range for %s: %s", packet[0].src, ex)
                             break
+
+                with _protocol_guard("DNS-SD", mac_src):
+                    Save.save_dnssd_records(packet)
 
 
             if packet is not None and (DHCP6_Request in packet or DHCP6_Renew in packet or DHCP6_Release in packet or DHCP6_Decline in packet or DHCP6_Confirm in packet or DHCP6_Rebind in packet):
@@ -382,18 +469,27 @@ class Save:
                     except Exception as ex:
                         logger.debug("Failed to parse DHCPv6 server DUID for %s: %s", packet[0].src, ex)
 
-            if packet is not None and DHCP in packet and packet[DHCP].options[0][1] == 3:
-                if find_requested_addr(packet[0][DHCP].options):
-                    DHCP_ptnet(packet[0].src, find_requested_addr(packet[0][DHCP].options), "client").save_addresses()
-                    Node(packet[0].src, find_requested_addr(packet[0][DHCP].options)).save_addresses()
+            if packet is not None and (DHCP6_Reply in packet or DHCP6_Advertise in packet):
+                with _protocol_guard("DHCPv6 options", mac_src):
+                    Save.save_dhcpv6_options(packet)
 
-            if packet is not None and DHCP in packet and packet[DHCP].options[0][1] == 2:
-                DHCP_ptnet(packet[0].src, packet[IP].src, "server").save_addresses()
-                Node(packet[0].src, packet[IP].src).save_addresses()
-                for option in packet[0][DHCP].options:
-                    if isinstance(option, tuple) and option[0] == 'server_id':
-                        DHCP_ptnet(packet[0].src, option[1], "server").save_addresses()
-                        Node(packet[0].src, option[1]).save_addresses()
+            if packet is not None and DHCP in packet:
+                with _protocol_guard("DHCP", mac_src):
+                    message_type = _dhcp_message_type(packet)
+                    if message_type == 3:
+                        requested = find_requested_addr(packet[0][DHCP].options)
+                        if requested:
+                            DHCP_ptnet(packet[0].src, requested, "client").save_addresses()
+                            Node(packet[0].src, requested).save_addresses()
+                    # OFFER announces the server, ACK is what confirms the lease;
+                    # a capture that only caught the ACK used to miss the server.
+                    elif message_type in (2, 5):
+                        DHCP_ptnet(packet[0].src, packet[IP].src, "server").save_addresses()
+                        Node(packet[0].src, packet[IP].src).save_addresses()
+                        for option in packet[0][DHCP].options or []:
+                            if isinstance(option, tuple) and option[0] == 'server_id':
+                                DHCP_ptnet(packet[0].src, option[1], "server").save_addresses()
+                                Node(packet[0].src, option[1]).save_addresses()
 
             if packet is not None and ARP in packet:
                 Node(packet[0].src, packet[ARP].psrc).save_addresses()
@@ -406,7 +502,297 @@ class Save:
                         WSDiscovery(packet[0].src, address).save_addresses()
                         Node(packet[0].src, address).save_addresses()
 
+            with _protocol_guard("fingerprint", mac_src):
+                Save.save_fingerprint(packet, src_mac)
         sort_csv(get_csv_path('packets.csv'), get_csv_path('addresses.csv'))
+
+    @staticmethod
+    def save_router_advertisement(packet):
+        """Record every option an RA carries, not only the first of each kind.
+
+        ``packet[ICMPv6NDOptPrefixInfo]`` returns the first Prefix Information
+        option only, so a router advertising a GUA and a ULA prefix in one RA -
+        or renumbering - had everything after the first silently dropped. One
+        RA.csv row is written per advertised prefix, and the options the parser
+        never looked at land in ra_options.csv.
+        """
+        mac = packet[0].src
+        ip = packet[0][1].src
+        ra = packet[ICMPv6ND_RA]
+
+        dns_servers = []
+        for opt in _iter_layers(packet, ICMPv6NDOptRDNSS):
+            for server in (opt.dns or []):
+                if server not in dns_servers:
+                    dns_servers.append(server)
+                RAOption(mac, ip, "RDNSS", str(server), str(opt.lifetime)).save()
+
+        mtu = ""
+        for opt in _iter_layers(packet, ICMPv6NDOptMTU):
+            mtu = str(opt.mtu)
+            RAOption(mac, ip, "MTU", mtu).save()
+            break
+
+        prefixes = []
+        for opt in _iter_layers(packet, ICMPv6NDOptPrefixInfo):
+            prefixes.append((f"{opt.prefix}/{opt.prefixlen}", str(opt.validlifetime),
+                             str(opt.preferredlifetime), opt.A, opt.L))
+            RAOption(mac, ip, "Prefix Information", f"{opt.prefix}/{opt.prefixlen}",
+                     str(opt.validlifetime), f"A={opt.A} L={opt.L}").save()
+
+        # DNS search domains leak internal domain names (RFC 8106).
+        for opt in _iter_layers(packet, ICMPv6NDOptDNSSL):
+            for domain in (opt.searchlist or []):
+                value = Save._decode_dns_name(domain)
+                if value:
+                    RAOption(mac, ip, "DNSSL", value, str(opt.lifetime)).save()
+
+        # More-specific routes reveal internal segments (RFC 4191).
+        for opt in _iter_layers(packet, ICMPv6NDOptRouteInfo):
+            RAOption(mac, ip, "Route Information", f"{opt.prefix}/{opt.plen}",
+                     str(opt.rtlifetime), convert_preferenceRA(opt.prf)).save()
+
+        # Presence of a NAT64/DNS64 prefix (RFC 8781).
+        for opt in _iter_layers(packet, ICMPv6NDOptPREF64):
+            RAOption(mac, ip, "PREF64", str(opt.prefix), str(opt.scaledlifetime)).save()
+
+        # Captive portal URL (RFC 8910).
+        for opt in _iter_layers(packet, ICMPv6NDOptCaptivePortal):
+            uri = opt.URI
+            value = uri.decode(errors="replace") if isinstance(uri, bytes) else str(uri)
+            RAOption(mac, ip, "Captive Portal", value).save()
+
+        for opt in _iter_layers(packet, ICMPv6NDOptAdvInterval):
+            RAOption(mac, ip, "Advertisement Interval", str(opt.advint)).save()
+
+        dns = str(dns_servers) if dns_servers else ""
+
+        if not prefixes:
+            prefixes = [("", "", "", "Not exist", "Not exist")]
+
+        for prefix, valid_lft, preferred_lft, a_flag, l_flag in prefixes:
+            Router(mac, ip, convert_OnOff(ra.M), convert_OnOff(ra.O), convert_OnOff(ra.H),
+                   convert_OnOff(a_flag), convert_OnOff(l_flag),
+                   convert_preferenceRA(ra.prf), str(ra.routerlifetime),
+                   str(ra.reachabletime), str(ra.retranstimer),
+                   dns, mtu, prefix, valid_lft, preferred_lft).save_RA()
+
+        Node(mac, ip).save_addresses()
+        Router.save_router_address(mac)
+
+    @staticmethod
+    def save_node_information(packet):
+        """Record a node's own answer about its name and its addresses.
+
+        The address list is the valuable half: it contains addresses the node
+        never advertised, so each one is also folded into the address inventory.
+        """
+        mac = packet[0].src
+        ip = packet[0][1].src if IPv6 in packet else ""
+
+        if ICMPv6NIReplyName in packet:
+            for entry in (packet[ICMPv6NIReplyName].data or []):
+                # Scapy yields [ttl, name]; only the name is of interest.
+                if isinstance(entry, bytes):
+                    name = entry.decode(errors="replace").rstrip(".")
+                    if name:
+                        NodeInfo(mac, ip, "Node name", name).save()
+                        Node.save_local_name(mac, name)
+
+        for layer, label in ((ICMPv6NIReplyIPv6, "IPv6 address"),
+                             (ICMPv6NIReplyIPv4, "IPv4 address")):
+            if layer not in packet:
+                continue
+            for entry in (packet[layer].data or []):
+                address = entry[1] if isinstance(entry, (tuple, list)) and len(entry) > 1 else entry
+                address = str(address).strip()
+                if not address:
+                    continue
+                NodeInfo(mac, ip, label, address).save()
+                Node(mac, address).save_addresses()
+
+    @staticmethod
+    def save_mld_querier(packet):
+        """Record the sender of an MLDv2 General Query as the elected querier."""
+        query = packet[ICMPv6MLQuery2]
+        Querier(packet[0].src, packet[0][1].src, "MLDv2",
+                str(query.mladdr), str(query.QRV), str(query.QQIC), str(query.mrd)).save()
+
+    @staticmethod
+    def save_igmp_querier(packet):
+        """Record the sender of an IGMP General Query as the elected querier."""
+        group = str(packet[IGMP].gaddr)
+        qrv = qqic = ""
+        if IGMPv3mq in packet:
+            qrv = str(packet[IGMPv3mq].qrv)
+            qqic = str(packet[IGMPv3mq].qqic)
+        Querier(packet[0].src, packet[IP].src, "IGMP", group, qrv, qqic,
+                str(packet[IGMP].mrcode)).save()
+
+    @staticmethod
+    def save_dnssd_records(packet):
+        """Extract the DNS-SD service tree from an mDNS response.
+
+        PTR answers name service types and instances, SRV gives the host and
+        port an instance actually listens on, and TXT carries the model/version
+        strings that turn "a host is up" into a named device.
+        """
+        mac = packet[0].src
+        ip = packet[0][1].src
+        dns = packet[DNS]
+
+        sections = []
+        for name, count in (("an", dns.ancount), ("ar", getattr(dns, "arcount", 0))):
+            records = getattr(dns, name, None)
+            if records is None:
+                continue
+            for index in range(count or 0):
+                try:
+                    sections.append(records[index])
+                except (IndexError, AttributeError):
+                    break
+
+        for record in sections:
+            rrname = Save._decode_dns_name(getattr(record, "rrname", b""))
+            rtype = getattr(record, "type", None)
+
+            if rtype == 12:  # PTR: service type -> instance
+                target = Save._decode_dns_name(getattr(record, "rdata", b""))
+                if rrname.startswith("_services._dns-sd._udp"):
+                    DNSSD(mac, ip, service=target).save()
+                elif rrname.startswith("_"):
+                    DNSSD(mac, ip, service=rrname, instance=target).save()
+            elif rtype == 33:  # SRV: instance -> host:port
+                target = Save._decode_dns_name(getattr(record, "target", b""))
+                DNSSD(mac, ip, instance=rrname, target=target,
+                      port=str(getattr(record, "port", ""))).save()
+            elif rtype == 16:  # TXT: instance metadata
+                text = getattr(record, "rdata", b"")
+                if isinstance(text, list):
+                    parts = [t.decode(errors="replace") if isinstance(t, bytes) else str(t) for t in text]
+                    value = "; ".join(p for p in parts if p)
+                else:
+                    value = text.decode(errors="replace") if isinstance(text, bytes) else str(text)
+                if value:
+                    DNSSD(mac, ip, instance=rrname, txt=value[:500]).save()
+
+    @staticmethod
+    def _is_service_discovery_ptr(record) -> bool:
+        """True when a PTR answer names a DNS-SD service rather than a host.
+
+        Service-type and service-instance PTRs are what the DNS-SD walk asks
+        for; they belong in the service inventory, not in the device's hostname.
+        """
+        rrname = Save._decode_dns_name(getattr(record, "rrname", b""))
+        return rrname.startswith("_") or "._dns-sd._" in rrname
+
+    @staticmethod
+    def _decode_dns_name(value) -> str:
+        if isinstance(value, bytes):
+            value = value.decode(errors="replace")
+        return str(value).rstrip(".")
+
+    @staticmethod
+    def save_dhcpv6_options(packet):
+        """Record the configuration a DHCPv6 server hands out, plus its identity."""
+        mac = packet[0].src
+        ip = packet[IPv6].src if IPv6 in packet else ""
+
+        for opt in _iter_layers(packet, DHCP6OptDNSServers):
+            for server in (opt.dnsservers or []):
+                DHCPv6Options(mac, ip, "DNS server", str(server)).save()
+
+        for opt in _iter_layers(packet, DHCP6OptDNSDomains):
+            for domain in (opt.dnsdomains or []):
+                value = Save._decode_dns_name(domain)
+                if value:
+                    DHCPv6Options(mac, ip, "Domain search list", value).save()
+
+        for opt in _iter_layers(packet, DHCP6OptSNTPServers):
+            for server in (opt.sntpservers or []):
+                DHCPv6Options(mac, ip, "SNTP server", str(server)).save()
+
+        for opt in _iter_layers(packet, DHCP6OptNTPServer):
+            DHCPv6Options(mac, ip, "NTP server", str(opt.ntpserver)).save()
+
+        for opt in _iter_layers(packet, DHCP6OptSIPServers):
+            for server in (opt.sipservers or []):
+                DHCPv6Options(mac, ip, "SIP server", str(server)).save()
+
+        for opt in _iter_layers(packet, DHCP6OptSIPDomains):
+            for domain in (opt.sipdomains or []):
+                value = Save._decode_dns_name(domain)
+                if value:
+                    DHCPv6Options(mac, ip, "SIP domain", value).save()
+
+        for opt in _iter_layers(packet, DHCP6OptBootFileUrl):
+            url = opt.optdata
+            value = url.decode(errors="replace") if isinstance(url, bytes) else str(url)
+            DHCPv6Options(mac, ip, "Boot file URL", value).save()
+
+        for opt in _iter_layers(packet, DHCP6OptVendorClass):
+            DHCPv6Options(mac, ip, "Vendor class", f"enterprise {opt.enterprisenum}").save()
+
+        for opt in _iter_layers(packet, DHCP6OptVendorSpecificInfo):
+            DHCPv6Options(mac, ip, "Vendor specific", f"enterprise {opt.enterprisenum}").save()
+
+        for opt in _iter_layers(packet, DHCP6OptServerId):
+            DHCPv6Options(mac, ip, "Server DUID", bytes(opt.duid).hex()).save()
+
+    @staticmethod
+    def save_fingerprint(packet, src_mac):
+        """Derive a passive host fingerprint from fields already in the packet.
+
+        Costs no extra traffic: the hop limit is in every IPv6 header, the
+        interface-identifier style follows from the address itself, and the RA
+        timers are read from RAs the scan already stores.
+        """
+        mac = packet[0].src
+        if mac == src_mac:
+            return
+
+        hop_limit = ""
+        iid_type = ""
+        os_guess = ""
+
+        # Neighbour Discovery mandates hop limit 255 and MLD mandates 1, so those
+        # say nothing about the sender's stack; reading them as an OS default
+        # produced a router-class guess for every host that answered an NS.
+        hop_limit_is_meaningful = not (
+            packet.haslayer(ICMPv6ND_RA) or packet.haslayer(ICMPv6ND_RS)
+            or packet.haslayer(ICMPv6ND_NA) or packet.haslayer(ICMPv6ND_NS)
+            or packet.haslayer(ICMPv6ND_Redirect)
+            or packet.haslayer(ICMPv6MLReport2) or packet.haslayer(ICMPv6MLReport)
+            or packet.haslayer(ICMPv6MLDone) or packet.haslayer(ICMPv6MLQuery2)
+            or packet.haslayer(ICMPv6MLQuery)
+            or packet.haslayer(IGMP) or packet.haslayer(IGMPv3)
+        )
+
+        if IPv6 in packet:
+            iid_type = classify_ipv6_iid(packet[IPv6].src, mac)
+            if hop_limit_is_meaningful:
+                hop_limit = str(packet[IPv6].hlim)
+                os_guess = guess_os_from_hop_limit(packet[IPv6].hlim)
+        elif IP in packet:
+            if hop_limit_is_meaningful:
+                hop_limit = str(packet[IP].ttl)
+                os_guess = guess_os_from_hop_limit(packet[IP].ttl)
+
+        reachable_time = retrans_time = router_lft = ""
+        if ICMPv6ND_RA in packet:
+            ra = packet[ICMPv6ND_RA]
+            reachable_time = str(ra.reachabletime)
+            retrans_time = str(ra.retranstimer)
+            router_lft = str(ra.routerlifetime)
+
+        if not any((hop_limit, iid_type, reachable_time)):
+            return
+
+        # One row per MAC per distinct observation is enough; the registry keys
+        # on the full tuple, so an unchanged repeat is dropped.
+
+        Fingerprint(mac, hop_limit, os_guess, iid_type,
+                    reachable_time, retrans_time, router_lft).save()
 
 class Run:
     @staticmethod
@@ -526,6 +912,22 @@ class Run:
                 pkts.start()
                 Send.send_llmnr_mdns(interface, ip_mode)
                 time.sleep(1.5)
+                pkts.stop()
+                with _csv_guard():
+                    Save.save_packets(interface, ip_mode, pkts.results)
+
+                # Follow-ups that need what the previous window revealed: the
+                # service tree can only be walked once the service types are
+                # known, and NI queries are aimed at the nodes already found.
+                pkts = Sniff.scan_async(interface)
+                pkts.start()
+                with _csv_guard():
+                    Send.send_dnssd_walk(interface, ip_mode)
+                    Send.send_node_information_queries(
+                        interface, ip_mode, Send.collect_known_addresses(ip_mode)
+                    )
+                    Send.send_snooping_probes(interface, ip_mode)
+                time.sleep(2)
                 pkts.stop()
                 with _csv_guard():
                     Save.save_packets(interface, ip_mode, pkts.results)

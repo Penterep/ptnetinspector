@@ -233,6 +233,7 @@ def build_run_signature(
     target_codes,
     target_macs,
     target_ips,
+    reverse_dns=False,
 ) -> dict:
     """Construct a signature of current run parameters used for tmp reuse.
 
@@ -259,6 +260,7 @@ def build_run_signature(
         "target_codes": sorted(target_codes) if target_codes else [],
         "target_macs": sorted(target_macs) if target_macs else [],
         "target_ips": sorted(target_ips) if target_ips else [],
+        "reverse_dns": bool(reverse_dns),
     }
 
 

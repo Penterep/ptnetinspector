@@ -23,8 +23,10 @@ from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from ptnetinspector.entities.networks import Networks
 from ptnetinspector.prototype.prototype_ipv4 import PrototypeIPv4Packet, IGMP_Type, IGMPV3_RType
 from ptnetinspector.prototype.prototype_l4 import PrototypeL4
+from ptnetinspector.prototype.prototype_l7 import PrototypeL7
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.mdns import MDNS
+from ptnetinspector.entities.dnssd import DNSSD
 from ptnetinspector.entities.llmnr import LLMNR
 from ptnetinspector.utils.ip_utils import reverse_IPadd
 from ptnetinspector.send._scapy_io import SCAPY_IO_LOCK
@@ -588,6 +590,76 @@ class SendIPv4:
                     retry_delay=0.05,
                     verbose=0,
                 )
+
+    @staticmethod
+    def send_dnssd_walk(interface: str) -> None:
+        """
+        Walk the IPv4 DNS-SD service tree the probe already advertised interest in.
+
+        Args:
+            interface (str): The network interface to use
+        """
+        if not Interface(interface).check_interface():
+            return
+
+        service_types, instances = DNSSD.collect_targets()
+        if not service_types and not instances:
+            return
+
+        ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+        if not ipv4_addresses:
+            return
+
+        src_mac = get_if_hwaddr(interface)
+        packets = []
+        for source_ip in ipv4_addresses:
+            for service in service_types:
+                packets.append(PrototypeIPv4Packet.get_frame_mdns_ptr(src_mac, source_ip, service + "."))
+            for instance in instances:
+                for payload in PrototypeL7.get_dns_srv_txt(instance + "."):
+                    packets.append(
+                        PrototypeIPv4Packet.get_frame_mdns_custom_payload(src_mac, source_ip, payload)
+                    )
+
+        if packets:
+            sendp_with_retries(
+                packets=packets,
+                interface=interface,
+                logger=logger,
+                context="send-ipv4-dnssd-walk",
+                retries=2,
+                retry_delay=0.05,
+                verbose=0,
+            )
+
+    @staticmethod
+    def send_igmp_snoop_probe(interface: str, group: str = "239.255.42.99") -> None:
+        """
+        Join an otherwise unused IPv4 multicast group, to test for IGMP snooping.
+
+        Args:
+            interface (str): The network interface to use
+            group (str): The unused multicast group to join
+        """
+        if not Interface(interface).check_interface():
+            return
+
+        ipv4_addresses = Interface(interface).get_interface_ipv4_ips()
+        if not ipv4_addresses:
+            return
+
+        packet = PrototypeIPv4Packet.get_igmp_snoop_probe(
+            get_if_hwaddr(interface), ipv4_addresses[0], group
+        )
+        sendp_with_retries(
+            packets=[packet],
+            interface=interface,
+            logger=logger,
+            context="send-ipv4-igmp-snoop",
+            retries=2,
+            retry_delay=0.05,
+            verbose=0,
+        )
 
     @staticmethod
     def send_dhcp_discover(interface: str) -> None:

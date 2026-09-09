@@ -4,6 +4,7 @@ Centralizes creation of tmp CSVs, sorting/cleanup, and simple analytics used by
 both the terminal (non-JSON) and JSON outputs.
 """
 import csv
+import ipaddress
 import logging
 import os
 import socket
@@ -16,6 +17,19 @@ from ptnetinspector.utils.path import get_csv_path, get_tmp_path
 
 
 logger = logging.getLogger(__name__)
+
+
+def _ip_sort_key(value) -> tuple:
+    """Order addresses numerically, IPv4 before IPv6, non-addresses last.
+
+    Plain string ordering put ``fe80::10`` ahead of ``fe80::2`` and interleaved
+    the two families.
+    """
+    try:
+        address = ipaddress.ip_address(str(value).strip())
+    except ValueError:
+        return (2, 0, str(value))
+    return (0 if address.version == 4 else 1, int(address), "")
 
 
 def create_csv(interface: str | None = None) -> None:
@@ -143,6 +157,38 @@ def create_csv(interface: str | None = None) -> None:
         fieldnames = ['network_prefix', 'prefix_length']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
+    with open(f"{directory}/ra_options.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'Option', 'Value', 'Lifetime', 'Flags']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/fingerprint.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'Hop_limit', 'OS_guess', 'IID_type', 'Reachable_time', 'Retrans_time', 'Router_lft']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/dnssd.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'Service', 'Instance', 'Target', 'Port', 'TXT']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/querier.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'Protocol', 'Group', 'QRV', 'QQIC', 'Max_response']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/dhcpv6_options.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'Option', 'Value']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/node_info.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'Type', 'Value']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/reverse_dns.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'Name', 'Resolver']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+    with open(f"{directory}/devices.csv", 'w', newline='') as csvfile:
+        fieldnames = ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_count']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
 
 def sort_csv_based_MAC(interface: str, file_name: str) -> None:
     """
@@ -162,7 +208,9 @@ def sort_csv_based_MAC(interface: str, file_name: str) -> None:
         df_filtered = df[df['MAC'] != specified_mac]
         df_sorted = df_filtered.sort_values(by='MAC')
         if 'IP' in df_sorted.columns:
-            df_sorted['IP'] = df_sorted.groupby('MAC')['IP'].transform(lambda x: x.sort_values().values)
+            df_sorted['IP'] = df_sorted.groupby('MAC')['IP'].transform(
+                lambda x: x.sort_values(key=lambda s: s.map(_ip_sort_key)).values
+            )
         df_sorted.to_csv(file_name, index=False)
 
 def sort_csv_role_node(interface: str, file_name: str) -> None:
@@ -302,7 +350,7 @@ def delete_middle_content_csv(filename: str) -> None:
     try:
         df = pd.read_csv(filename)
         if len(df) > 3:
-            df = df[df.index.isin([0, -1]) | ~df.index.isin(range(1, len(df) - 1))]
+            df = df.iloc[[0, -1]]
             df.to_csv(filename, index=False)
     except FileNotFoundError:
         # Optional file may not exist yet.
@@ -330,6 +378,14 @@ def sort_all_csv(interface: str) -> None:
     sort_csv_based_MAC(interface, get_csv_path('RA.csv'))
     sort_csv_based_MAC(interface, get_csv_path('wsdiscovery.csv'))
     sort_csv_based_MAC(interface, get_csv_path('default_gw.csv'))
+    # Artifacts from the extended parsers; sorted and stripped of the scanner's
+    # own MAC the same way, so the reports read consistently.
+    sort_csv_based_MAC(interface, get_csv_path('ra_options.csv'))
+    sort_csv_based_MAC(interface, get_csv_path('dnssd.csv'))
+    sort_csv_based_MAC(interface, get_csv_path('node_info.csv'))
+    sort_csv_based_MAC(interface, get_csv_path('querier.csv'))
+    sort_csv_based_MAC(interface, get_csv_path('dhcpv6_options.csv'))
+    sort_csv_based_MAC(interface, get_csv_path('fingerprint.csv'))
 
 def sort_and_deduplicate_vul_csv(filepath: str) -> None:
     """

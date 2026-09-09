@@ -5,10 +5,12 @@ import socket
 import uuid
 
 from scapy.all import Raw, Packet
-from scapy.layers.inet6 import ICMPv6MLDMultAddrRec, IPv6, ICMPv6MLQuery, ICMPv6MLReport, ICMPv6MLReport2, ICMPv6MLDone, ICMPv6EchoRequest, IPv6ExtHdrHopByHop, RouterAlert, IPv6ExtHdrDestOpt, HBHOptUnknown, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_NA, ICMPv6MLQuery2, ICMPv6ND_RS, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, ICMPv6NDOptDstLLAddr
+from scapy.layers.inet6 import ICMPv6MLDMultAddrRec, IPv6, ICMPv6MLQuery, ICMPv6MLReport, ICMPv6MLReport2, ICMPv6MLDone, ICMPv6EchoRequest, IPv6ExtHdrHopByHop, RouterAlert, IPv6ExtHdrDestOpt, HBHOptUnknown, ICMPv6ND_NS, ICMPv6NDOptSrcLLAddr, ICMPv6ND_NA, ICMPv6MLQuery2, ICMPv6ND_RS, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, ICMPv6NDOptDstLLAddr, \
+    ICMPv6NIQueryName, ICMPv6NIQueryIPv6, ICMPv6NIQueryIPv4
 from scapy.layers.inet import UDP
 from scapy.layers.l2 import Ether
-from scapy.layers.dhcp6 import DUID_LL, DHCP6OptElapsedTime, DHCP6OptIA_NA, DHCP6OptClientId, DHCP6_Solicit
+from scapy.layers.dhcp6 import DUID_LL, DHCP6OptElapsedTime, DHCP6OptIA_NA, DHCP6OptClientId, DHCP6_Solicit, \
+    DHCP6_InfoRequest, DHCP6OptOptReq
 from scapy.layers.llmnr import LLMNRQuery
 from scapy.layers.dns import DNS, DNSQR
 from scapy.pton_ntop import inet_ntop, inet_pton
@@ -192,6 +194,80 @@ class PrototypeIPv6Packet:
         elapsed_time_opt = DHCP6OptElapsedTime(elapsedtime=0)
         ia_na_opt = DHCP6OptIA_NA(iaid=iaid, T1=0, T2=0)
         return udp / dhcpv6 / client_id_opt / elapsed_time_opt / ia_na_opt
+
+    @staticmethod
+    def get_l3payload_dhcpv6_inforequest(src_mac: str) -> Packet:
+        """Returns a DHCPv6 Information-Request asking for the stateless options.
+
+        Solicit only asks for an address. Information-Request is how a stateless
+        DHCPv6 deployment is characterised: it returns the resolvers, the domain
+        search list, NTP/SNTP and SIP servers and the boot-file URL, plus the
+        server's own DUID and vendor class.
+
+        Args:
+            src_mac: Source MAC address used to build the client DUID.
+        Output:
+            Packet: Scapy packet representing the DHCPv6 Information-Request.
+        """
+        trid = random.randint(0, 0xFFFFFF)
+        duid = DUID_LL(lladdr=src_mac, type=3)
+        udp = UDP(sport=546, dport=547)
+        info_request = DHCP6_InfoRequest(trid=trid)
+        client_id_opt = DHCP6OptClientId(duid=duid)
+        elapsed_time_opt = DHCP6OptElapsedTime(elapsedtime=0)
+        # DNS servers (23), domain list (24), SNTP (31), NTP (56), SIP domains
+        # (21), SIP servers (22), boot-file URL (59), vendor info (17).
+        option_request = DHCP6OptOptReq(reqopts=[23, 24, 31, 56, 21, 22, 59, 17])
+        return udp / info_request / client_id_opt / elapsed_time_opt / option_request
+
+    @staticmethod
+    def get_frame_ni_query(src_mac: str, src_ip: str, dst_ip: str, query: str = "name") -> Packet:
+        """Builds an ICMPv6 Node Information Query (RFC 4620).
+
+        A responder returns its hostname and its full address list, including
+        addresses that are never advertised and would not be found by scanning.
+        Support is patchy - many BSD and macOS stacks answer, Linux generally
+        does not - so this is additive information, never a reachability test.
+
+        Args:
+            src_mac: Source MAC address.
+            src_ip: Source IPv6 address.
+            dst_ip: Address (or multicast group) to query.
+            query: One of "name", "ipv6" or "ipv4".
+        Output:
+            Packet: Scapy packet representing the NI Query.
+        """
+        nonce = random.randbytes(8)
+        if query == "ipv6":
+            # flags: request global, site-local and link-local addresses.
+            payload = ICMPv6NIQueryIPv6(data=dst_ip, flags=0x0E, nonce=nonce)
+        elif query == "ipv4":
+            payload = ICMPv6NIQueryIPv4(data=dst_ip, flags=0, nonce=nonce)
+        else:
+            payload = ICMPv6NIQueryName(data=dst_ip, flags=0, nonce=nonce)
+
+        return Ether(src=src_mac) / IPv6(src=src_ip, dst=dst_ip) / payload
+
+    @staticmethod
+    def get_frame_mld_snoop_probe(src_mac: str, src_ip: str, group: str) -> Packet:
+        """Builds an MLDv2 report for a group nothing on the link has joined.
+
+        Whether the frame comes back on ports that never joined is what tells an
+        MLD-snooping switch from a plain flooding one. Inferential by nature: the
+        result depends on the switch's configuration.
+
+        Args:
+            src_mac: Source MAC address.
+            src_ip: Source link-local IPv6 address.
+            group: The unused multicast group to join.
+        Output:
+            Packet: Scapy packet representing the MLDv2 report.
+        """
+        record = ICMPv6MLDMultAddrRec(dst=group, rtype=MLDV2_RType.CHANGE_TO_EXCLUDE_MODE)
+        return (Ether(src=src_mac, dst="33:33:00:00:00:16") /
+                IPv6(src=src_ip, dst="ff02::16", hlim=1) /
+                IPv6ExtHdrHopByHop(options=[RouterAlert(value=0)]) /
+                ICMPv6MLReport2(records=[record]))
 
     # 
     # L3 Builders

@@ -4,6 +4,7 @@ Reads the accumulated CSV artifacts produced by scan modes, builds a normalized
 graph-style JSON (nodes, properties, vulnerabilities), optionally filters by
 IP version and vulnerability codes, and writes the final `ptnetinspector-output.json`.
 """
+import csv
 import ipaddress
 import json
 import logging
@@ -151,20 +152,153 @@ class Json:
 
         if ipver.ipv6 and has_additional_data(ra_file):
             df = pd.read_csv(ra_file)
-            for value in df['Prefix'].unique():
-                if value != "[]":
-                    ptjsonlib_object.add_properties(properties={"IPv6 prefix": value})
 
-            for value in df['DNS'].unique():
-                if value != "[]":
-                    ptjsonlib_object.add_properties(properties={"DNS server": value})
+            prefixes = [
+                str(value).strip()
+                for value in df['Prefix'].unique()
+                if str(value).strip() not in ("", "[]", "nan")
+            ]
+            if prefixes:
+                ptjsonlib_object.add_properties(
+                    properties={"IPv6 prefix": prefixes[0] if len(prefixes) == 1 else prefixes}
+                )
+
+            # ra_options.csv holds one clean row per server; RA.csv keeps the raw
+            # list repr, which only reads well when there is nothing better.
+            dns_servers = [
+                str(row.get("Value", "")).strip()
+                for row in Json._read_rows("ra_options.csv")
+                if str(row.get("Option", "")).strip() == "RDNSS"
+            ]
+            dns_servers = [server for server in dict.fromkeys(dns_servers) if server]
+            if not dns_servers:
+                dns_servers = [
+                    str(value).strip()
+                    for value in df['DNS'].unique()
+                    if str(value).strip() not in ("", "[]", "nan")
+                ]
+            if dns_servers:
+                ptjsonlib_object.add_properties(
+                    properties={"DNS server": dns_servers[0] if len(dns_servers) == 1 else dns_servers}
+                )
 
         dhcp_slaac_methods = is_dhcp_slaac()
         if dhcp_slaac_methods:
             for item in dhcp_slaac_methods:
                 ptjsonlib_object.add_properties(properties={"Address configuration method discovered": item})
 
+        Json._add_extended_network_properties(ipver)
+
         return ptjsonlib_object.get_result_json()
+
+    # RA options that describe the network rather than one router, mapped to the
+    # property name each should appear under.
+    _RA_OPTION_PROPERTIES = {
+        "DNSSL": "DNS search domain",
+        "Route Information": "Advertised route",
+        "PREF64": "NAT64 prefix",
+        "Captive Portal": "Captive portal URL",
+    }
+
+    @staticmethod
+    def _read_rows(name: str) -> list[dict]:
+        path = get_csv_path(name)
+        if not has_additional_data(path):
+            return []
+        try:
+            with open(path, newline="", encoding="utf-8") as handle:
+                return list(csv.DictReader(handle))
+        except OSError as ex:
+            logger.debug("Failed to read %s: %s", name, ex)
+            return []
+
+    @staticmethod
+    def _device_extended_properties(mac_address: str) -> dict:
+        """Per-device facts the extended parsers learned about this MAC.
+
+        The hostname and address list come from a node's own Node Information
+        reply, the OS and interface-identifier guesses are passive heuristics
+        (reported as "likely"), and the services come from the DNS-SD walk.
+        """
+        mac = str(mac_address).strip().upper()
+        properties: dict = {}
+
+        for row in Json._read_rows("node_info.csv"):
+            if str(row.get("MAC", "")).strip().upper() != mac:
+                continue
+            if str(row.get("Type", "")).strip() == "Node name":
+                properties.setdefault("Node name", str(row.get("Value", "")).strip())
+
+        for row in Json._read_rows("fingerprint.csv"):
+            if str(row.get("MAC", "")).strip().upper() != mac:
+                continue
+            os_guess = str(row.get("OS_guess", "")).strip()
+            iid_type = str(row.get("IID_type", "")).strip()
+            if os_guess:
+                properties.setdefault("Likely OS", os_guess)
+            if iid_type:
+                properties.setdefault("Interface identifier", iid_type)
+
+        # An instance shows up once as a bare PTR answer and again with its SRV
+        # host and port; keep the resolved form and drop the bare duplicate.
+        resolved: dict[str, str] = {}
+        bare: list[str] = []
+        for row in Json._read_rows("dnssd.csv"):
+            if str(row.get("MAC", "")).strip().upper() != mac:
+                continue
+            instance = str(row.get("Instance", "")).strip()
+            target = str(row.get("Target", "")).strip()
+            port = str(row.get("Port", "")).strip()
+            label = instance or str(row.get("Service", "")).strip()
+            if not label:
+                continue
+            if target and port:
+                resolved[label] = f"{label} -> {target}:{port}"
+            elif label not in bare:
+                bare.append(label)
+
+        services = [resolved.get(label, label) for label in bare]
+        services += [value for label, value in resolved.items() if label not in bare]
+        if services:
+            properties["Services"] = services
+
+        return properties
+
+    @staticmethod
+    def _add_extended_network_properties(ipver: IPMode) -> None:
+        """Publish the options the RA and DHCPv6 parsers now extract.
+
+        These describe the environment - search domains, internal routes, a
+        NAT64 prefix, a captive portal, the querier, the DHCPv6 option set - and
+        were being dropped on the floor before the parsers were extended.
+        """
+        seen: set[tuple[str, str]] = set()
+
+        def _publish(name: str, value: str) -> None:
+            value = str(value).strip()
+            if not value or (name, value) in seen:
+                return
+            seen.add((name, value))
+            ptjsonlib_object.add_properties(properties={name: value})
+
+        if ipver.ipv6:
+            for row in Json._read_rows("ra_options.csv"):
+                property_name = Json._RA_OPTION_PROPERTIES.get(str(row.get("Option", "")).strip())
+                if property_name:
+                    _publish(property_name, row.get("Value", ""))
+
+            for row in Json._read_rows("dhcpv6_options.csv"):
+                option = str(row.get("Option", "")).strip()
+                if option:
+                    _publish(f"DHCPv6 {option}", row.get("Value", ""))
+
+        for row in Json._read_rows("querier.csv"):
+            protocol = str(row.get("Protocol", "")).strip()
+            if protocol == "MLDv2" and not ipver.ipv6:
+                continue
+            if protocol == "IGMP" and not ipver.ipv4:
+                continue
+            _publish("Multicast querier", f"{row.get('MAC', '')} ({protocol})")
 
     @staticmethod
     def output_vul_net(mode: str = None, vul_file: str = None, target_codes: set[str] | None = None) -> dict:
@@ -399,18 +533,21 @@ class Json:
                 dhcpv4_server = "DHCP server" in roles
                 dhcpv6_server = "DHCPv6 server" in roles
 
+                device_properties = {
+                    "name": f"Device {device_number}",
+                    "type": device_type,
+                    "MAC": mac_address,
+                    "MAC_description": lookup_vendor_from_csv(mac_address),
+                    "IPv4_default_GW": ipv4_default_gw,
+                    "IPv6_default_GW": ipv6_default_gw,
+                    "DHCPv4_server": dhcpv4_server,
+                    "DHCPv6_server": dhcpv6_server
+                }
+                device_properties.update(Json._device_extended_properties(mac_address))
+
                 node_ele = ptjsonlib_object.create_node_object(
                     node_type="Device", parent_type="Site", parent=None,
-                    properties={
-                        "name": f"Device {device_number}",
-                        "type": device_type,
-                        "MAC": mac_address,
-                        "MAC_description": lookup_vendor_from_csv(mac_address),
-                        "IPv4_default_GW": ipv4_default_gw,
-                        "IPv6_default_GW": ipv6_default_gw,
-                        "DHCPv4_server": dhcpv4_server,
-                        "DHCPv6_server": dhcpv6_server
-                    }
+                    properties=device_properties
                 )
                 ptjsonlib_object.add_node(node_ele)
 

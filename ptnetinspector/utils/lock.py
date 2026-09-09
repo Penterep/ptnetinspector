@@ -18,6 +18,7 @@ from ptnetinspector.utils.path import get_output_dir
 
 _LOCK_FD: int | None = None
 _QUEUE_CHECK_INTERVAL: float = 0.5  # seconds between queue checks
+_QUEUE_TIMEOUT: float = 900.0  # seconds to wait for a previous run before giving up
 
 
 def _is_process_running(pid: int) -> bool:
@@ -33,8 +34,39 @@ def _is_process_running(pid: int) -> bool:
     return True
 
 
+def _lock_is_held(lock_file: Path) -> bool:
+    """Return True while some live process holds the flock on this file.
+
+    The flock is the source of truth: file contents can be momentarily empty
+    between creation and the PID write, and treating that emptiness as "stale"
+    is what let two runs proceed at once.
+    """
+    try:
+        fd = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
+    except OSError:
+        # If the file cannot even be opened, assume it is in use.
+        return True
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return True
+    else:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return False
+    finally:
+        try:
+            os.close(fd)
+        except OSError:
+            # Descriptor may already be gone.
+            pass
+
+
 def _cleanup_stale_lock(lock_file: Path) -> bool:
-    """Remove lock file if the recorded PID is no longer running."""
+    """Remove the lock file only when nothing holds it and its PID is gone."""
+    # Never unlink a file whose flock is currently held, whatever it contains.
+    if _lock_is_held(lock_file):
+        return False
+
     try:
         data = lock_file.read_text().strip()
         pid = int(data)
@@ -70,18 +102,29 @@ def _release_lock() -> None:
     _LOCK_FD = None
 
 
-def _wait_for_lock_release(lock_file: Path, verbose: bool = True) -> None:
+def _wait_for_lock_release(lock_file: Path, verbose: bool = True, timeout: float = _QUEUE_TIMEOUT) -> None:
     """Wait for the current lock holder to release the lock.
 
     Displays a message indicating that this process is waiting in the queue.
     Periodically checks if the lock has been released by polling the lock file.
+    Gives up after `timeout` seconds rather than queueing forever behind a run
+    that has hung, which used to look indistinguishable from a frozen tool.
     """
     import sys
     from ptlibs import ptprinthelper
 
 
     waiting_printed = False
+    deadline = time.monotonic() + timeout
     while True:
+        if time.monotonic() >= deadline:
+            ptprinthelper.ptprint(
+                f"Timed out after {int(timeout)}s waiting for the previous ptnetinspector "
+                f"process to finish. Check for a stuck run, then retry.",
+                "ERROR",
+                condition=True,
+            )
+            sys.exit(1)
         # Print waiting message only once
         if verbose and not waiting_printed:
             ptprinthelper.ptprint(

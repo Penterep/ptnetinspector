@@ -5,12 +5,154 @@ Encapsulates detecting/manipulating interface addresses and iptables rule state
 required by passive/active/aggressive scan modes.
 """
 import ipaddress
+import json
+import logging
 import os
 import subprocess
 import sys
 import netifaces
 from ptlibs import ptprinthelper
 from ptnetinspector.utils.path import get_tmp_path
+
+
+logger = logging.getLogger(__name__)
+
+# Every rule this tool inserts carries this comment. Matching on the comment
+# instead of on the canonical form iptables prints for `-S` keeps detection
+# working across iptables versions and across the legacy and nft backends, and
+# it lets a later run identify and flush rules a hard kill left behind.
+RULE_TAG = "ptnetinspector"
+_COMMENT = ["-m", "comment", "--comment", RULE_TAG]
+
+_FORWARDING_SYSCTLS = ("net.ipv4.ip_forward", "net.ipv6.conf.all.forwarding")
+
+
+def _run(command: list[str], check: bool = False) -> subprocess.CompletedProcess | None:
+    """Run a firewall command, swallowing the noise but not the diagnostics."""
+    try:
+        return subprocess.run(
+            command,
+            check=check,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:
+        logger.debug("Command not available: %s", command[0])
+        return None
+    except subprocess.CalledProcessError as error:
+        logger.debug("Command failed: %s (%s)", " ".join(command), error)
+        return None
+
+
+def _rule_exists(binary: str, chain: str, rule: list[str]) -> bool:
+    """Ask iptables itself whether a rule is present, instead of parsing `-S`."""
+    result = _run([binary, "-C", chain] + rule)
+    return result is not None and result.returncode == 0
+
+
+def _add_rule(binary: str, chain: str, rule: list[str]) -> None:
+    """Append a tagged rule once.
+
+    `shutdown_traffic` used to append unconditionally, so a run killed before
+    restore stacked a second identical DROP that one `-D` pass could not clear.
+    """
+    tagged = rule + _COMMENT
+    if _rule_exists(binary, chain, tagged):
+        return
+    _run([binary, "-A", chain] + tagged)
+
+
+def _delete_rule(binary: str, chain: str, rule: list[str]) -> None:
+    """Remove every instance of a tagged rule, not just the first."""
+    tagged = rule + _COMMENT
+    while _rule_exists(binary, chain, tagged):
+        if _run([binary, "-D", chain] + tagged) is None:
+            break
+    # Rules written by an older version carried no comment; clear those too.
+    while _rule_exists(binary, chain, rule):
+        if _run([binary, "-D", chain] + rule) is None:
+            break
+
+
+def _read_sysctl(name: str) -> str | None:
+    try:
+        output = subprocess.check_output(
+            ["sysctl", "-n", name], stderr=subprocess.DEVNULL, universal_newlines=True
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        logger.debug("Could not read sysctl %s", name)
+        return None
+    return output.strip()
+
+
+def _write_sysctl(name: str, value: str) -> None:
+    _run(["sysctl", "-w", f"{name}={value}"])
+
+
+def _sysctl_state_file():
+    return get_tmp_path() / "sysctl_state.json"
+
+
+def save_forwarding_state() -> None:
+    """Remember the host's forwarding settings before aggressive mode changes them.
+
+    Restoring blindly to 0 turned forwarding off on routers and lab gateways
+    that had it on before the scan ran.
+    """
+    path = _sysctl_state_file()
+    if path.exists():
+        return
+    state = {name: _read_sysctl(name) for name in _FORWARDING_SYSCTLS}
+    try:
+        path.write_text(json.dumps(state), encoding="utf-8")
+    except OSError as error:
+        logger.debug("Could not persist sysctl state: %s", error)
+
+
+def restore_forwarding_state() -> None:
+    """Put the forwarding sysctls back the way the host had them."""
+    path = _sysctl_state_file()
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        # save_forwarding_state() runs before the first sysctl write, so no
+        # recorded state means this run never enabled forwarding. Writing 0 here
+        # would disable it on a host that had it on all along.
+        logger.debug("No recorded forwarding state; leaving the sysctls untouched")
+        return
+
+    for name in _FORWARDING_SYSCTLS:
+        value = state.get(name)
+        if value is not None:
+            _write_sysctl(name, value)
+    try:
+        path.unlink()
+    except OSError:
+        # The state file is advisory; a stale copy is harmless.
+        pass
+
+
+def flush_tagged_rules() -> None:
+    """Delete every rule this tool ever tagged, in both tables.
+
+    SIGKILL cannot be trapped, so a previous run can leave DROP rules behind and
+    take the operator's interface off the network. This is the self-heal a later
+    run (or an explicit cleanup) uses to recover.
+    """
+    for binary in ("iptables", "ip6tables"):
+        for chain in ("INPUT", "OUTPUT", "FORWARD"):
+            try:
+                output = subprocess.check_output(
+                    [binary, "-S", chain], stderr=subprocess.DEVNULL, universal_newlines=True
+                )
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+            for line in output.splitlines():
+                if RULE_TAG not in line or not line.startswith("-A "):
+                    continue
+                arguments = line.split()[2:]
+                _run([binary, "-D", chain] + arguments)
+
 
 class Interface:
     """
@@ -131,11 +273,17 @@ class Interface:
                 ["ip", "-6", "addr", "show", self.interface],
                 universal_newlines=True
             )
-        except subprocess.CalledProcessError as e:
-            exit(1)
+        except (subprocess.CalledProcessError, FileNotFoundError) as error:
+            ptprinthelper.ptprint(
+                f"Failed to read IPv6 addresses of {self.interface}: {error}", "ERROR"
+            )
+            sys.exit(1)
 
-        addresses = ip_output.split("\n")
-        ipv6_addresses = [line.split()[1] for line in addresses if "inet6" in line]
+        ipv6_addresses = []
+        for line in ip_output.split("\n"):
+            fields = line.split()
+            if len(fields) >= 2 and fields[0] == "inet6":
+                ipv6_addresses.append(fields[1])
         return bool(ipv6_addresses)
 
     def set_ipv6_address(self, ipv6_address: str) -> None:
@@ -175,9 +323,29 @@ class Interface:
             ptprinthelper.ptprint(f"Failed to check interface {self.interface}: {e}", "ERROR")
             sys.exit(1)
 
+    # The blocking rules passive mode installs, as (binary, chain, rule) triples.
+    _BLOCK_RULES = (
+        ("iptables", "OUTPUT", ["-o", "{iface}", "-j", "DROP"]),
+        ("iptables", "FORWARD", ["-o", "{iface}", "-j", "DROP"]),
+        ("iptables", "FORWARD", ["-i", "{iface}", "-j", "DROP"]),
+        ("iptables", "INPUT", ["-i", "{iface}", "-j", "DROP"]),
+        ("ip6tables", "OUTPUT", ["-o", "{iface}", "-j", "DROP"]),
+        ("ip6tables", "FORWARD", ["-o", "{iface}", "-j", "DROP"]),
+        ("ip6tables", "FORWARD", ["-i", "{iface}", "-j", "DROP"]),
+        ("ip6tables", "INPUT", ["-i", "{iface}", "-j", "DROP"]),
+    )
+
+    def _block_rules(self):
+        for binary, chain, rule in Interface._BLOCK_RULES:
+            yield binary, chain, [part.format(iface=self.interface) for part in rule]
+
     def shutdown_traffic(self) -> str | None:
         """
         Blocks all traffic on the interface using iptables and ip6tables.
+
+        Rules are tagged and added only when absent, so an interrupted run that
+        never reached restore_traffic does not stack a second copy that a single
+        removal pass would leave behind.
 
         Returns:
             str | None: Success message or None if interface is down.
@@ -186,62 +354,10 @@ class Interface:
         if status == "Interface down":
             return None
 
-        try:
-            # IPv4 Rules
-            subprocess.run(
-                ["iptables", "-A", "OUTPUT", "-o", self.interface, "-j", "DROP"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.run(
-                ["iptables", "-A", "FORWARD", "-o", self.interface, "-j", "DROP"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.run(
-                ["iptables", "-A", "FORWARD", "-i", self.interface, "-j", "DROP"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.run(
-                ["iptables", "-A", "INPUT", "-i", self.interface, "-j", "DROP"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
+        for binary, chain, rule in self._block_rules():
+            _add_rule(binary, chain, rule)
 
-            # IPv6 Rules
-            subprocess.run(
-                ["ip6tables", "-A", "OUTPUT", "-o", self.interface, "-j", "DROP"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.run(
-                ["ip6tables", "-A", "FORWARD", "-o", self.interface, "-j", "DROP"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.run(
-                ["ip6tables", "-A", "FORWARD", "-i", self.interface, "-j", "DROP"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.run(
-                ["ip6tables", "-A", "INPUT", "-i", self.interface, "-j", "DROP"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            return 'Traffic on interface blocked'
-        except subprocess.CalledProcessError as e:
-            ptprinthelper.ptprint(f"Failed to block traffic on {self.interface}: {e}", "ERROR")
-            return None
+        return 'Traffic on interface blocked'
 
     def restore_traffic(self) -> str | None:
         """
@@ -255,28 +371,8 @@ class Interface:
         if status == "Interface down":
             return None
 
-        rules = [
-            (["iptables", "-D", "OUTPUT", "-o", self.interface, "-j", "DROP"], "iptables OUTPUT"),
-            (["iptables", "-D", "FORWARD", "-o", self.interface, "-j", "DROP"], "iptables FORWARD out"),
-            (["iptables", "-D", "FORWARD", "-i", self.interface, "-j", "DROP"], "iptables FORWARD in"),
-            (["iptables", "-D", "INPUT", "-i", self.interface, "-j", "DROP"], "iptables INPUT"),
-            (["ip6tables", "-D", "OUTPUT", "-o", self.interface, "-j", "DROP"], "ip6tables OUTPUT"),
-            (["ip6tables", "-D", "FORWARD", "-o", self.interface, "-j", "DROP"], "ip6tables FORWARD out"),
-            (["ip6tables", "-D", "FORWARD", "-i", self.interface, "-j", "DROP"], "ip6tables FORWARD in"),
-            (["ip6tables", "-D", "INPUT", "-i", self.interface, "-j", "DROP"], "ip6tables INPUT"),
-        ]
-
-        for cmd, rule_name in rules:
-            try:
-                subprocess.run(
-                    cmd,
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-            except subprocess.CalledProcessError:
-                # Rule may already be absent; continue removing remaining rules.
-                pass
+        for binary, chain, rule in self._block_rules():
+            _delete_rule(binary, chain, rule)
 
         return 'Traffic on interface restored'
 
@@ -331,6 +427,18 @@ class IptablesRule:
     Class for managing iptables and ip6tables rules.
     """
 
+    # The ICMP types each mode suppresses, per address family.
+    _MODE_RULES = {
+        "a": {
+            "ip6tables": ["-p", "icmpv6", "--icmpv6-type", "port-unreachable", "-j", "DROP"],
+            "iptables": ["-p", "icmp", "--icmp-type", "port-unreachable", "-j", "DROP"],
+        },
+        "a+": {
+            "ip6tables": ["-p", "icmpv6", "--icmpv6-type", "redirect", "-j", "DROP"],
+            "iptables": ["-p", "icmp", "--icmp-type", "redirect", "-j", "DROP"],
+        },
+    }
+
     @staticmethod
     def add(mode: str, ipv4: bool = True, ipv6: bool = True, nofwd: bool = False) -> None:
         """
@@ -342,32 +450,29 @@ class IptablesRule:
             ipv6 (bool): Whether to add IPv6 (ip6tables) rules. Default is True.
             nofwd (bool): Whether to disable forwarding.
         """
-        if mode == "a":
-            if ipv6:
-                subprocess.run(["ip6tables", "-A", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "port-unreachable", "-j", "DROP"], check=True)
-            if ipv4:
-                subprocess.run(["iptables", "-A", "OUTPUT", "-p", "icmp", "--icmp-type", "port-unreachable", "-j", "DROP"], check=True)
+        rules = IptablesRule._MODE_RULES.get(mode)
+        if rules is None:
+            return
 
-        if mode == "a+":
-            if ipv6:
-                subprocess.run(["ip6tables", "-A", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "redirect", "-j", "DROP"], check=True)
-                if not nofwd:
-                    command = 'sysctl -w net.ipv6.conf.all.forwarding=1 >/dev/null'
-                    subprocess.run(["ip6tables", "-A", "FORWARD", "-j", "ACCEPT"], check=True)
-                else:
-                    command = 'sysctl -w net.ipv6.conf.all.forwarding=0 >/dev/null'
-                    subprocess.run(["ip6tables", "-A", "FORWARD", "-j", "DROP"], check=True)
-                os.system(command)
+        if ipv6:
+            _add_rule("ip6tables", "OUTPUT", rules["ip6tables"])
+        if ipv4:
+            _add_rule("iptables", "OUTPUT", rules["iptables"])
 
-            if ipv4:
-                subprocess.run(["iptables", "-A", "OUTPUT", "-p", "icmp", "--icmp-type", "redirect", "-j", "DROP"], check=True)
-                if not nofwd:
-                    command = 'sysctl -w net.ipv4.ip_forward=1 >/dev/null'
-                    subprocess.run(["iptables", "-A", "FORWARD", "-j", "ACCEPT"], check=True)
-                else:
-                    command = 'sysctl -w net.ipv4.ip_forward=0 >/dev/null'
-                    subprocess.run(["iptables", "-A", "FORWARD", "-j", "DROP"], check=True)
-                os.system(command)
+        if mode != "a+":
+            return
+
+        # Aggressive mode changes host-wide forwarding, so record what it was.
+        save_forwarding_state()
+        forward_target = "DROP" if nofwd else "ACCEPT"
+        forward_value = "0" if nofwd else "1"
+
+        if ipv6:
+            _add_rule("ip6tables", "FORWARD", ["-j", forward_target])
+            _write_sysctl("net.ipv6.conf.all.forwarding", forward_value)
+        if ipv4:
+            _add_rule("iptables", "FORWARD", ["-j", forward_target])
+            _write_sysctl("net.ipv4.ip_forward", forward_value)
 
     @staticmethod
     def remove(ipv6_rule: bool | None, mode: str, ipv4: bool = True, ipv6: bool = True) -> None:
@@ -380,32 +485,38 @@ class IptablesRule:
             ipv4 (bool): Whether to remove IPv4 (iptables) rules. Default is True.
             ipv6 (bool): Whether to remove IPv6 (ip6tables) rules. Default is True.
         """
-        if ipv6_rule is True or ipv6_rule is None:
-            if mode == "a":
-                if ipv6:
-                    subprocess.run(["ip6tables", "-D", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "port-unreachable", "-j", "DROP"], check=False)
-                if ipv4:
-                    subprocess.run(["iptables", "-D", "OUTPUT", "-p", "icmp", "--icmp-type", "port-unreachable", "-j", "DROP"], check=False)
+        if not (ipv6_rule is True or ipv6_rule is None):
+            return
 
-            if mode == "a+":
-                if ipv6:
-                    subprocess.run(["ip6tables", "-D", "OUTPUT", "-p", "icmpv6", "--icmpv6-type", "redirect", "-j", "DROP"], check=True)
-                    command = 'sysctl -w net.ipv6.conf.all.forwarding=0 >/dev/null'
-                    subprocess.run(["ip6tables", "-D", "FORWARD", "-j", "ACCEPT"], stderr=subprocess.DEVNULL, check=False)
-                    subprocess.run(["ip6tables", "-D", "FORWARD", "-j", "DROP"], stderr=subprocess.DEVNULL, check=False)
-                    os.system(command)
+        rules = IptablesRule._MODE_RULES.get(mode)
+        if rules is None:
+            return
 
-                if ipv4:
-                    subprocess.run(["iptables", "-D", "OUTPUT", "-p", "icmp", "--icmp-type", "redirect", "-j", "DROP"], check=False)
-                    command = 'sysctl -w net.ipv4.ip_forward=0 >/dev/null'
-                    subprocess.run(["iptables", "-D", "FORWARD", "-j", "ACCEPT"], stderr=subprocess.DEVNULL, check=False)
-                    subprocess.run(["iptables", "-D", "FORWARD", "-j", "DROP"], stderr=subprocess.DEVNULL, check=False)
-                    os.system(command)
+        if ipv6:
+            _delete_rule("ip6tables", "OUTPUT", rules["ip6tables"])
+        if ipv4:
+            _delete_rule("iptables", "OUTPUT", rules["iptables"])
+
+        if mode != "a+":
+            return
+
+        for binary, enabled in (("ip6tables", ipv6), ("iptables", ipv4)):
+            if not enabled:
+                continue
+            _delete_rule(binary, "FORWARD", ["-j", "ACCEPT"])
+            _delete_rule(binary, "FORWARD", ["-j", "DROP"])
+
+        # Put forwarding back where the host had it rather than forcing it off.
+        restore_forwarding_state()
 
     @staticmethod
     def check(mode: str, ipv4: bool = True, ipv6: bool = True, nofwd: bool = False) -> bool | None:
         """
         Check if iptables and ip6tables rules exist for the given mode and IP version.
+
+        Detection asks iptables directly (`-C`) for the tagged rule rather than
+        string-matching `-S` output, whose canonical spelling differs between
+        iptables versions and between the legacy and nft backends.
 
         Args:
             mode (str): Mode ('a' or 'a+').
@@ -416,37 +527,25 @@ class IptablesRule:
         Returns:
             bool | None: True if rule exists, False if not, None on error.
         """
-        try:
-            rules_exist = False
-
-            if ipv6:
-                output = subprocess.check_output(["ip6tables", "-S", "OUTPUT"], stderr=subprocess.STDOUT, universal_newlines=True)
-                if mode == "a":
-                    rules_exist = any("-p ipv6-icmp -m icmp6 --icmpv6-type 1/4 -j DROP" in line for line in output.split("\n"))
-                if mode == "a+":
-                    rules_exist = any("-p ipv6-icmp -m icmp6 --icmpv6-type 137 -j DROP" in line for line in output.split("\n"))
-                    output_2 = subprocess.check_output(["sysctl", "net.ipv6.conf.all.forwarding"], stderr=subprocess.STDOUT, universal_newlines=True)
-                    if not nofwd:
-                        rules_exist = rules_exist and "net.ipv6.conf.all.forwarding = 1" in output_2
-                    else:
-                        rules_exist = rules_exist and "net.ipv6.conf.all.forwarding = 0" in output_2
-
-            if ipv4:
-                output = subprocess.check_output(["iptables", "-S", "OUTPUT"], stderr=subprocess.STDOUT, universal_newlines=True)
-                if mode == "a":
-                    ipv4_rule_exists = any("-p icmp -m icmp --icmp-type port-unreachable -j DROP" in line for line in output.split("\n"))
-                    rules_exist = rules_exist or ipv4_rule_exists
-                if mode == "a+":
-                    ipv4_rule_exists = any("-p icmp -m icmp --icmp-type redirect -j DROP" in line for line in output.split("\n"))
-                    output_2 = subprocess.check_output(["sysctl", "net.ipv4.ip_forward"], stderr=subprocess.STDOUT, universal_newlines=True)
-                    if not nofwd:
-                        ipv4_rule_exists = ipv4_rule_exists and "net.ipv4.ip_forward = 1" in output_2
-                    else:
-                        ipv4_rule_exists = ipv4_rule_exists and "net.ipv4.ip_forward = 0" in output_2
-                    rules_exist = rules_exist or ipv4_rule_exists
-
-            return rules_exist if (ipv4 or ipv6) else None
-
-        except subprocess.CalledProcessError:
-            # Return None on command failure so caller can handle degraded capability.
+        if not (ipv4 or ipv6):
             return None
+
+        rules = IptablesRule._MODE_RULES.get(mode)
+        if rules is None:
+            return None
+
+        expected_forwarding = "0" if nofwd else "1"
+        rules_exist = False
+
+        if ipv6:
+            rules_exist = _rule_exists("ip6tables", "OUTPUT", rules["ip6tables"] + _COMMENT)
+            if mode == "a+":
+                rules_exist = rules_exist and _read_sysctl("net.ipv6.conf.all.forwarding") == expected_forwarding
+
+        if ipv4:
+            ipv4_rule_exists = _rule_exists("iptables", "OUTPUT", rules["iptables"] + _COMMENT)
+            if mode == "a+":
+                ipv4_rule_exists = ipv4_rule_exists and _read_sysctl("net.ipv4.ip_forward") == expected_forwarding
+            rules_exist = rules_exist or ipv4_rule_exists
+
+        return rules_exist

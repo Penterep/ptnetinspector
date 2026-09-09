@@ -74,7 +74,7 @@ def is_multicast_ipv4(addr: str) -> bool:
     """Validate multicast IPv4 address."""
     try:
         return ipaddress.IPv4Address(addr).is_multicast
-    except:
+    except (ipaddress.AddressValueError, ValueError):
         # Treat malformed addresses as non-multicast.
         return False
 
@@ -83,26 +83,26 @@ def is_broadcast_ipv4(addr: str) -> bool:
     return addr in ['255.255.255.255'] or addr.endswith('.255')
 
 def is_valid_ipv6(ip: str) -> bool:
-    """Validate IPv6 address using regex."""
-    if ip is None or isinstance(ip, (float, int)):
+    """Validate IPv6 address.
+
+    The stdlib parser replaces a hand-rolled regex whose embedded-IPv4 octet
+    pattern was ``25[0-4]``, so every address with a 255 in its dotted-quad tail
+    (``::ffff:192.168.1.255``) was judged invalid and silently dropped from the
+    output by the ~30 call sites that filter on this.
+    """
+    if not isinstance(ip, str):
         return False
-    pattern = re.compile(r"""
-        ^
-        \s*
-        (?!.*::.*::)
-        (?:(?!:)|:(?=:))
-        (?:[0-9a-f]{0,4}(?:(?<=::)|(?<!::):)){6}
-        (?:
-            [0-9a-f]{0,4}(?:(?<=::)|(?<!::):)[0-9a-f]{0,4}
-            (?: (?<=::)|(?<!:)|(?<=:)(?<!::): )
-         |
-            (?:25[0-4]|2[0-4]\d|1\d\d|[1-9]?\d)
-            (?:\.(?:25[0-4]|2[0-4]\d|1\d\d|[1-9]?\d)){3}
-        )
-        \s*
-        $
-    """, re.VERBOSE | re.IGNORECASE | re.DOTALL)
-    return pattern.match(ip) is not None
+    candidate = ip.strip()
+    # Zone IDs are stripped at ingestion (interface enumeration, networks), so a
+    # scoped address reaching here is not one of ours; reject it as before.
+    if "%" in candidate:
+        return False
+    try:
+        ipaddress.IPv6Address(candidate)
+        return True
+    except ValueError:
+        # Invalid IPv6 strings are expected while filtering mixed address lists.
+        return False
 
 def is_valid_ipv6_prefix(prefix: str) -> bool:
     """Validate IPv6 prefix."""
@@ -224,6 +224,51 @@ def is_ipv6_predictable(ip: str, mac: str) -> bool:
         return True
 
     return False
+
+
+def classify_ipv6_iid(ip: str, mac: str) -> str:
+    """Name the scheme that produced an address's interface identifier.
+
+    A boolean "predictable / not predictable" throws away which scheme is in
+    use, and the scheme is the interesting part: EUI-64 hands out the MAC in
+    every packet, a manual low-bit identifier is trivially scannable, and stable
+    privacy or temporary addressing means neither. Purely a classification of an
+    address already collected - nothing is sent.
+    """
+    try:
+        address = ipaddress.IPv6Address(ip)
+    except (ipaddress.AddressValueError, ValueError):
+        return ""
+
+    if address.is_multicast or address.is_unspecified or address.is_loopback:
+        return ""
+
+    lower_64 = int(address) & ((1 << 64) - 1)
+    if lower_64 == 0:
+        return "subnet-router anycast"
+
+    exploded = address.exploded
+    last_64_bits = "".join(exploded.split(":")[4:])
+
+    if last_64_bits[6:10] == "fffe":
+        eui64_mac = last_64_bits[:6] + last_64_bits[10:]
+        first_byte = int(eui64_mac[:2], 16) ^ 0x02
+        derived = "{:02x}{}".format(first_byte, eui64_mac[2:])
+        derived = ":".join(derived[i:i + 2] for i in range(0, 12, 2))
+        if mac and derived.lower() == str(mac).lower():
+            return "EUI-64 (MAC derived)"
+        return "EUI-64 style"
+
+    # A low-bit identifier is almost always hand-configured or DHCPv6-assigned.
+    if (lower_64 >> 16) == 0:
+        return "low-bit (manual or DHCPv6)"
+
+    if is_ipv6_predictable(ip, mac):
+        return "predictable pattern"
+
+    # Neither MAC-derived nor patterned: RFC 7217 stable-privacy or RFC 8981
+    # temporary addressing. The two are indistinguishable from one address.
+    return "randomized (stable-privacy or temporary)"
 
 
 # ============================================================================

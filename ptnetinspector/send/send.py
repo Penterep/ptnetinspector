@@ -19,7 +19,7 @@ from scapy.layers.l2 import Ether, ARP
 
 from ptnetinspector.entities.default_gw import DefaultGateway
 from ptnetinspector.utils.interface import Interface
-from ptnetinspector.utils.ip_utils import is_global_unicast_ipv6, is_ipv6_ula, is_valid_ipv6, is_link_local_ipv6
+from ptnetinspector.utils.ip_utils import is_global_unicast_ipv6, is_ipv6_ula, is_valid_ipv6, is_link_local_ipv6, has_additional_data
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.send.send_ipv4 import SendIPv4
 from ptnetinspector.send.send_ipv6 import SendIPv6
@@ -219,6 +219,80 @@ class Send:
             SendIPv4.send_dhcp_discover(interface)
         if ip_mode.ipv6:
             SendIPv6.send_dhcpv6_solicit(interface)
+            # Solicit only asks for an address; Information-Request is what
+            # returns the resolvers, search list, NTP/SIP servers and boot URL.
+            SendIPv6.send_dhcpv6_inforequest(interface)
+
+    @staticmethod
+    def send_node_information_queries(interface: str, ip_mode: IPMode, addresses=None) -> None:
+        """
+        Send ICMPv6 Node Information Queries to discovered nodes and the link.
+
+        Args:
+            interface (str): Network interface to use for sending probe
+            ip_mode (IPMode): IP version to probe
+            addresses (list[str] | None): Known node addresses to query directly
+        """
+        if ip_mode.ipv6:
+            SendIPv6.send_ni_queries(interface, addresses)
+
+    @staticmethod
+    def send_dnssd_walk(interface: str, ip_mode: IPMode) -> None:
+        """
+        Follow up the DNS-SD probe by walking the advertised service tree.
+
+        Args:
+            interface (str): Network interface to use for sending probe
+            ip_mode (IPMode): IP version to probe
+        """
+        if ip_mode.ipv6:
+            SendIPv6.send_dnssd_walk(interface)
+        if ip_mode.ipv4:
+            SendIPv4.send_dnssd_walk(interface)
+
+    @staticmethod
+    def collect_known_addresses(ip_mode: IPMode) -> List[str]:
+        """Unicast addresses discovered so far, as targets for follow-up probes."""
+        addresses: List[str] = []
+        addresses_file = get_csv_path("addresses.csv")
+        if not has_additional_data(addresses_file):
+            return addresses
+
+        try:
+            with open(addresses_file, newline="") as handle:
+                for row in csv.DictReader(handle):
+                    ip = str(row.get("IP", "")).strip()
+                    if not ip or ip in addresses:
+                        continue
+                    try:
+                        address = ipaddress.ip_address(ip)
+                    except ValueError:
+                        continue
+                    if address.is_multicast or address.is_unspecified or address.is_loopback:
+                        continue
+                    if address.version == 6 and not ip_mode.ipv6:
+                        continue
+                    if address.version == 4 and not ip_mode.ipv4:
+                        continue
+                    addresses.append(ip)
+        except OSError as error:
+            logger.debug("Could not read discovered addresses: %s", error)
+
+        return addresses
+
+    @staticmethod
+    def send_snooping_probes(interface: str, ip_mode: IPMode) -> None:
+        """
+        Join an otherwise unused multicast group to test for L2 snooping.
+
+        Args:
+            interface (str): Network interface to use for sending probe
+            ip_mode (IPMode): IP version to probe
+        """
+        if ip_mode.ipv6:
+            SendIPv6.send_mld_snoop_probe(interface)
+        if ip_mode.ipv4:
+            SendIPv4.send_igmp_snoop_probe(interface)
 
 
 def get_gateway_addresses(interface: str, ip_mode: IPMode) -> List[str]:
