@@ -53,7 +53,7 @@ def discover_resolvers(ip_mode: IPMode) -> list[str]:
     ra_options = get_csv_path("ra_options.csv")
     if has_additional_data(ra_options):
         try:
-            with open(ra_options, newline="") as handle:
+            with open(ra_options, 'r', encoding='utf-8', errors='replace', newline='') as handle:
                 for row in csv.DictReader(handle):
                     if str(row.get("Option", "")).strip() == "RDNSS":
                         _add(row.get("Value", ""))
@@ -63,7 +63,7 @@ def discover_resolvers(ip_mode: IPMode) -> list[str]:
     dhcpv6_options = get_csv_path("dhcpv6_options.csv")
     if has_additional_data(dhcpv6_options):
         try:
-            with open(dhcpv6_options, newline="") as handle:
+            with open(dhcpv6_options, 'r', encoding='utf-8', errors='replace', newline='') as handle:
                 for row in csv.DictReader(handle):
                     if str(row.get("Option", "")).strip() == "DNS server":
                         _add(row.get("Value", ""))
@@ -84,7 +84,7 @@ def _collect_addresses(ip_mode: IPMode) -> list[tuple[str, str]]:
 
     pairs: list[tuple[str, str]] = []
     try:
-        with open(addresses_file, newline="") as handle:
+        with open(addresses_file, 'r', encoding='utf-8', errors='replace', newline='') as handle:
             for row in csv.DictReader(handle):
                 mac = str(row.get("MAC", "")).strip()
                 ip = str(row.get("IP", "")).strip()

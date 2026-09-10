@@ -740,3 +740,154 @@ class TestLinkLayerIsReadFromTheActualFraming:
                                      addr2="22:22:22:22:22:22")) == \
             ("22:22:22:22:22:22", "11:11:11:11:11:11")
         assert _link_addresses(Raw(load=b"x")) == ("", "")
+
+
+# --------------------------------------------------------------------------
+# Artifacts hold values taken off the wire, and a run can be killed mid-write.
+# --------------------------------------------------------------------------
+class TestArtifactsSurviveCorruption:
+    """Found by fuzzing the report path. A byte that is not valid UTF-8, a
+    ragged row, or a file truncated to nothing took the entire report down at
+    the very end of a scan - throwing away the whole run's work."""
+
+    def test_a_byte_that_is_not_utf8_does_not_abort_the_report(self, tmp_path):
+        from ptnetinspector.utils.csv_helpers import has_additional_data, read_csv_text
+
+        path = tmp_path / "localname.csv"
+        path.write_bytes(b"MAC,name\naa:bb:cc:00:00:01,\xff\xfe\x80\n")
+
+        assert has_additional_data(str(path)) is True
+        frame = read_csv_text(path)
+        assert list(frame["MAC"]) == ["aa:bb:cc:00:00:01"]
+        # the undecodable byte is replaced, not fatal
+        assert frame["name"].iloc[0]
+
+    def test_a_ragged_row_is_dropped_not_fatal(self, tmp_path):
+        from ptnetinspector.utils.csv_helpers import read_csv_text
+
+        path = tmp_path / "addresses.csv"
+        path.write_text("MAC,IP\naa:bb:cc:00:00:01,192.168.1.5\nx,y,z,extra,fields\n")
+
+        frame = read_csv_text(path)
+        assert list(frame["IP"]) == ["192.168.1.5"]
+
+    def test_a_file_truncated_to_nothing_reads_as_empty_with_its_columns(self, tmp_path):
+        """The columns matter: callers index them, so an empty frame with no
+        columns only moves the crash downstream."""
+        from ptnetinspector.utils.csv_helpers import ARTIFACT_SCHEMAS, read_csv_text
+
+        path = tmp_path / "vulnerability_mac.csv"
+        path.write_bytes(b"")
+
+        frame = read_csv_text(path)
+        assert frame.empty
+        assert list(frame.columns) == ARTIFACT_SCHEMAS["vulnerability_mac.csv"]
+        # indexing a column of an empty artifact must work
+        assert list(frame["ID"]) == []
+
+    def test_an_unknown_filename_still_reads_as_empty(self, tmp_path):
+        from ptnetinspector.utils.csv_helpers import read_csv_text
+
+        path = tmp_path / "not-an-artifact.csv"
+        path.write_bytes(b"")
+        assert read_csv_text(path).empty
+
+    def test_the_guard_answers_no_for_a_file_it_cannot_read(self, tmp_path):
+        from ptnetinspector.utils.csv_helpers import has_additional_data
+
+        assert has_additional_data(str(tmp_path / "absent.csv")) is False
+        assert has_additional_data(None) is False
+        (tmp_path / "empty.csv").write_bytes(b"")
+        assert has_additional_data(str(tmp_path / "empty.csv")) is False
+
+    def test_create_csv_and_the_reader_share_one_schema(self):
+        """They used to be separate lists, so a truncated artifact could come
+        back with columns that did not match what the scan writes."""
+        import tempfile
+        import ptnetinspector.utils.path as pathmod
+        from ptnetinspector.utils.csv_helpers import ARTIFACT_SCHEMAS, create_csv
+        from ptnetinspector.utils.path import (
+            get_current_interface, get_tmp_path, set_current_interface,
+        )
+
+        previous = get_current_interface()
+        directory = Path(tempfile.mkdtemp())
+        original = pathmod.get_output_dir
+        pathmod.get_output_dir = lambda base_path=None: directory
+        try:
+            set_current_interface("schema")
+            create_csv("schema")
+            written = get_tmp_path("schema")
+            assert sorted(p.name for p in written.glob("*.csv")) == sorted(ARTIFACT_SCHEMAS)
+            for name, fieldnames in ARTIFACT_SCHEMAS.items():
+                header = (written / name).read_text(encoding="utf-8").splitlines()[0]
+                assert header == ",".join(fieldnames), name
+        finally:
+            pathmod.get_output_dir = original
+            set_current_interface(previous)
+
+
+# --------------------------------------------------------------------------
+# A hostile hostname must not be able to end the scan.
+# --------------------------------------------------------------------------
+class TestHostnameBytesCannotAbortTheScan:
+    """Found by fuzzing. An mDNS or LLMNR answer whose rdata is not valid UTF-8
+    was decoded at the call site, before the sanitiser ran, so
+    UnicodeDecodeError propagated out of the analysis loop and ended the whole
+    scan - a denial of service any host on the segment could trigger."""
+
+    def test_the_call_sites_hand_over_raw_bytes(self):
+        """Decoding belongs in the sanitiser, which replaces bad bytes."""
+        source = (Path(__file__).resolve().parent.parent
+                  / "ptnetinspector" / "scan.py").read_text()
+        assert "save_local_name(packet[0].src, packet.an[i].rdata)" in source
+        assert ".rdata.decode()" not in source
+
+    @pytest.mark.parametrize("raw, expected", [
+        (b"printer.local", "printer.local"),
+        (bytearray(b"host.local"), "host.local"),
+        (memoryview(b"host.local"), "host.local"),
+        ("pc1.local.", "pc1.local"),
+        ("WIN-DESKTOP", "WIN-DESKTOP"),
+        # RFC 6762 names are UTF-8, so non-ASCII is legitimate
+        ("Muller-PC.local", "Muller-PC.local"),
+    ])
+    def test_a_usable_name_survives(self, raw, expected):
+        assert Node._clean_wire_name(raw) == expected
+
+    @pytest.mark.parametrize("raw", [
+        b"\xff\xfe\x80",                                  # not text at all
+        b"host\xff.local",                                # one bad byte inside
+        b"\x00\x00\x00\x00\rofficeprinter\x05local\x00",  # an undecoded NI payload
+        b"name\x00with\x00nuls",
+        b"",
+        b"\x07",
+        "a" * 300,
+        None,                                             # not text
+        12345,
+        [b"x"],
+    ])
+    def test_anything_that_cannot_be_a_name_is_dropped(self, raw):
+        assert Node._clean_wire_name(raw) == ""
+
+    def test_an_mdns_answer_with_invalid_utf8_is_survivable(self, scan_dir):
+        """End to end: the frame is analysed, the scan continues, nothing is
+        stored under a garbage hostname."""
+        from ptnetinspector.scan import Save
+        from ptnetinspector.send.send import IPMode
+        from ptnetinspector.utils.path import get_csv_path
+        from unittest import mock
+        from ptnetinspector import scan as scanmod
+
+        answer = DNSRR(rrname="host.local", type="PTR", ttl=120, rdata=b"\xff\xfe\x80bad")
+        frame = (Ether(src="aa:bb:cc:00:00:01", dst="33:33:00:00:00:fb")
+                 / IPv6(src="fe80::1", dst="ff02::fb", hlim=255)
+                 / UDP(sport=5353, dport=5353) / DNS(qr=1, aa=1, an=answer))
+        parsed = Ether(bytes(frame))
+
+        with mock.patch.object(scanmod, "get_if_hwaddr", return_value="ff:ff:ff:ff:ff:ff"):
+            Save.save_packets("testiface", IPMode(True, True), [parsed])
+
+        names = [r["name"] for r in
+                 csv.DictReader(open(get_csv_path("localname.csv"), newline=""))]
+        assert all(name == "" or "�" not in name for name in names)

@@ -251,6 +251,26 @@ Fixes
   framing the frame actually carries; VLAN-tagged and 802.3 frames such as STP were
   already handled and still are
 
+Fixes found by fuzzing the parse and report paths
+- An mDNS or LLMNR answer whose record data is not valid UTF-8 ended the scan. It was
+  decoded at the call site, before the hostname sanitiser ran, so `UnicodeDecodeError`
+  propagated out of the analysis loop - a denial of service any host on the segment could
+  trigger with one frame. The bytes now reach the sanitiser undecoded
+- The hostname sanitiser itself accepted things that cannot be a name: a `bytearray` or
+  `memoryview` was stringified as its repr, `None` became "None", and bytes that were not
+  text at all became a row of replacement characters. Non-ASCII names are still kept, as
+  RFC 6762 names are UTF-8
+- A byte that is not valid UTF-8 anywhere in an artifact aborted the whole report at the
+  end of a scan. Every read of these files now decodes with replacement, including
+  `has_additional_data`, which is the guard every other read is gated on and so must not
+  be the thing that raises
+- A ragged row - what a scan killed mid-write leaves behind - aborted the sort pass; such
+  rows are now dropped
+- An artifact truncated to nothing aborted the report. Handling that at the reader alone
+  only moved the crash to a caller indexing a column that was no longer there, so
+  `create_csv` and `read_csv_text` now share one schema table and a truncated file reads
+  back as no rows with its proper columns
+
 Behaviour change
 - With neither `-4` nor `-6`, the scan is now IPv6 only; IPv4 is opt-in with `-4`. Scanning
   both families by default was a change from the tool's earlier behaviour and was reported
@@ -264,6 +284,12 @@ New output
   cannot be split on the delimiter
 
 Testing
+- `test/fuzz/` fuzzes both paths that take untrusted input: the packet parser, where one
+  frame's exception aborts the scan, and the report, where one bad byte throws away a
+  completed run. 43 seed frames covering every protocol parsed, byte-level mutation,
+  ~90 hand-built frames that lie in their own count and length fields, and hostile CSV
+  content through every output path. No root and no network; each exits non-zero on a
+  crash or a hang, so they can be wired into CI
 - `test/testbed/` runs the scanner against a simulated four-device LAN over a real veth
   link, in an unprivileged user namespace: no root, no second machine, and any firewall
   rule or sysctl the tool changes applies only inside that namespace

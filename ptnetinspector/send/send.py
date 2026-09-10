@@ -70,7 +70,7 @@ class Send:
         ipv4_targets: list[str] = []
 
         csv_file = get_csv_path('addresses.csv')
-        with open(csv_file, newline='') as csvfile:
+        with open(csv_file, 'r', encoding='utf-8', errors='replace', newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader)
             for row in reader:
@@ -154,7 +154,7 @@ class Send:
         networks = []
 
         csv_file = get_csv_path('networks.csv')
-        with open(csv_file, 'r') as csvfile:
+        with open(csv_file, 'r', encoding='utf-8', errors='replace') as csvfile:
             reader = csv.reader(csvfile)
             next(reader)  # skip header
             for row in reader:
@@ -259,7 +259,7 @@ class Send:
             return addresses
 
         try:
-            with open(addresses_file, newline="") as handle:
+            with open(addresses_file, 'r', encoding='utf-8', errors='replace', newline='') as handle:
                 for row in csv.DictReader(handle):
                     ip = str(row.get("IP", "")).strip()
                     if not ip or ip in addresses:

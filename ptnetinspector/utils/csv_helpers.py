@@ -25,7 +25,22 @@ def read_csv_text(path, **kwargs):
     float64: a hop limit of 255 came back out as "255.0", a QRV of 2 as "2.0",
     and an absent hostname as the literal string "nan".
     """
-    return pd.read_csv(path, dtype=str, keep_default_na=False, na_filter=False, **kwargs)
+    # These files hold values taken off the wire, and a scan can be killed
+    # mid-write, so neither an undecodable byte nor a ragged row may take the
+    # whole report down at the end of a run: the byte is replaced and the row
+    # is dropped.
+    kwargs.setdefault("on_bad_lines", "skip")
+    try:
+        return pd.read_csv(path, dtype=str, keep_default_na=False, na_filter=False,
+                           encoding="utf-8", encoding_errors="replace", **kwargs)
+    except pd.errors.EmptyDataError:
+        # create_csv writes a header for every artifact, so a file with not even
+        # a header line was truncated by something outside this run. Reading it
+        # as "no rows" keeps the report going; the columns come back empty, and
+        # callers that index one get the same KeyError they would for any
+        # artifact that is not there.
+        logger.debug("No columns to parse in %s; treating it as empty", path)
+        return pd.DataFrame(columns=ARTIFACT_SCHEMAS.get(os.path.basename(str(path)), []))
 
 
 logger = logging.getLogger(__name__)
@@ -44,6 +59,53 @@ def _ip_sort_key(value) -> tuple:
     return (0 if address.version == 4 else 1, int(address), "")
 
 
+# The header of every artifact this tool writes, in one place. It is both what
+# create_csv lays down at the start of a scan and what read_csv_text falls back
+# to when a file has been truncated to nothing outside this run, so the two can
+# never drift apart.
+ARTIFACT_SCHEMAS = {
+    'addresses.csv': ['MAC', 'IP'],
+    'addresses_unfiltered.csv': ['MAC', 'IP'],
+    'packets.csv': ['time', 'src MAC', 'des MAC', 'source IP', 'destination IP', 'protocol', 'length'],
+    'routers.csv': ['MAC'],
+    'MDNS.csv': ['MAC', 'IP'],
+    'LLMNR.csv': ['MAC', 'IP'],
+    'MLDv1.csv': ['MAC', 'IP', 'protocol', 'mulip'],
+    'MLDv2.csv': ['MAC', 'IP', 'protocol', 'rtype', 'mulip', 'sources'],
+    'IGMPv1v2.csv': ['MAC', 'IP', 'protocol', 'mulip'],
+    'IGMPv3.csv': ['MAC', 'IP', 'protocol', 'rtype', 'mulip', 'sources'],
+    'RA.csv': ['MAC', 'IP', 'M', 'O', 'H', 'A', 'L', 'Preference', 'Router_lft', 'Reachable_time', 'Retrans_time',
+                    'DNS', 'MTU', 'Prefix', 'Valid_lft', 'Preferred_lft'],
+    'localname.csv': ['MAC', 'name'],
+    'role_node.csv': ['MAC', 'Device_Number', 'Role'],
+    'ipv6_route_table.csv': ['Destination', 'Nexthop', 'Flag', 'Metric', 'Refcnt', 'Use', 'If'],
+    'ipv4_route_table.csv': ['Destination', 'Gateway', 'Genmask', 'Flags', 'Metric', 'Ref', 'Use', 'Iface'],
+    'time_all.csv': ['time', 'MAC', 'packet'],
+    'time_incoming.csv': ['time', 'MAC', 'packet'],
+    'time_outgoing.csv': ['time', 'MAC', 'packet'],
+    'start_end_mode.csv': ['time'],
+    'eap.csv': ['MAC', 'packet'],
+    'remote_node.csv': ['src MAC', 'dst MAC', 'src IP', 'dst IP'],
+    'dhcp.csv': ['MAC', 'IP', 'Role'],
+    'wsdiscovery.csv': ['MAC', 'IP'],
+    'default_gw.csv': ['MAC', 'IP'],
+    'vulnerability_mac.csv': ['ID', 'MAC', 'Mode', 'IPver', 'Code', 'Description', 'Label'],
+    'vulnerability_ip.csv': ['ID', 'IP', 'Mode', 'IPver', 'Code', 'Description', 'Label'],
+    'vulnerability_net.csv': ['ID', 'Mode', 'IPver', 'Code', 'Description', 'Label'],
+    'networks.csv': ['network_prefix', 'prefix_length'],
+    'ra_options.csv': ['MAC', 'IP', 'Option', 'Value', 'Lifetime', 'Flags'],
+    'fingerprint.csv': ['MAC', 'Hop_limit', 'OS_guess', 'IID_type', 'Reachable_time', 'Retrans_time', 'Router_lft'],
+    'dnssd.csv': ['MAC', 'IP', 'Service', 'Instance', 'Target', 'Port', 'TXT'],
+    'multicast_groups.csv': ['Group', 'Version', 'Source_MAC'],
+    'querier.csv': ['MAC', 'IP', 'Protocol', 'Group', 'QRV', 'QQIC', 'Max_response'],
+    'dhcpv6_options.csv': ['MAC', 'IP', 'Option', 'Value'],
+    'node_info.csv': ['MAC', 'IP', 'Type', 'Value'],
+    'reverse_dns.csv': ['MAC', 'IP', 'Name', 'Resolver'],
+    'devices.csv': ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_count'],
+    'device_addresses.csv': ['MAC', 'IP', 'IP_version', 'Device', 'Vendor', 'Role', 'Hostname'],
+}
+
+
 def create_csv(interface: str | None = None) -> None:
     """
     Creates multiple CSV files with predefined headers in the temporary directory.
@@ -56,161 +118,9 @@ def create_csv(interface: str | None = None) -> None:
     """
     directory = get_tmp_path(interface)
     entity_registry.clear()
-    with open(f"{directory}/addresses.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/addresses_unfiltered.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/packets.csv", 'w', newline='') as csvfile:
-        fieldnames = ['time', 'src MAC', 'des MAC', 'source IP', 'destination IP', 'protocol', 'length']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/routers.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/MDNS.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/LLMNR.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/MLDv1.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'protocol', 'mulip']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/MLDv2.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'protocol', 'rtype', 'mulip', 'sources']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/IGMPv1v2.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'protocol', 'mulip']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/IGMPv3.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'protocol', 'rtype', 'mulip', 'sources']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/RA.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'M', 'O', 'H', 'A', 'L', 'Preference', 'Router_lft', 'Reachable_time', 'Retrans_time',
-                    'DNS', 'MTU', 'Prefix', 'Valid_lft', 'Preferred_lft']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/localname.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'name']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/role_node.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'Device_Number', 'Role']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/ipv6_route_table.csv", 'w', newline='') as csvfile:
-        fieldnames = ['Destination', 'Nexthop', 'Flag', 'Metric', 'Refcnt', 'Use', 'If']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/ipv4_route_table.csv", 'w', newline='') as csvfile:
-        fieldnames = ['Destination', 'Gateway', 'Genmask', 'Flags', 'Metric', 'Ref', 'Use', 'Iface']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/time_all.csv", 'w', newline='') as csvfile:
-        fieldnames = ['time', 'MAC', 'packet']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/time_incoming.csv", 'w', newline='') as csvfile:
-        fieldnames = ['time', 'MAC', 'packet']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/time_outgoing.csv", 'w', newline='') as csvfile:
-        fieldnames = ['time', 'MAC', 'packet']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/start_end_mode.csv", 'w', newline='') as csvfile:
-        fieldnames = ['time']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/eap.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'packet']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/remote_node.csv", 'w', newline='') as csvfile:
-        fieldnames = ['src MAC', 'dst MAC', 'src IP', 'dst IP']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/dhcp.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'Role']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/wsdiscovery.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/default_gw.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/vulnerability_mac.csv", 'w', newline='') as csvfile:
-        fieldnames = ['ID', 'MAC', 'Mode', 'IPver', 'Code', 'Description', 'Label']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/vulnerability_ip.csv", 'w', newline='') as csvfile:
-        fieldnames = ['ID', 'IP', 'Mode', 'IPver', 'Code', 'Description', 'Label']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/vulnerability_net.csv", 'w', newline='') as csvfile:
-        fieldnames = ['ID', 'Mode', 'IPver', 'Code', 'Description', 'Label']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/networks.csv", 'w', newline='') as csvfile:
-        fieldnames = ['network_prefix', 'prefix_length']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/ra_options.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'Option', 'Value', 'Lifetime', 'Flags']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/fingerprint.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'Hop_limit', 'OS_guess', 'IID_type', 'Reachable_time', 'Retrans_time', 'Router_lft']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/dnssd.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'Service', 'Instance', 'Target', 'Port', 'TXT']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/multicast_groups.csv", 'w', newline='') as csvfile:
-        fieldnames = ['Group', 'Version', 'Source_MAC']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-
-    with open(f"{directory}/querier.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'Protocol', 'Group', 'QRV', 'QQIC', 'Max_response']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/dhcpv6_options.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'Option', 'Value']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/node_info.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'Type', 'Value']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/reverse_dns.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'Name', 'Resolver']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-    with open(f"{directory}/devices.csv", 'w', newline='') as csvfile:
-        fieldnames = ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_count']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-
-    with open(f"{directory}/device_addresses.csv", 'w', newline='') as csvfile:
-        fieldnames = ['MAC', 'IP', 'IP_version', 'Device', 'Vendor', 'Role', 'Hostname']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
+    for name, fieldnames in ARTIFACT_SCHEMAS.items():
+        with open(f"{directory}/" + name, 'w', newline='') as csvfile:
+            csv.DictWriter(csvfile, fieldnames=fieldnames).writeheader()
 
 def sort_csv_based_MAC(interface: str, file_name: str) -> None:
     """
@@ -360,7 +270,7 @@ def read_role_node_csv(filename):
     result = {}
     if not has_additional_data(filename):
         return
-    with open(filename, newline='') as csvfile:
+    with open(filename, 'r', encoding='utf-8', errors='replace', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             try:
@@ -439,7 +349,7 @@ def sort_and_deduplicate_vul_csv(filepath: str) -> None:
     Output:
         None
     """
-    with open(filepath, newline='') as f:
+    with open(filepath, 'r', encoding='utf-8', errors='replace', newline='') as f:
         reader = csv.reader(f)
         header = next(reader)
         rows = list(reader)
@@ -560,7 +470,7 @@ def sort_csv(input_file, output_file):
     """
     mac_to_ips = {}
 
-    with open(input_file, 'r', newline='') as csvfile:
+    with open(input_file, 'r', encoding='utf-8', errors='replace', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             mac = row['src MAC']
@@ -588,10 +498,17 @@ def has_additional_data(file_path: str) -> bool:
     """
     if file_path is None:
         return False
-    with open(file_path, 'r') as csv_file:
-        reader = csv.reader(csv_file)
-        next(reader, None)
-        for row in reader:
-            if row:
-                return True
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='replace') as csv_file:
+            reader = csv.reader(csv_file)
+            next(reader, None)
+            for row in reader:
+                if row:
+                    return True
+    except OSError as error:
+        # This is the guard every read is gated on, so it answers "no data"
+        # for a file that cannot be read rather than raising through it.
+        logger.debug("Could not check %s for data: %s", file_path, error)
+    except csv.Error as error:
+        logger.debug("Malformed CSV while checking %s: %s", file_path, error)
     return False

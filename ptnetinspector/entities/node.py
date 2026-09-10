@@ -29,7 +29,7 @@ class Node:
         # Importing the information about nodes from tmp files
         csv_file = get_csv_path("addresses.csv")
 
-        with open(csv_file, "r") as csv_file:
+        with open(csv_file, 'r', encoding='utf-8', errors='replace') as csv_file:
             reader = csv.DictReader(csv_file)
             nodes = list(reader)
 
@@ -59,17 +59,27 @@ class Node:
     def _clean_wire_name(value) -> str:
         """A hostname taken off the wire, or "" when it is not a usable name.
 
-        Every caller passes attacker-controlled bytes: an mDNS or LLMNR answer,
+        Every caller passes attacker-controlled input: an mDNS or LLMNR answer,
         or a Node Information reply, where scapy hands back whatever followed
-        the 4-octet TTL. A malformed reply therefore carried NUL bytes and DNS
-        length prefixes straight into the hostname column and on into the
-        device inventory. Control characters cannot occur in a DNS name, so a
-        value containing them is dropped instead of stored.
+        the 4-octet TTL. Decoding is done here, with replacement, rather than at
+        the call sites - doing it there raised UnicodeDecodeError on an answer
+        that was not valid UTF-8, and aborted the whole scan.
+
+        A name is rejected when it cannot be one: anything that is not text,
+        anything with control characters, anything longer than a DNS name may
+        be, and anything containing U+FFFD, which is what replacement leaves
+        behind and so is evidence the bytes were never a name. Non-ASCII text
+        is kept - RFC 6762 names are UTF-8, so "Muller-PC.local" is legitimate.
         """
-        if isinstance(value, bytes):
-            value = value.decode(errors="replace")
-        name = str(value).strip().strip(".")
+        if isinstance(value, (bytes, bytearray, memoryview)):
+            value = bytes(value).decode("utf-8", errors="replace")
+        elif not isinstance(value, str):
+            return ""
+
+        name = value.strip().strip(".")
         if not name or len(name) > 253:
+            return ""
+        if "\ufffd" in name:
             return ""
         if any(character < " " or character == "\x7f" for character in name):
             return ""

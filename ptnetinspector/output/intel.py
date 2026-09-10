@@ -30,7 +30,7 @@ def _read(name: str) -> list[dict]:
     if not has_additional_data(path):
         return []
     try:
-        with open(path, newline="") as handle:
+        with open(path, 'r', encoding='utf-8', errors='replace', newline='') as handle:
             return [row for row in csv.DictReader(handle)]
     except OSError as error:
         logger.debug("Could not read %s: %s", name, error)

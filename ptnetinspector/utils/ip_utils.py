@@ -536,7 +536,7 @@ def generate_ipv6_address(prefix: str) -> str:
 def locate_addres(new_address: str) -> bool:
     """Check if address exists in CSV file."""
     csv_file = get_csv_path('ipv6.csv')
-    with open(csv_file, 'r') as file:
+    with open(csv_file, 'r', encoding='utf-8', errors='replace') as file:
         reader = csv.reader(file)
         for row in reader:
             if new_address in row:
@@ -545,7 +545,7 @@ def locate_addres(new_address: str) -> bool:
 
 def create_IPv6_add(input_filename: str) -> tuple[ipaddress.IPv6Address, int]:
     """Create IPv6 address based on input CSV file."""
-    with open(input_filename, 'r') as input_file:
+    with open(input_filename, 'r', encoding='utf-8', errors='replace') as input_file:
         reader = csv.DictReader(input_file)
         first_ip_str = next(reader)['IP']
         first_ip = ipaddress.IPv6Address(first_ip_str)
@@ -589,7 +589,7 @@ def get_status_ip(mac: str, ip: str) -> str:
     """Get status of IP (DHCP, DHCPv6, SLAAC)."""
     role_file_path = get_csv_path('role_node.csv')
     if has_additional_data(role_file_path):
-        with open(role_file_path, 'r') as csv_file:
+        with open(role_file_path, 'r', encoding='utf-8', errors='replace') as csv_file:
             reader = csv.DictReader(csv_file)
             for row in reader:
                 if row['MAC'] == mac and row['Role'] != 'Host':
@@ -604,7 +604,7 @@ def get_status_ip(mac: str, ip: str) -> str:
     if ip_obj.version == 4:
         dhcp_file_path = get_csv_path('dhcp.csv')
         if has_additional_data(dhcp_file_path):
-            with open(dhcp_file_path, 'r') as csv_file:
+            with open(dhcp_file_path, 'r', encoding='utf-8', errors='replace') as csv_file:
                 reader = csv.DictReader(csv_file)
                 for row in reader:
                     if row['MAC'] == mac and row['IP'] == ip:
@@ -614,7 +614,7 @@ def get_status_ip(mac: str, ip: str) -> str:
     elif ip_obj.version == 6 and is_global_unicast_ipv6(ip):
         dhcp_file_path = get_csv_path('dhcp.csv')
         if has_additional_data(dhcp_file_path):
-            with open(dhcp_file_path, 'r') as csv_file:
+            with open(dhcp_file_path, 'r', encoding='utf-8', errors='replace') as csv_file:
                 reader = csv.DictReader(csv_file)
                 for row in reader:
                     if row['MAC'] == mac and row['IP'] == ip:
@@ -622,7 +622,7 @@ def get_status_ip(mac: str, ip: str) -> str:
 
         ra_file_path = get_csv_path('RA.csv')
         if has_additional_data(ra_file_path):
-            with open(ra_file_path, 'r') as csv_file:
+            with open(ra_file_path, 'r', encoding='utf-8', errors='replace') as csv_file:
                 reader = csv.DictReader(csv_file)
                 for row in reader:
                     if row['M'] == "Yes" and row['A'] == "No":
@@ -648,7 +648,7 @@ def is_dhcp_slaac() -> list:
     lst_result = []
 
     if has_additional_data(dhcp_file_path):
-        with open(dhcp_file_path, 'r') as csv_file:
+        with open(dhcp_file_path, 'r', encoding='utf-8', errors='replace') as csv_file:
             reader = csv.DictReader(csv_file)
             for row in reader:
                 try:
@@ -668,7 +668,7 @@ def is_dhcp_slaac() -> list:
                     continue
 
     if has_additional_data(ra_file_path):
-        with open(ra_file_path, 'r') as csv_file:
+        with open(ra_file_path, 'r', encoding='utf-8', errors='replace') as csv_file:
             reader = csv.DictReader(csv_file)
             for row in reader:
                 if row['M'] == "Yes" and row['A'] == "No":
@@ -694,7 +694,7 @@ def IPv4_IPv6_filter(input_filename: str) -> None:
     """Filter IPv6 addresses from a CSV file containing IP addresses."""
     ipv6_output_filename = get_csv_path('ipv6.csv')
 
-    with open(input_filename, 'r') as input_file, open(ipv6_output_filename, 'a') as ipv6_output_file:
+    with open(input_filename, 'r', encoding='utf-8', errors='replace') as input_file, open(ipv6_output_filename, 'a') as ipv6_output_file:
         reader = csv.DictReader(input_file)
         ipv6_writer = csv.writer(ipv6_output_file)
 

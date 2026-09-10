@@ -56,7 +56,7 @@ def _load_hostnames() -> dict[str, str]:
     if not has_additional_data(localname_file):
         return names
     try:
-        with open(localname_file, newline="") as handle:
+        with open(localname_file, 'r', encoding='utf-8', errors='replace', newline='') as handle:
             for row in csv.DictReader(handle):
                 mac = str(row.get("MAC", "")).strip().upper()
                 name = str(row.get("name", "")).strip()

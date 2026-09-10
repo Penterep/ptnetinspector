@@ -481,7 +481,11 @@ class Save:
                                             LLMNR(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_LLMNR()
                                             Node(packet[0].src, packet[LLMNRResponse].an[i].rdata).save_addresses()
                                     if packet.an[i].type == 12:
-                                        Node.save_local_name(packet[0].src, packet[LLMNRResponse].an[i].rdata.decode())
+                                        # Raw bytes: _clean_wire_name decodes with
+                                        # replacement. Decoding here instead raised
+                                        # UnicodeDecodeError on an answer that is not
+                                        # valid UTF-8, which aborted the whole scan.
+                                        Node.save_local_name(packet[0].src, packet[LLMNRResponse].an[i].rdata)
                                 except Exception as ex:
                                     logger.debug("Failed to parse LLMNR answer for %s: %s", packet[0].src, ex)
 
@@ -504,7 +508,7 @@ class Save:
                                     MDNS(packet[0].src, packet.an[i].rdata).save_MDNS()
                                 elif packet.an[i].type == 12:
                                     if not Save._is_service_discovery_ptr(packet.an[i]):
-                                        Node.save_local_name(packet[0].src, packet.an[i].rdata.decode())
+                                        Node.save_local_name(packet[0].src, packet.an[i].rdata)
                         except AttributeError as ex:
                             logger.debug("Skipping malformed mDNS answer for %s: %s", packet[0].src, ex)
                             continue

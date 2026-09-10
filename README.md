@@ -279,6 +279,23 @@ ptnetinspector is distributed in the hope that it will be useful, but WITHOUT AN
 
 You should have received a copy of the GNU General Public License along with ptmethods. If not, see https://www.gnu.org/licenses/
 
+## Testing
+
+None of this needs root or a network.
+
+| | |
+| --- | --- |
+| `python3 -m pytest test/ -q` | The unit and regression suite. |
+| `test/testbed/testbed.sh -t a -i scan0 -vv` | Runs a real scan against a simulated four-device LAN over a veth pair, inside an unprivileged user namespace. Every firewall rule and sysctl the tool changes applies only in there, so aggressive mode can be exercised without touching the host's networking. See `test/testbed/README.md`. |
+| `python3 test/fuzz/structured.py` | Adversarial frames that lie in their own count and length fields, each with a hang guard. |
+| `python3 test/fuzz/fuzz.py -n 25000` | Byte-level mutation of a seed corpus covering every protocol parsed. |
+| `python3 test/fuzz/report_fuzz.py 400` | Hostile CSV content through every output path. |
+
+The fuzzers exit non-zero when they find a crash or a hang. Both inputs they
+cover are untrusted: one bad frame aborting the scan is a denial of service,
+and one bad byte in an artifact throws away a completed run. See
+`test/fuzz/README.md`.
+
 ## Sponsor
 
 <p align="center">
