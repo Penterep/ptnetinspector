@@ -115,7 +115,7 @@ The following options are applicable to all scan modes:
 | `-nc`   | Disables checking if found addresses are valid and responsive. No ARP/Neighbour-Solicitation probes are sent, and every observed address is reported instead of only the ones that answered — including neighbours on a private range outside the auto-detected subnets. Publicly routable addresses seen in transit stay excluded (they belong to hosts beyond the router, not to the device that relayed the frame); the raw view is always in `addresses_unfiltered.csv`. |
 | `-4`    | Only scan IPv4 traffic (cannot be used alone for `a+` mode). |
 | `-6`    | Only scan IPv6 traffic. |
-| *(neither `-4` nor `-6`)* | Both IPv4 and IPv6 are scanned. On a single-stack interface the unavailable family is skipped with a warning. |
+| *(neither `-4` nor `-6`)* | IPv6 only. Add `-4` to also scan IPv4. On an interface with no IPv6 address the scan falls back to IPv4 with a warning rather than scanning nothing. |
 | `-ts`   | Filter vulnerabilities by Test code (space-separated). Only selected tests will be scanned and reported. The tool will **automatically infer and schedule the required scan mode(s)**. Example: `-ts 4-MDNS 4-LLMNR 6-OUTRANGE` will auto-infer mode `a` (active). Mixed modes like `-ts 6-OUTRANGE 802-1X` will infer `[802.1x, a]`. |
 | `-tmpret` | Temporary file retention in seconds (default: 1800). Set a small value for quick cleanup during development. |
 | `-rdns` | Reverse-resolves every discovered address (PTR in `ip6.arpa` / `in-addr.arpa`) against the DNS servers found on the link via RA/RDNSS or DHCPv6. Off by default: it is the only probe that sends traffic off-link. |
@@ -158,6 +158,7 @@ Every run writes its artifacts to the interface's output directory
 | `ptnetinspector-output.json` | Full normalized JSON report (written with `-j`). |
 | `ptnetinspector-output.txt` | The terminal report as text. |
 | `devices.csv` / `devices.txt` | Device inventory: MAC, vendor, role, hostname and addresses, one device per row, with no findings mixed in. Useful when a segment has many devices and the per-device report becomes hard to read. |
+| `device_addresses.csv` | The same inventory flattened to one row per address, with the owning device repeated on each row. Use this one to search: `grep <address>`, or filter a family with `awk -F, '$3==6'`. |
 | `network-intel.txt` | Recon detail collected during the scan: Router Advertisement options, discovered DNS-SD services, Node Information replies, the multicast querier, DHCPv6 options, passive fingerprints and reverse-DNS results. |
 
 ## What a Scan Collects

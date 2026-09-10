@@ -314,7 +314,7 @@ def get_help() -> list:
             ["                ", "   sends unicast DNS off-link, so it is off by default"],
             ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
             ["-6              ", "Only IPv6 traffic"],
-            ["                ", "   default: both IPv4 and IPv6 are scanned"],
+            ["                ", "   default: IPv6 only; add -4 to also scan IPv4"],
             ["-ts             ", "Filter vulnerabilities by Test code (space-separated, e.g., -ts 4-MDNS 6-LLMNR)"],
             ["-tmpret         ", "Temporary file retention in seconds (default: 1800; set small for dev reset)"],
             ["-h              ", "Show this help message and exit"]
@@ -770,12 +770,12 @@ def _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, s
         list_error.append("No forwarding is not applied in this mode.")
 
 
-def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning, ipver_explicit=True) -> tuple:
+def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning) -> tuple:
     """Validate and process active mode parameters.
 
     Returns:
-        tuple: (smac, ip_mode). ip_mode may be narrowed when the user did not
-        explicitly request an IP version via -4/-6 and the interface lacks one.
+        tuple: (smac, ip_mode). The IP mode is reconciled against the interface
+        earlier, by _reconcile_ip_mode, for every scan type.
     """
     for param, msg in [
         (duration_passive, "Passive duration is not applied in this mode."),
@@ -802,27 +802,45 @@ def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggress
         err = "Invalid inserted MAC address."
         list_error.append(err)
 
+    return smac, ip_mode
+
+
+def _reconcile_ip_mode(interface, ip_mode, ipver_explicit, list_error, list_warning) -> IPMode:
+    """Drop or swap a family the interface cannot carry.
+
+    A family the user asked for explicitly with -4/-6 must be present, and its
+    absence is an error. A family enabled only by the default is adjusted with a
+    warning instead, so a single-stack interface still scans the family it has.
+
+    This runs for every scan type. It used to sit inside the active-mode
+    validation, which was survivable while the default was dual-stack - one of
+    the two families was always present - but the default is IPv6 only, so a
+    passive scan on an IPv4-only interface would otherwise capture a family that
+    is not there and say nothing about it.
+    """
     interface_obj = Interface(interface)
     has_ipv4 = bool(interface_obj.get_interface_ipv4_ips())
     has_ipv6 = bool(interface_obj.get_interface_ipv6_ips())
 
-    # A family the user asked for explicitly (-4/-6) must be present; a family
-    # only enabled by the dual-stack default is dropped with a warning instead,
-    # so single-stack interfaces still scan the family they do have.
+    # Each branch enables the family the interface does have rather than only
+    # clearing the one it does not, so no combination can end with both off.
     if ip_mode.ipv4 and not has_ipv4:
         if ipver_explicit or not has_ipv6:
             list_error.append(f"No available IPv4 address on the interface: {interface}.")
         else:
-            ip_mode = IPMode(False, ip_mode.ipv6)
-            list_warning.append(f"No IPv4 address on interface {interface}, so IPv4 scanning is skipped")
+            ip_mode = IPMode(False, True)
+            list_warning.append(
+                f"No IPv4 address on interface {interface}, so IPv6 is scanned instead")
+
     if ip_mode.ipv6 and not has_ipv6:
         if ipver_explicit or not has_ipv4:
             list_error.append(f"No available IPv6 address on the interface: {interface}.")
         else:
-            ip_mode = IPMode(ip_mode.ipv4, False)
-            list_warning.append(f"No IPv6 address on interface {interface}, so IPv6 scanning is skipped")
+            ip_mode = IPMode(True, False)
+            list_warning.append(
+                f"No IPv6 address on interface {interface}, so IPv4 is scanned instead")
 
-    return smac, ip_mode
+    return ip_mode
 
 
 def _validate_aggressive_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning) -> tuple:
@@ -1115,8 +1133,14 @@ def parameter_control(
     _validate_type_combination(type, json_output, more_detail)
     _validate_interface(interface, json_output, more_detail)
 
-    # Neither -4 nor -6 given: scan both families (dual-stack default).
-    ip_mode = IPMode(ipv4, ipv6) if (ipv4 or ipv6) else IPMode(True, True)
+    # Neither -4 nor -6 given: scan IPv6 only. This is an IPv6-first tool and
+    # scanning both by default was reported as a change in behaviour; IPv4 is
+    # opt-in with -4. An interface with no IPv6 falls back to IPv4 rather than
+    # scanning nothing - see _reconcile_ip_mode.
+    ip_mode = IPMode(ipv4, ipv6) if (ipv4 or ipv6) else IPMode(False, True)
+    ip_mode = _reconcile_ip_mode(
+        interface, ip_mode, bool(ipv4 or ipv6), list_error, list_warning
+    )
 
     _validate_detail_flags(more_detail, less_detail, json_output)
 
@@ -1155,7 +1179,7 @@ def parameter_control(
     elif type == ["802.1x"]:
         _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error)
     elif type == ["a"] or ("a" in type and "802.1x" in type and len(type) == 2):
-        smac, ip_mode = _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning, ipver_explicit=bool(ipv4 or ipv6))
+        smac, ip_mode = _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning)
     if type == ["a+"] or ("a+" in type and ("802.1x" in type or "a" in type)):
         duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns = _validate_aggressive_mode(
             interface, ip_mode, duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning

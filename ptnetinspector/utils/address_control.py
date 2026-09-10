@@ -138,6 +138,19 @@ def filter_unicast_addresses(
     for mapping in mappings:
         try:
             ip = ipaddress.ip_address(mapping.ip)
+
+            # Drop a family the scan was not asked for. This list is not only
+            # what gets reported - it is exactly what the reachability probe
+            # sends to - so keeping the other family made -6 emit ARP for IPv4
+            # addresses and -4 emit Neighbour Solicitations for IPv6 ones,
+            # against the "only IPv4/IPv6 traffic" the flags promise. The raw
+            # view is unaffected: addresses_unfiltered.csv is written before
+            # this filter runs.
+            if isinstance(ip, ipaddress.IPv4Address) and not ip_mode.ipv4:
+                continue
+            if isinstance(ip, ipaddress.IPv6Address) and not ip_mode.ipv6:
+                continue
+
             if is_valid_unicast_ip(ip):
                 if isinstance(ip, ipaddress.IPv4Address):
                     keep = ip.is_link_local or not ipv4_subnets or check_ip_in_subnets(ip, ipv4_subnets)
@@ -286,18 +299,24 @@ class AddressValidator:
 
     async def verify_all_mappings(self, mappings: List[AddressMapping]) -> List[AddressMapping]:
         if not self.ipv6_address_on_interface_check():
-            ptprinthelper.ptprint(f"Could not validate IPv6 addresses. No IPv6 address on interface {self.interface}", "ERROR")
             def is_ipv6_address(ip_value: str) -> bool:
                 try:
                     return isinstance(ipaddress.ip_address(ip_value), ipaddress.IPv6Address)
                 except ValueError:
                     return False
 
-            mappings = [
-                mapping
-                for mapping in mappings
-                if not is_ipv6_address(mapping.ip)
-            ]
+            unverifiable = [mapping for mapping in mappings if is_ipv6_address(mapping.ip)]
+            # Only a real loss is worth reporting. The scan drops to IPv4 on an
+            # interface with no IPv6 address, and announcing an IPv6 failure when
+            # there was no IPv6 address to verify printed an error for a
+            # non-event.
+            if unverifiable:
+                ptprinthelper.ptprint(
+                    f"Could not validate {len(unverifiable)} IPv6 address(es). "
+                    f"No IPv6 address on interface {self.interface}",
+                    "ERROR",
+                )
+                mappings = [mapping for mapping in mappings if not is_ipv6_address(mapping.ip)]
 
         return await asyncio.to_thread(self._verify_mappings_bulk, mappings)
 

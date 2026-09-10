@@ -14,7 +14,7 @@ from tabulate import tabulate
 from ptlibs import ptprinthelper
 from ptnetinspector.send.send import IPMode
 from ptnetinspector.utils.path import get_csv_path
-from ptnetinspector.utils.csv_helpers import delete_middle_content_csv
+from ptnetinspector.utils.csv_helpers import delete_middle_content_csv, read_csv_text
 from ptnetinspector.utils.output_helpers import filter_ips_by_mode, transform_role_print, extract_short_code, mode_matches
 from ptnetinspector.utils.ip_utils import (
     has_additional_data, is_global_unicast_ipv6, is_ipv6_ula, is_link_local_ipv6,
@@ -98,7 +98,7 @@ class Non_json:
         Returns:
             list: List of unique MAC addresses.
         """
-        data = pd.read_csv(csv_file)
+        data = read_csv_text(csv_file)
         mac_addresses = data['MAC']
         unique_mac_addresses = mac_addresses.drop_duplicates().tolist()
         return unique_mac_addresses
@@ -580,8 +580,8 @@ class Non_json:
     ) -> None:
         """Print the overall verdict line and the network-scoped findings for a mode."""
         try:
-            vuln_df = pd.read_csv(vulnerability_file)
-            vuln_net_df = pd.read_csv(vulnerability_net_file)
+            vuln_df = read_csv_text(vulnerability_file)
+            vuln_net_df = read_csv_text(vulnerability_net_file)
 
             # Every verdict that counts towards the overall status line.
             all_vuln_results = []
@@ -700,9 +700,9 @@ class Non_json:
         )
 
         if has_additional_data(addresses_file_name) and has_additional_data(role_node_file):
-            role_node_df_full = pd.read_csv(role_node_file)
+            role_node_df_full = read_csv_text(role_node_file)
             role_node_df = role_node_df_full.copy()
-            addresses_df = pd.read_csv(addresses_file_name)
+            addresses_df = read_csv_text(addresses_file_name)
             addresses_df = filter_ips_by_mode(addresses_df, ipver)
 
             # Filter by targets (MAC and/or IP).
@@ -729,7 +729,7 @@ class Non_json:
                         device_numbers = sorted(matches['Device_Number'].tolist(), key=lambda x: int(x) if str(x).isdigit() else str(x))
                         resolved_targets.append(f"{display_mac} -> Device {', '.join(map(str, device_numbers))}")
                 if target_ips_set:
-                    all_addresses_df = pd.read_csv(addresses_file_name)
+                    all_addresses_df = read_csv_text(addresses_file_name)
                     all_addresses_df = filter_ips_by_mode(all_addresses_df, ipver)
                     for ip in sorted(target_ips_set):
                         matches = all_addresses_df[all_addresses_df['IP'].astype(str) == ip]
@@ -799,9 +799,9 @@ class Non_json:
                                 continue
 
 
-                vuln_df = pd.read_csv(vulnerability_file)
+                vuln_df = read_csv_text(vulnerability_file)
                 if target_ips_set and has_additional_data(vulnerability_ip_file):
-                    vuln_ip_df = pd.read_csv(vulnerability_ip_file)
+                    vuln_ip_df = read_csv_text(vulnerability_ip_file)
                     device_vulns = vuln_ip_df[
                         (vuln_ip_df['ID'].astype(str) == str(device_number))
                         & (vuln_ip_df['IP'].astype(str).isin(target_ips_set))
@@ -870,12 +870,12 @@ class Non_json:
         if protocol == "time":
             Non_json.print_box("Time running")
             if has_additional_data(start_end_file):
-                df_time = pd.read_csv(start_end_file)
+                df_time = read_csv_text(start_end_file)
                 time_list = df_time['time'].tolist()
                 ptprinthelper.ptprint(f"Scanning starts at:         {time_list[0]} (from the first mode if multiple modes inserted)", "INFO", condition=True, indent=4)
                 ptprinthelper.ptprint(f"Scanning ends at:           {time_list[-1]}", "INFO", condition=True, indent=4)
             if has_additional_data(file_name):
-                df_time = pd.read_csv(file_name)
+                df_time = read_csv_text(file_name)
                 time_list = df_time['time'].tolist()
                 ptprinthelper.ptprint(f"First packet captured at:   {time_list[0]} (from the first mode if multiple modes inserted)", "INFO", condition=True, indent=4)
                 ptprinthelper.ptprint(f"Last packet captured at:    {time_list[-1]}", "INFO", condition=True, indent=4)
@@ -904,8 +904,8 @@ class Non_json:
                 if protocol == "WS-Discovery" and not less_detail:
                     Non_json.print_box("WS-Discovery scan")
                 try:
-                    vuln_df = pd.read_csv(vulnerability_file)
-                    vuln_net_df = pd.read_csv(vulnerability_net_file)
+                    vuln_df = read_csv_text(vulnerability_file)
+                    vuln_net_df = read_csv_text(vulnerability_net_file)
                     if protocol in ["MDNS", "LLMNR"]:
                         network_vulns = vuln_net_df[(vuln_net_df['ID'] == "Network") & (vuln_net_df['Code'].str.contains(protocol, case=False, na=False))]
                     elif protocol in ["MLDv1", "MLDv2", "WS-Discovery", "IGMPv1/v2", "IGMPv3"]:
@@ -938,7 +938,7 @@ class Non_json:
                 if protocol == "RA" and is_dhcp_slaac() != []:
                     for item in is_dhcp_slaac():
                         ptprinthelper.ptprint(f"{item} is discovered", "INFO", condition=True, indent=4)
-                df = pd.read_csv(file_name)
+                df = read_csv_text(file_name)
                 df = filter_ips_by_mode(df, ipver)
 
                 # Filter by targets (MAC and/or IP)
@@ -954,7 +954,7 @@ class Non_json:
                 unique_devices = df.groupby('MAC')['IP'].nunique()
                 num_devices = unique_devices.count()
                 ptprinthelper.ptprint(f"Number of devices: {num_devices}", "INFO", condition=True, indent=4)
-                role_node_df = pd.read_csv(role_node_file)
+                role_node_df = read_csv_text(role_node_file)
 
                 # Filter role_node by devices present in filtered protocol rows
                 selected_macs = set(df['MAC'].astype(str).str.upper().unique().tolist()) if 'MAC' in df.columns else set()
@@ -973,7 +973,7 @@ class Non_json:
                             ip_addresses = df.loc[df['MAC'] == mac_address, 'IP'].tolist()
                             if protocol in ["MDNS", "LLMNR"]:
                                 try:
-                                    local_name_df = pd.read_csv(localname_file)
+                                    local_name_df = read_csv_text(localname_file)
                                     list_local_names = local_name_df.loc[local_name_df['MAC'] == mac_address, 'name'].tolist()
                                     ptprinthelper.ptprint(f"Local name   {list_local_names[0]}", condition=True, indent=8)
                                 except Exception:
@@ -1017,9 +1017,9 @@ class Non_json:
                                         ptprinthelper.ptprint(f"MTU: {other_info_list[idx][10]}, DNS: {other_info_list[idx][9]}", condition=True, indent=8)
                     if protocol != "RA":
                         try:
-                            vuln_df = pd.read_csv(vulnerability_file)
+                            vuln_df = read_csv_text(vulnerability_file)
                             if target_ips_set and has_additional_data(vulnerability_ip_file):
-                                vuln_ip_df = pd.read_csv(vulnerability_ip_file)
+                                vuln_ip_df = read_csv_text(vulnerability_ip_file)
                                 device_vulns = vuln_ip_df[
                                     (vuln_ip_df['ID'].astype(str) == str(device_number))
                                     & (vuln_ip_df['Description'].astype(str).str.contains(protocol, case=True, na=False))

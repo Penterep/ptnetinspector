@@ -56,8 +56,32 @@ class Node:
             })
 
     @staticmethod
+    def _clean_wire_name(value) -> str:
+        """A hostname taken off the wire, or "" when it is not a usable name.
+
+        Every caller passes attacker-controlled bytes: an mDNS or LLMNR answer,
+        or a Node Information reply, where scapy hands back whatever followed
+        the 4-octet TTL. A malformed reply therefore carried NUL bytes and DNS
+        length prefixes straight into the hostname column and on into the
+        device inventory. Control characters cannot occur in a DNS name, so a
+        value containing them is dropped instead of stored.
+        """
+        if isinstance(value, bytes):
+            value = value.decode(errors="replace")
+        name = str(value).strip().strip(".")
+        if not name or len(name) > 253:
+            return ""
+        if any(character < " " or character == "\x7f" for character in name):
+            return ""
+        return name
+
+    @staticmethod
     def save_local_name(mac, local_name) -> None:
         # Function to save local names from mdns and llmnr to a CSV file
+        local_name = Node._clean_wire_name(local_name)
+        if not local_name:
+            return
+
         key = (mac, local_name)
         if registry.seen("node_local_name", key):
             return

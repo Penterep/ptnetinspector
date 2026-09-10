@@ -16,6 +16,18 @@ from ptnetinspector.entities._registry import registry as entity_registry
 from ptnetinspector.utils.path import get_csv_path, get_tmp_path
 
 
+def read_csv_text(path, **kwargs):
+    """Read one of our own CSVs without letting pandas reinterpret the values.
+
+    Every column written here is a label, an address or a protocol field that
+    has to round-trip byte for byte. Pandas otherwise infers a dtype per
+    column, and one blank cell is enough to turn an integer column into
+    float64: a hop limit of 255 came back out as "255.0", a QRV of 2 as "2.0",
+    and an absent hostname as the literal string "nan".
+    """
+    return pd.read_csv(path, dtype=str, keep_default_na=False, na_filter=False, **kwargs)
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -190,6 +202,11 @@ def create_csv(interface: str | None = None) -> None:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
+    with open(f"{directory}/device_addresses.csv", 'w', newline='') as csvfile:
+        fieldnames = ['MAC', 'IP', 'IP_version', 'Device', 'Vendor', 'Role', 'Hostname']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
 def sort_csv_based_MAC(interface: str, file_name: str) -> None:
     """
     Sorts a CSV file by MAC address in ascending order, removes entries with the sender's MAC,
@@ -203,14 +220,28 @@ def sort_csv_based_MAC(interface: str, file_name: str) -> None:
         None
     """
     if has_additional_data(file_name):
-        df = pd.read_csv(file_name)
+        df = read_csv_text(file_name)
         specified_mac = get_if_hwaddr(interface)
         df_filtered = df[df['MAC'] != specified_mac]
-        df_sorted = df_filtered.sort_values(by='MAC')
-        if 'IP' in df_sorted.columns:
-            df_sorted['IP'] = df_sorted.groupby('MAC')['IP'].transform(
-                lambda x: x.sort_values(key=lambda s: s.map(_ip_sort_key)).values
-            )
+        if 'IP' in df_filtered.columns:
+            # Order whole rows. Re-sorting the IP column on its own and
+            # assigning it back moved addresses between rows while every other
+            # column stayed put, so a device seen at two addresses had its
+            # protocol, group and option values swapped between them - an
+            # MLDv2 querier ended up listed at its IPv4 address and the IGMPv3
+            # one at its IPv6 address.
+            keys = df_filtered['IP'].map(_ip_sort_key)
+            order = pd.DataFrame({
+                '_mac': df_filtered['MAC'],
+                '_family': keys.map(lambda key: key[0]),
+                '_value': keys.map(lambda key: key[1]),
+                '_text': keys.map(lambda key: key[2]),
+            }, index=df_filtered.index)
+            ordered_index = order.sort_values(
+                by=['_mac', '_family', '_value', '_text'], kind='stable').index
+            df_sorted = df_filtered.loc[ordered_index]
+        else:
+            df_sorted = df_filtered.sort_values(by='MAC', kind='stable')
         df_sorted.to_csv(file_name, index=False)
 
 def sort_csv_role_node(interface: str, file_name: str) -> None:
@@ -229,7 +260,7 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
         ra_csv = get_csv_path('RA.csv', interface)
         sort_csv_based_MAC(interface, addresses_csv)
         sort_csv_based_MAC(interface, ra_csv)
-        df1 = pd.read_csv(addresses_csv)
+        df1 = read_csv_text(addresses_csv)
         device_numbers = {}
         for _, row in df1.iterrows():
             mac_address = row['MAC']
@@ -237,7 +268,7 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
                 device_numbers[mac_address] = len(device_numbers) + 1
         new_df = pd.DataFrame({'MAC': list(device_numbers.keys()), 'Device_Number': list(device_numbers.values())})
         new_df.to_csv(file_name, index=False)
-        df2 = pd.read_csv(ra_csv)
+        df2 = read_csv_text(ra_csv)
         device_roles = {}
         for _, row in df2.iterrows():
             mac_address = row['MAC']
@@ -261,7 +292,7 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
             else:
                 device_roles[mac_address] = "Router"
         default_gw_csv = get_csv_path('default_gw.csv', interface)
-        df_gateway = pd.read_csv(default_gw_csv)
+        df_gateway = read_csv_text(default_gw_csv)
         for _, row in df_gateway.iterrows():
             mac_address = row['MAC']
             ip_addr = row['IP']
@@ -284,7 +315,7 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
             else:
                 device_roles[mac_address] = f"Router;IPv{ip_version} default GW"
         dhcp_csv = get_csv_path('dhcp.csv', interface)
-        df_gateway = pd.read_csv(dhcp_csv)
+        df_gateway = read_csv_text(dhcp_csv)
         for _, row in df_gateway.iterrows():
             mac_address = row['MAC']
             ip_addr = row['IP']
@@ -309,10 +340,10 @@ def sort_csv_role_node(interface: str, file_name: str) -> None:
                 device_roles[mac_address] = f"{dhcp_version} server"
         new_df = pd.DataFrame({'MAC': list(device_roles.keys()), 'Role': list(device_roles.values())})
         if has_additional_data(file_name):
-            existing_df = pd.read_csv(file_name)
+            existing_df = read_csv_text(file_name)
             final_df = pd.merge(existing_df, new_df, on='MAC', how='left')
             final_df.to_csv(file_name, index=False)
-            final_df = pd.read_csv(file_name)
+            final_df = read_csv_text(file_name)
             final_df['Role'] = final_df['Role'].astype('object')
             blank_role_rows = final_df[final_df['Role'].isna() | (final_df['Role'] == '')]
             host_str = 'Host'
@@ -348,7 +379,7 @@ def delete_middle_content_csv(filename: str) -> None:
         None
     """
     try:
-        df = pd.read_csv(filename)
+        df = read_csv_text(filename)
         if len(df) > 3:
             df = df.iloc[[0, -1]]
             df.to_csv(filename, index=False)
@@ -479,7 +510,7 @@ def remove_duplicates_from_csv(input_csv: str) -> None:
     Output:
         None
     """
-    data = pd.read_csv(input_csv)
+    data = read_csv_text(input_csv)
     data.drop_duplicates(inplace=True)
     data.to_csv(input_csv, index=False)
 
@@ -500,7 +531,7 @@ def delete_contents_except_headers(csv_path: str) -> None:
         print(f"{csv_path} is not a CSV file.")
         return
 
-    df = pd.read_csv(csv_path)
+    df = read_csv_text(csv_path)
     if len(df.index) > 1:
         header_row = df.iloc[0]
         df = pd.DataFrame(columns=df.columns)

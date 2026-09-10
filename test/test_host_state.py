@@ -119,6 +119,55 @@ class TestForwardingIsRestoredNotZeroed:
         assert (tmp_path / "sysctl_state.json").exists()
 
 
+class TestForwardingSurvivesAHardKill:
+    """SIGKILL cannot be trapped, so a run can die with the host forwarding.
+
+    The tagged firewall rules were already flushed by the next run; the
+    forwarding sysctls were not, so a killed aggressive run left the host
+    routing until an aggressive run happened to exit cleanly.
+    """
+
+    def test_a_leftover_state_file_is_restored(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(interface_module, "get_tmp_path", lambda *a, **k: tmp_path)
+        written = {}
+        monkeypatch.setattr(interface_module, "_write_sysctl",
+                            lambda name, value: written.__setitem__(name, value))
+
+        # what a killed run left behind
+        (tmp_path / "sysctl_state.json").write_text(
+            '{"net.ipv4.ip_forward": "0", "net.ipv6.conf.all.forwarding": "0"}',
+            encoding="utf-8")
+
+        interface_module.restore_forwarding_state()
+
+        assert written["net.ipv4.ip_forward"] == "0"
+        assert written["net.ipv6.conf.all.forwarding"] == "0"
+        # consumed, so a later run does not restore a stale value
+        assert not (tmp_path / "sysctl_state.json").exists()
+
+    def test_a_host_that_always_forwarded_is_left_alone(self, tmp_path, monkeypatch):
+        """With no recorded state the restore must be a no-op, not a write of 0."""
+        monkeypatch.setattr(interface_module, "get_tmp_path", lambda *a, **k: tmp_path)
+        written = {}
+        monkeypatch.setattr(interface_module, "_write_sysctl",
+                            lambda name, value: written.__setitem__(name, value))
+
+        interface_module.restore_forwarding_state()
+
+        assert written == {}
+
+    def test_startup_recovers_both_rules_and_forwarding(self):
+        """main.py performs the recovery, in that order, after taking the lock."""
+        source = (Path(__file__).resolve().parent.parent
+                  / "ptnetinspector" / "main.py").read_text()
+
+        assert "flush_tagged_rules()" in source
+        assert "restore_forwarding_state()" in source
+        # the tmp directory is per interface, so the context must be set first
+        assert source.index("set_current_interface(interface)") < source.index("flush_tagged_rules()")
+        assert source.index("flush_tagged_rules()") < source.index("restore_forwarding_state()")
+
+
 class TestRuleDetection:
     """M6: detection used to string-match `-S` output, whose canonical spelling
     differs between iptables versions and the legacy/nft backends."""

@@ -472,13 +472,13 @@ class TestIPVersionFiltering:
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'p', '-i', 'eth0'])
     @patch('netifaces.interfaces', return_value=['eth0'])
-    def test_both_ipv4_and_ipv6(self, mock_intf_list):
-        """Test both IPv4 and IPv6 (default)."""
+    def test_neither_family_flag_given(self, mock_intf_list):
+        """Neither flag set on the namespace; parameter_control then defaults to IPv6."""
         from ptnetinspector.utils.cli import parse_args
 
         args = parse_args()
         assert args.ipv4 is False
-        assert args.ipv6 is False  # False means both are enabled (default)
+        assert args.ipv6 is False  # both unset; the default is resolved later
 
 
 # ============================================================================

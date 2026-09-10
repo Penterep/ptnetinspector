@@ -25,7 +25,7 @@ from ptnetinspector.scan import Run
 from ptnetinspector.utils.address_control import delete_tmp_mapping_file
 from ptnetinspector.utils.cli import enablePrint, parameter_control, parse_args
 from ptnetinspector.utils.csv_helpers import create_csv, sort_all_csv, has_additional_data
-from ptnetinspector.utils.interface import Interface, IptablesRule, flush_tagged_rules
+from ptnetinspector.utils.interface import Interface, IptablesRule, flush_tagged_rules, restore_forwarding_state
 from ptnetinspector.utils.oui import create_vendor_csv
 from ptnetinspector.utils.path import del_tmp_path, get_csv_path, get_output_dir, get_tmp_path, set_current_interface
 from ptnetinspector.utils.lock import acquire_global_lock
@@ -126,10 +126,17 @@ lock_verbose = not (json_output and not more_detail)
 # This is done AFTER parameter validation to avoid queueing with invalid parameters
 acquire_global_lock(verbose=lock_verbose)
 
+# The tmp directory is scoped per interface, and the recovery below reads the
+# forwarding state recorded in it, so the context has to be set first.
+set_current_interface(interface)
+
 # SIGKILL is untrappable, so a previous run can have left tagged DROP rules on
-# the interface. The lock above guarantees no other instance is live, which makes
-# this the safe moment to clear anything left behind.
+# the interface, and aggressive mode can have left the host forwarding. The lock
+# above guarantees no other instance is live, which makes this the safe moment to
+# clear anything left behind. With no recorded state the restore is a no-op, so a
+# host that always forwarded is not changed.
 flush_tagged_rules()
+restore_forwarding_state()
 
 
 _TERMINATING_SIGNAL = None
@@ -553,12 +560,16 @@ def main():
         # On a segment with many hosts the interleaved report is unreadable, and
         # an operator usually wants "what is out there" before "what is wrong".
         device_count, inventory_dir = write_device_inventory(
-            ip_mode, include_solicited_node=not check_addresses
+            ip_mode,
+            include_solicited_node=not check_addresses,
+            target_macs=target_macs,
+            target_ips=target_ips,
         )
         if device_count and inventory_dir:
             print_message(
                 f"Device inventory written for {device_count} device(s): "
-                f"{inventory_dir}/devices.csv, {inventory_dir}/devices.txt",
+                f"{inventory_dir}/devices.csv, {inventory_dir}/devices.txt, "
+                f"{inventory_dir}/device_addresses.csv",
                 "INFO",
                 indent=4,
             )

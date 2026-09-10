@@ -262,6 +262,88 @@ class TestDeviceInventory:
         assert rows[0]["IPv6"] == "fe80::79d2:f812:ba84:9484"
         assert (scan_dir / "devices.txt").exists()
 
+    def test_the_flat_form_gives_every_address_its_own_row(self, scan_dir):
+        """The searchable form Jan asked for: one row per address, not per device.
+
+        The per-device form keeps a host's addresses together in one cell, which
+        reads well but cannot be split on the delimiter.
+        """
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "192.168.1.3"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "fe80::79d2:f812:ba84:9484"])
+            writer.writerow(["ca:02:69:30:00:08", "192.168.1.1"])
+            # discovered, but no address confirmed
+            writer.writerow(["00:1b:21:33:44:55", ""])
+        with open(scan_dir / "role_node.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Device_Number", "Role"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "1", "Node"])
+            writer.writerow(["ca:02:69:30:00:08", "2", "Router"])
+            writer.writerow(["00:1b:21:33:44:55", "3", "Node"])
+
+        from ptnetinspector.output.devices import write_device_inventory
+
+        write_device_inventory(IPMode(True, True))
+        rows = _rows(scan_dir / "device_addresses.csv")
+
+        assert [(row["MAC"], row["IP"], row["IP_version"]) for row in rows] == [
+            ("00:0c:29:5c:c5:a5", "192.168.1.3", "4"),
+            ("00:0c:29:5c:c5:a5", "fe80::79d2:f812:ba84:9484", "6"),
+            ("ca:02:69:30:00:08", "192.168.1.1", "4"),
+            # a device whose addresses never answered still has to be findable
+            ("00:1b:21:33:44:55", "", ""),
+        ]
+        # the device's identity repeats on each of its rows, so a match on an
+        # address alone is enough to name the host
+        assert rows[1]["Device"] == "1" and rows[1]["Role"] == "Node"
+
+    def test_both_forms_describe_the_same_addresses(self, scan_dir):
+        """The flat form is derived, so it must not add or lose an address."""
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            for mac, ip in (("00:0c:29:5c:c5:a5", "192.168.1.3"),
+                            ("00:0c:29:5c:c5:a5", "fe80::2"),
+                            ("00:0c:29:5c:c5:a5", "fe80::10"),
+                            ("ca:02:69:30:00:08", "192.168.1.1")):
+                writer.writerow([mac, ip])
+        with open(scan_dir / "role_node.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Device_Number", "Role"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "1", "Node"])
+            writer.writerow(["ca:02:69:30:00:08", "2", "Router"])
+
+        from ptnetinspector.output.devices import write_device_inventory
+
+        write_device_inventory(IPMode(True, True))
+        wide = _rows(scan_dir / "devices.csv")
+        flat = _rows(scan_dir / "device_addresses.csv")
+
+        assert len(flat) == sum(int(row["IP_count"]) for row in wide)
+        assert sorted(row["IP"] for row in flat) == sorted(
+            address for row in wide for address in (row["IPv4"] + " " + row["IPv6"]).split())
+
+    def test_a_family_the_scan_excluded_is_absent_from_the_flat_form(self, scan_dir):
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "192.168.1.3"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "fe80::2"])
+        with open(scan_dir / "role_node.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Device_Number", "Role"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "1", "Node"])
+
+        from ptnetinspector.output.devices import write_device_inventory
+
+        write_device_inventory(IPMode(ipv4=True, ipv6=False))
+        rows = _rows(scan_dir / "device_addresses.csv")
+
+        assert [row["IP"] for row in rows] == ["192.168.1.3"]
+        assert all(row["IP_version"] == "4" for row in rows)
+
 
 class TestPassiveFingerprinting:
     """E5: classify the interface identifier instead of only flagging it."""

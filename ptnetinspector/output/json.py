@@ -11,7 +11,7 @@ import logging
 import pandas as pd
 from ptlibs.app_dirs import AppDirs
 from ptnetinspector.utils.path import get_csv_path, get_output_dir, get_tmp_path
-from ptnetinspector.utils.csv_helpers import delete_middle_content_csv
+from ptnetinspector.utils.csv_helpers import delete_middle_content_csv, read_csv_text
 from ptnetinspector.utils.output_helpers import filter_ips_by_mode, convert_role_to_list, mode_matches
 from ptnetinspector.utils.ip_utils import (
     has_additional_data, is_global_unicast_ipv6, is_ipv6_ula, is_link_local_ipv6,
@@ -151,7 +151,7 @@ class Json:
         ra_file = get_csv_path("RA.csv")
 
         if ipver.ipv6 and has_additional_data(ra_file):
-            df = pd.read_csv(ra_file)
+            df = read_csv_text(ra_file)
 
             prefixes = [
                 str(value).strip()
@@ -272,14 +272,20 @@ class Json:
         NAT64 prefix, a captive portal, the querier, the DHCPv6 option set - and
         were being dropped on the floor before the parsers were extended.
         """
-        seen: set[tuple[str, str]] = set()
+        # add_properties() merges with dict.update(), so publishing one value at
+        # a time let the last search domain, advertised route or querier
+        # overwrite every earlier one. Values are collected per property and
+        # emitted once, as a list when there is more than one - the same shape
+        # already used for the prefix and resolver lists above.
+        collected: dict[str, list[str]] = {}
 
         def _publish(name: str, value: str) -> None:
             value = str(value).strip()
-            if not value or (name, value) in seen:
+            if not value:
                 return
-            seen.add((name, value))
-            ptjsonlib_object.add_properties(properties={name: value})
+            values = collected.setdefault(name, [])
+            if value not in values:
+                values.append(value)
 
         if ipver.ipv6:
             for row in Json._read_rows("ra_options.csv"):
@@ -294,11 +300,18 @@ class Json:
 
         for row in Json._read_rows("querier.csv"):
             protocol = str(row.get("Protocol", "")).strip()
-            if protocol == "MLDv2" and not ipver.ipv6:
+            # Match on the family, not an exact label: the protocol column
+            # now carries the version it saw (IGMPv1/v2/v3, MLDv1/v2).
+            if protocol.startswith("MLD") and not ipver.ipv6:
                 continue
-            if protocol == "IGMP" and not ipver.ipv4:
+            if protocol.startswith("IGMP") and not ipver.ipv4:
                 continue
             _publish("Multicast querier", f"{row.get('MAC', '')} ({protocol})")
+
+        for name, values in collected.items():
+            ptjsonlib_object.add_properties(
+                properties={name: values[0] if len(values) == 1 else values}
+            )
 
     @staticmethod
     def output_vul_net(mode: str = None, vul_file: str = None, target_codes: set[str] | None = None) -> dict:
@@ -310,7 +323,7 @@ class Json:
 
         if has_additional_data(vul_file):
             try:
-                vuln_df = pd.read_csv(vul_file)
+                vuln_df = read_csv_text(vul_file)
                 vulns = Json._get_vulnerabilities_for_id(vuln_df, "Network", mode, target_codes_set)
                 for code in vulns:
                     if not any(v['vulnCode'] == code for v in ptjsonlib_object.json_object['results']['vulnerabilities']):
@@ -497,8 +510,8 @@ class Json:
         # output uses; addresses_unfiltered.csv is the raw capture (it still holds
         # remote hosts seen in transit) and must not leak into the report.
         if has_additional_data(addresses_file) and has_additional_data(role_node_file):
-            role_node_df = pd.read_csv(role_node_file)
-            addresses_df = pd.read_csv(addresses_file)
+            role_node_df = read_csv_text(role_node_file)
+            addresses_df = read_csv_text(addresses_file)
             addresses_df = filter_ips_by_mode(addresses_df, ipver)
 
             # Always ignore scanner device and all its addresses.
@@ -519,7 +532,7 @@ class Json:
                 role_node_df = role_node_df[role_node_df['MAC'].str.upper().isin(selected_macs)]
 
             all_ip = addresses_df['IP'].to_list()
-            vuln_ip_df = pd.read_csv(vulnerability_ip_file) if has_additional_data(vulnerability_ip_file) else None
+            vuln_ip_df = read_csv_text(vulnerability_ip_file) if has_additional_data(vulnerability_ip_file) else None
 
             for _, row in role_node_df.iterrows():
                 mac_address, device_number, role = row['MAC'], row['Device_Number'], row['Role']

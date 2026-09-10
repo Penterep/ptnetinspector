@@ -4,6 +4,7 @@ This module contains sniffing logic and protocol parsers that extract network
 facts into CSV artifacts, used later for both human-readable and JSON outputs.
 """
 import csv
+import ipaddress
 import multiprocessing
 import logging
 from contextlib import contextmanager, nullcontext
@@ -18,7 +19,9 @@ from scapy.layers.inet6 import IPv6, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptM
     ICMPv6ND_NA, ICMPv6ND_NS, ICMPv6DestUnreach, ICMPv6ParamProblem, ICMPv6ND_Redirect, \
     ICMPv6MLQuery2, ICMPv6MLQuery, ICMPv6NDOptDNSSL, ICMPv6NDOptRouteInfo, ICMPv6NDOptPREF64, \
     ICMPv6NDOptCaptivePortal, ICMPv6NDOptAdvInterval, \
-    ICMPv6NIReplyName, ICMPv6NIReplyIPv6, ICMPv6NIReplyIPv4
+    ICMPv6NIReplyName, ICMPv6NIReplyIPv6, ICMPv6NIReplyIPv4, ICMPv6NIReplyNOOP, \
+    ICMPv6NIReplyRefuse, ICMPv6NIReplyUnknown, ICMPv6NIQueryNOOP, ICMPv6NIQueryName, \
+    ICMPv6NIQueryIPv6, ICMPv6NIQueryIPv4
 from scapy.layers.dhcp6 import DHCP6OptIAAddress, DHCP6_Request, DHCP6_Rebind, DHCP6_Release, \
     DHCP6_Renew, DHCP6_Decline, DHCP6_Confirm, DHCP6_Advertise, DHCP6OptServerId, DHCP6_Reply, \
     DHCP6OptDNSServers, DHCP6OptDNSDomains, DHCP6OptSNTPServers, DHCP6OptNTPServer, \
@@ -93,6 +96,66 @@ def _iter_layers(packet, layer_cls, limit=None):
         if limit is not None and count >= limit:
             return
         layer = layer.payload.getlayer(layer_cls)
+
+
+# Protocols that pin the hop limit by specification, so the value in the header
+# is the RFC's choice and not the sender's default.
+_FIXED_HOP_LIMIT_LAYERS = (
+    ICMPv6ND_RA, ICMPv6ND_RS, ICMPv6ND_NA, ICMPv6ND_NS, ICMPv6ND_Redirect,
+    ICMPv6MLReport2, ICMPv6MLReport, ICMPv6MLDone, ICMPv6MLQuery2, ICMPv6MLQuery,
+    ICMPv6NIQueryNOOP, ICMPv6NIQueryName, ICMPv6NIQueryIPv6, ICMPv6NIQueryIPv4,
+    ICMPv6NIReplyNOOP, ICMPv6NIReplyName, ICMPv6NIReplyIPv6, ICMPv6NIReplyIPv4,
+    ICMPv6NIReplyRefuse, ICMPv6NIReplyUnknown,
+    IGMP, IGMPv3,
+)
+
+# mDNS and LLMNR mandate 255 even on unicast responses (RFC 6762 s. 11,
+# RFC 4795 s. 2.1), so port alone is enough to disqualify the reading.
+_FIXED_HOP_LIMIT_PORTS = (5353, 5355)
+
+
+def _is_link_scoped_multicast(address) -> bool:
+    """True for a multicast address whose scope does not leave the link.
+
+    Everything scoped to the link pins its hop limit, so the destination is a
+    stronger test than naming individual protocols: it keeps holding for the
+    ones nobody thought to enumerate.
+    """
+    try:
+        parsed = ipaddress.ip_address(str(address))
+    except ValueError:
+        return False
+    if not parsed.is_multicast:
+        return False
+    if parsed.version == 6:
+        return (parsed.packed[1] & 0x0F) <= 2
+    # IPv4's local network control block is the same idea, and mandates TTL 1.
+    return parsed in ipaddress.IPv4Network("224.0.0.0/24")
+
+
+def _hop_limit_is_stack_default(packet) -> bool:
+    """True when the hop limit in the header is the sender's own default.
+
+    Reading a hop limit as an OS fingerprint only works for traffic the stack
+    emitted with its configured default. Neighbour Discovery and Node
+    Information Queries mandate 255, MLD and IGMP mandate 1, and mDNS and
+    LLMNR mandate 255 even when they answer by unicast. Treating any of those
+    as an OS default put "network device (Cisco/router-class default)" on
+    every host that merely answered a solicitation.
+    """
+    if any(packet.haslayer(layer) for layer in _FIXED_HOP_LIMIT_LAYERS):
+        return False
+
+    if UDP in packet:
+        udp = packet[UDP]
+        if udp.sport in _FIXED_HOP_LIMIT_PORTS or udp.dport in _FIXED_HOP_LIMIT_PORTS:
+            return False
+
+    if IPv6 in packet:
+        return not _is_link_scoped_multicast(packet[IPv6].dst)
+    if IP in packet:
+        return not _is_link_scoped_multicast(packet[IP].dst)
+    return False
 
 
 def _dhcp_message_type(packet):
@@ -380,7 +443,10 @@ class Save:
                 with _protocol_guard("IGMPv1 report", mac_src):
                     IGMPv1v2(packet[0].src, packet[IP].src, 'Report v1', packet[IGMP].gaddr).save()
 
-            if packet is not None and (IGMP in packet and packet[IGMP].type == 0x11):
+            # An IGMPv3 query dissects as IGMPv3/IGMPv3mq with no IGMP layer,
+            # so gating on IGMP alone missed every IGMPv3 querier.
+            if packet is not None and ((IGMP in packet and packet[IGMP].type == 0x11)
+                                       or (IGMPv3 in packet and packet[IGMPv3].type == 0x11)):
                 with _protocol_guard("IGMP query", mac_src):
                     Save.save_igmp_querier(packet)
 
@@ -620,14 +686,30 @@ class Save:
 
     @staticmethod
     def save_igmp_querier(packet):
-        """Record the sender of an IGMP General Query as the elected querier."""
-        group = str(packet[IGMP].gaddr)
-        qrv = qqic = ""
+        """Record the sender of an IGMP General Query as the elected querier.
+
+        The group and the max-response time live on a different layer in each
+        version: IGMPv1/v2 keep them on `IGMP`, while an IGMPv3 query is
+        dissected as IGMPv3/IGMPv3mq with no `IGMP` layer at all. Reading them
+        off `IGMP` unconditionally raised an IndexError on every IGMPv3 query,
+        which the protocol guard then swallowed - so the querier a modern
+        segment actually elects was never recorded.
+        """
         if IGMPv3mq in packet:
-            qrv = str(packet[IGMPv3mq].qrv)
-            qqic = str(packet[IGMPv3mq].qqic)
-        Querier(packet[0].src, packet[IP].src, "IGMP", group, qrv, qqic,
-                str(packet[IGMP].mrcode)).save()
+            query = packet[IGMPv3mq]
+            protocol = "IGMPv3"
+            group = str(query.gaddr)
+            qrv = str(query.qrv)
+            qqic = str(query.qqic)
+            max_response = str(packet[IGMPv3].mrcode)
+        else:
+            protocol = "IGMPv2" if packet[IGMP].mrcode else "IGMPv1"
+            group = str(packet[IGMP].gaddr)
+            qrv = qqic = ""
+            max_response = str(packet[IGMP].mrcode)
+
+        Querier(packet[0].src, packet[IP].src, protocol, group, qrv, qqic,
+                max_response).save()
 
     @staticmethod
     def save_dnssd_records(packet):
@@ -755,18 +837,7 @@ class Save:
         iid_type = ""
         os_guess = ""
 
-        # Neighbour Discovery mandates hop limit 255 and MLD mandates 1, so those
-        # say nothing about the sender's stack; reading them as an OS default
-        # produced a router-class guess for every host that answered an NS.
-        hop_limit_is_meaningful = not (
-            packet.haslayer(ICMPv6ND_RA) or packet.haslayer(ICMPv6ND_RS)
-            or packet.haslayer(ICMPv6ND_NA) or packet.haslayer(ICMPv6ND_NS)
-            or packet.haslayer(ICMPv6ND_Redirect)
-            or packet.haslayer(ICMPv6MLReport2) or packet.haslayer(ICMPv6MLReport)
-            or packet.haslayer(ICMPv6MLDone) or packet.haslayer(ICMPv6MLQuery2)
-            or packet.haslayer(ICMPv6MLQuery)
-            or packet.haslayer(IGMP) or packet.haslayer(IGMPv3)
-        )
+        hop_limit_is_meaningful = _hop_limit_is_stack_default(packet)
 
         if IPv6 in packet:
             iid_type = classify_ipv6_iid(packet[IPv6].src, mac)

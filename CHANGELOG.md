@@ -188,3 +188,63 @@ New data collected
   through Duplicate Address Detection
 - `-rdns` (opt-in): reverse-resolves discovered addresses via PTR against the resolvers
   found on the link. Off by default because it is the only probe that leaves the link
+
+Fixes found by running the scanner against a live link
+- CSV values are no longer reinterpreted on the round-trip through pandas: a hop limit of
+  255 was written back and reported as "255.0", a QRV of 2 as "2.0", and an absent
+  hostname as the literal string "nan"
+- Sorting an artifact by MAC no longer moves the address column independently of the rest
+  of the row: a device that was both the MLDv2 and the IGMPv3 querier was listed at the
+  wrong address for each protocol. Affected every artifact with an `IP` column and more
+  than two columns
+- The hop-limit fingerprint is taken only from traffic whose hop limit the sender chose.
+  mDNS, LLMNR and Node Information Queries also pin it to 255, which was not accounted
+  for, so every device that answered one was additionally reported as a router-class
+  network device
+- An IGMPv3 General Query is recognised. Scapy dissects it as IGMPv3/IGMPv3mq with no
+  IGMP layer, so the querier a modern segment elects was never recorded; the query's
+  robustness and interval are read from whichever layer carries them
+- Hostnames taken off the wire are validated before being stored, so a malformed mDNS,
+  LLMNR or Node Information reply can no longer carry NUL bytes and DNS length prefixes
+  into the hostname column and the device inventory
+- Repeated network properties survive in `-j` output. `add_properties()` merges with
+  `dict.update()`, so publishing one value at a time meant only the last DNS search
+  domain, advertised route and multicast querier reached the JSON; each is now emitted
+  as a list when more than one was seen
+- A run killed with SIGKILL during aggressive mode left the host forwarding. The tagged
+  firewall rules were already flushed by the next run; the forwarding sysctls are now
+  recovered the same way, and still left untouched on a host that was forwarding anyway
+
+Fixes
+- `-4` and `-6` no longer put the other family on the wire. The filtered address list is
+  also the list the reachability probe sends to, and it was not gated on the requested
+  family, so `-6` emitted ARP for observed IPv4 addresses and `-4` emitted Neighbour
+  Solicitations for IPv6 ones. The raw view is unchanged: `addresses_unfiltered.csv` is
+  written before the filter runs
+- The IP family a scan can actually use is now reconciled against the interface for every
+  scan type, not only active mode, and each branch enables the family the interface does
+  have instead of only clearing the one it lacks, so no combination ends with nothing to
+  scan
+- An interface with no IPv6 address no longer reports an error for addresses it was never
+  going to verify; the message now names how many addresses were actually affected
+- `-target` now scopes the device inventory as well. It filtered the findings and the JSON
+  but not `devices.csv`, `devices.txt` or `device_addresses.csv`, so asking for one device
+  still produced the whole segment there. A target MAC keeps that device with all of its
+  addresses and a target IP keeps only the named address, matching the findings output
+
+Behaviour change
+- With neither `-4` nor `-6`, the scan is now IPv6 only; IPv4 is opt-in with `-4`. Scanning
+  both families by default was a change from the tool's earlier behaviour and was reported
+  as such. On an interface with no IPv6 address the scan falls back to IPv4 with a warning,
+  so a single-stack IPv4 interface still scans rather than scanning nothing
+
+New output
+- `device_addresses.csv`: the device inventory flattened to one row per address, with the
+  owning device repeated on each row, so a segment can be searched by address or filtered
+  by family. The per-device form keeps a host's addresses in one cell, which reads well but
+  cannot be split on the delimiter
+
+Testing
+- `test/testbed/` runs the scanner against a simulated four-device LAN over a real veth
+  link, in an unprivileged user namespace: no root, no second machine, and any firewall
+  rule or sysctl the tool changes applies only inside that namespace
