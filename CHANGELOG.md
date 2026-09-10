@@ -241,6 +241,16 @@ Fixes
   flooding evidence. IPv4's `224.0.0.0/24` is excluded, being flooded by design. It stays
   an observation, not a verdict: some link-local groups are flooded by design too
 
+- A frame framed in anything but Ethernet no longer aborts the scan. The packet log chose
+  its branch from a classifier that tested the network layer before the framing, so IP or
+  IPv6 carried over 802.3 with LLC/SNAP, or in an 802.11 data frame from a monitor-mode
+  capture, reached a branch that read `packet[Ether]` and raised `IndexError` - the same
+  class of failure as a malformed MLDv2 report. The 802.11 branch meant to catch the
+  latter was unreachable and read `.src`/`.dst`, which `Dot11` does not provide, and an
+  unclassifiable frame was routed to it. Link addresses are now read from whichever
+  framing the frame actually carries; VLAN-tagged and 802.3 frames such as STP were
+  already handled and still are
+
 Behaviour change
 - With neither `-4` nor `-6`, the scan is now IPv6 only; IPv4 is opt-in with `-4`. Scanning
   both families by default was a change from the tool's earlier behaviour and was reported

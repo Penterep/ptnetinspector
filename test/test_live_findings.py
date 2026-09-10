@@ -11,12 +11,13 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from scapy.all import DNS, DNSQR, DNSRR, Ether, IP, IPv6, TCP, UDP
+from scapy.all import DNS, DNSQR, DNSRR, Ether, IP, IPv6, Raw, TCP, UDP
 from scapy.contrib.igmp import IGMP
 from scapy.contrib.igmpv3 import IGMPv3, IGMPv3gr, IGMPv3mq, IGMPv3mr
 from scapy.layers.inet import ICMP
 from scapy.layers.inet6 import (
     ICMPv6EchoReply,
+    ICMPv6EchoRequest,
     ICMPv6MLQuery2,
     ICMPv6MLReport2,
     ICMPv6ND_NA,
@@ -655,3 +656,87 @@ class TestOnlyInboundMulticastIsRecorded:
 
         rows = [r for r in csv.DictReader(open(get_csv_path("multicast_groups.csv"), newline=""))]
         assert rows == []
+
+
+# --------------------------------------------------------------------------
+# The packet log must not care how the frame was framed.
+# --------------------------------------------------------------------------
+class TestLinkLayerIsReadFromTheActualFraming:
+    """The log picked its branch from a classifier that tested the network
+    layer before the framing, so IP carried over anything but Ethernet reached
+    a branch reading packet[Ether] and aborted the whole scan - the same class
+    of failure as a malformed MLDv2 report."""
+
+    def _frames(self):
+        from scapy.layers.l2 import Dot1Q, Dot3, LLC, SNAP, STP
+        from scapy.layers.dot11 import Dot11
+        return {
+            "ethernet ipv6": (Ether(src="aa:00:00:00:00:01", dst="33:33:00:00:00:01")
+                              / IPv6(src="fe80::1", dst="ff02::1") / ICMPv6EchoRequest(),
+                              "aa:00:00:00:00:01", "fe80::1"),
+            "ethernet ipv4": (Ether(src="aa:00:00:00:00:02", dst="ff:ff:ff:ff:ff:ff")
+                              / IP(src="192.168.1.2", dst="192.168.1.9") / ICMP(),
+                              "aa:00:00:00:00:02", "192.168.1.2"),
+            "vlan tagged ipv6": (Ether(src="aa:00:00:00:00:03", dst="33:33:00:00:00:01")
+                                 / Dot1Q(vlan=10) / IPv6(src="fe80::3", dst="ff02::1")
+                                 / ICMPv6EchoRequest(),
+                                 "aa:00:00:00:00:03", "fe80::3"),
+            "stp bpdu": (Dot3(src="aa:00:00:00:00:04", dst="01:80:c2:00:00:00") / LLC() / STP(),
+                         "aa:00:00:00:00:04", ""),
+            "802.3 llc/snap ipv6": (Dot3(src="aa:00:00:00:00:05", dst="33:33:00:00:00:01")
+                                    / LLC() / SNAP(code=0x86DD)
+                                    / IPv6(src="fe80::5", dst="ff02::1") / ICMPv6EchoRequest(),
+                                    "aa:00:00:00:00:05", "fe80::5"),
+            "802.3 llc/snap ipv4": (Dot3(src="aa:00:00:00:00:06", dst="01:00:5e:00:00:01")
+                                    / LLC() / SNAP(code=0x0800)
+                                    / IP(src="192.168.1.6", dst="224.0.0.1") / ICMP(),
+                                    "aa:00:00:00:00:06", "192.168.1.6"),
+            "802.11 data ipv4": (Dot11(type=2, addr1="11:11:11:11:11:11",
+                                       addr2="aa:00:00:00:00:07", addr3="33:33:33:33:33:33")
+                                 / LLC() / SNAP(code=0x0800)
+                                 / IP(src="192.168.1.7", dst="192.168.1.9") / ICMP(),
+                                 "aa:00:00:00:00:07", "192.168.1.7"),
+        }
+
+    @pytest.mark.parametrize("label", [
+        "ethernet ipv6", "ethernet ipv4", "vlan tagged ipv6", "stp bpdu",
+        "802.3 llc/snap ipv6", "802.3 llc/snap ipv4", "802.11 data ipv4",
+    ])
+    def test_every_framing_is_logged_with_its_own_addresses(self, label, scan_dir):
+        from ptnetinspector.scan import Save
+        from ptnetinspector.utils.path import get_csv_path
+
+        packet, expected_mac, expected_ip = self._frames()[label]
+        parsed = packet.__class__(bytes(packet))
+
+        Save.save_async([parsed])          # must not raise for any framing
+
+        rows = [r for r in csv.DictReader(open(get_csv_path("packets.csv"), newline=""))]
+        assert len(rows) == 1
+        assert rows[0]["src MAC"] == expected_mac
+        assert rows[0]["source IP"] == expected_ip
+        assert rows[0]["length"] == str(len(parsed))
+
+    def test_a_frame_with_no_link_layer_is_skipped_not_logged(self, scan_dir):
+        from scapy.layers.l2 import LLC
+        from ptnetinspector.scan import Save
+        from ptnetinspector.utils.path import get_csv_path
+
+        Save.save_async([LLC() / Raw(load=b"\x00" * 16)])
+
+        assert [r for r in csv.DictReader(open(get_csv_path("packets.csv"), newline=""))] == []
+
+    def test_link_addresses_helper(self):
+        from scapy.layers.l2 import Dot3
+        from scapy.layers.dot11 import Dot11
+        from ptnetinspector.scan import _link_addresses
+
+        assert _link_addresses(Ether(src="aa:aa:aa:aa:aa:aa", dst="bb:bb:bb:bb:bb:bb")) == \
+            ("aa:aa:aa:aa:aa:aa", "bb:bb:bb:bb:bb:bb")
+        assert _link_addresses(Dot3(src="cc:cc:cc:cc:cc:cc", dst="dd:dd:dd:dd:dd:dd")) == \
+            ("cc:cc:cc:cc:cc:cc", "dd:dd:dd:dd:dd:dd")
+        # Dot11 exposes addr1/addr2, never .src/.dst
+        assert _link_addresses(Dot11(type=2, addr1="11:11:11:11:11:11",
+                                     addr2="22:22:22:22:22:22")) == \
+            ("22:22:22:22:22:22", "11:11:11:11:11:11")
+        assert _link_addresses(Raw(load=b"x")) == ("", "")

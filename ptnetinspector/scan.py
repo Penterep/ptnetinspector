@@ -159,6 +159,29 @@ def _hop_limit_is_stack_default(packet) -> bool:
     return False
 
 
+def _link_addresses(packet) -> tuple[str, str]:
+    """Source and destination MAC, from whichever link layer the frame carries.
+
+    The packet log used to pick its branch from a classifier that tested the
+    network layer before the framing, so anything but Ethernet carrying IP -
+    802.3 with LLC/SNAP, or an 802.11 data frame from a monitor-mode capture -
+    reached a branch that read ``packet[Ether]`` and raised IndexError, which
+    aborted the whole scan. The 802.11 branch meant to catch the latter was
+    unreachable, and read ``.src``/``.dst``, which Dot11 does not provide.
+    """
+    for layer in (Ether, Dot3):
+        if packet.haslayer(layer):
+            header = packet[layer]
+            return str(header.src), str(header.dst)
+
+    if packet.haslayer(Dot11):
+        header = packet[Dot11]
+        # On a data frame addr2 is the transmitter and addr1 the receiver.
+        return str(getattr(header, "addr2", "") or ""), str(getattr(header, "addr1", "") or "")
+
+    return "", ""
+
+
 def _dhcp_message_type(packet):
     """Return the DHCPv4 message-type option value, or None when absent.
 
@@ -204,30 +227,6 @@ def _forked_target(fn, args):
 
 
 class Sniff:
-    @staticmethod
-    def type(pkt):
-        """
-        Classify packet types based on protocols.
-
-        input: pkt (scapy packet)
-        output: int (type code)
-        """
-        if IPv6 in pkt:
-            return 0
-        elif IP in pkt:
-            return 1
-        elif Dot3 in pkt:
-            return 2
-        elif Ether in pkt:
-            return 3
-        elif Dot11 in pkt:
-            if IPv6 in pkt:
-                return 0
-            elif IP in pkt:
-                return 1
-        else:
-            return 4
-
     @staticmethod
     def scan_async(interface):
         """
@@ -302,48 +301,37 @@ class Save:
             fieldnames = ['time', 'src MAC', 'des MAC', 'source IP', 'destination IP', 'protocol', 'length']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             for packet in packets:
-                i = Sniff.type(packet)
-                if i == 0:
-                    writer.writerow({
-                        'time': packet.time,
+                source_mac, destination_mac = _link_addresses(packet)
+                if not source_mac and not destination_mac:
+                    # A cooked capture has no link layer, so there is nothing
+                    # to attribute the row to.
+                    logger.debug("Skipping packet without a link layer in the packet log")
+                    continue
+
+                row = {
+                    'time': packet.time,
+                    'src MAC': source_mac,
+                    'des MAC': destination_mac,
+                    'length': len(packet),
+                }
+
+                # The network layer is read independently of the framing, so a
+                # frame the log cannot classify still gets a row instead of
+                # taking a branch built for a different link layer.
+                if IPv6 in packet:
+                    row.update({
                         'source IP': packet[IPv6].src,
                         'destination IP': packet[IPv6].dst,
-                        'src MAC': packet[Ether].src,
-                        'des MAC': packet[Ether].dst,
                         'protocol': packet[IPv6].nh,
-                        'length': len(packet)
                     })
-                elif i == 1:
-                    writer.writerow({
-                        'time': packet.time,
+                elif IP in packet:
+                    row.update({
                         'source IP': packet[IP].src,
                         'destination IP': packet[IP].dst,
-                        'src MAC': packet[Ether].src,
-                        'des MAC': packet[Ether].dst,
                         'protocol': packet[IP].proto,
-                        'length': len(packet)
                     })
-                elif i == 2:
-                    writer.writerow({
-                        'time': packet.time,
-                        'src MAC': packet[Dot3].src,
-                        'des MAC': packet[Dot3].dst,
-                        'length': len(packet)
-                    })
-                elif i == 3:
-                    writer.writerow({
-                        'time': packet.time,
-                        'src MAC': packet[Ether].src,
-                        'des MAC': packet[Ether].dst,
-                        'length': len(packet)
-                    })
-                elif i == 4:
-                    writer.writerow({
-                        'time': packet.time,
-                        'src MAC': packet[Dot11].src,
-                        'des MAC': packet[Dot11].dst,
-                        'length': len(packet)
-                    })
+
+                writer.writerow(row)
 
     @staticmethod
     def save_packets(interface, ip_mode, packets):
