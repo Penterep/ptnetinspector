@@ -308,6 +308,17 @@ class Json:
                 continue
             _publish("Multicast querier", f"{row.get('MAC', '')} ({protocol})")
 
+        # Groups that reached this port without being joined. Imported here
+        # rather than at module scope to keep the output modules independent.
+        from ptnetinspector.output.intel import _unjoined_multicast_rows
+
+        for group, version, _senders, _macs in _unjoined_multicast_rows():
+            if version == "IPv6" and not ipver.ipv6:
+                continue
+            if version == "IPv4" and not ipver.ipv4:
+                continue
+            _publish("Multicast flooded to this port", group)
+
         for name, values in collected.items():
             ptjsonlib_object.add_properties(
                 properties={name: values[0] if len(values) == 1 else values}

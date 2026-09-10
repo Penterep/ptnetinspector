@@ -20,6 +20,7 @@ from scapy.layers.inet6 import (
     ICMPv6MLQuery2,
     ICMPv6MLReport2,
     ICMPv6ND_NA,
+    ICMPv6ND_NS,
     ICMPv6ND_RA,
     ICMPv6NIReplyName,
 )
@@ -520,3 +521,137 @@ class TestTargetFilterReachesTheInventory:
         tail = source[inventory_call:inventory_call + 400]
         assert "target_macs=target_macs" in tail
         assert "target_ips=target_ips" in tail
+
+
+# --------------------------------------------------------------------------
+# E7's snooping half: what a single port can actually measure.
+# --------------------------------------------------------------------------
+class TestKernelMulticastMemberships:
+    """The comparison is only meaningful against what the host really joined,
+    which includes the memberships the stack takes out by itself."""
+
+    IGMP6 = (
+        "1    lo              ff020000000000000000000000000001     1 0000000C 0\n"
+        "4    scan0           ff0200000000000000000001ff000077     1 00000004 0\n"
+        "4    scan0           ff020000000000000000000000000001     1 0000000C 0\n"
+        "3    lan0            ff0200000000000000000001ff8e5b55     1 00000004 0\n"
+    )
+    IGMP = (
+        "Idx\tDevice    : Count Querier\tGroup    Users Timer\tReporter\n"
+        "1\tlo        :     1      V3\n"
+        "\t\t\t\t010000E0     1 0:00000000\t\t0\n"
+        "4\tscan0     :     1      V3\n"
+        "\t\t\t\t010000E0     1 0:00000000\t\t0\n"
+        "\t\t\t\t160000E0     1 0:00000000\t\t0\n"
+    )
+
+    def test_ipv6_groups_are_parsed_and_scoped_to_the_interface(self):
+        from ptnetinspector.utils.interface import _parse_igmp6
+        assert _parse_igmp6(self.IGMP6, "scan0") == {"ff02::1:ff00:77", "ff02::1"}
+        assert _parse_igmp6(self.IGMP6, "lan0") == {"ff02::1:ff8e:5b55"}
+        assert _parse_igmp6(self.IGMP6, "nosuchif") == set()
+
+    def test_ipv4_groups_are_parsed_from_little_endian_hex(self):
+        from ptnetinspector.utils.interface import _parse_igmp
+        assert _parse_igmp(self.IGMP, "scan0") == {"224.0.0.1", "224.0.0.22"}
+        assert _parse_igmp(self.IGMP, "lo") == {"224.0.0.1"}
+        assert _parse_igmp(self.IGMP, "nosuchif") == set()
+
+    def test_malformed_lines_are_skipped_not_fatal(self):
+        from ptnetinspector.utils.interface import _parse_igmp6, _parse_igmp
+        assert _parse_igmp6("garbage\n4 scan0 nothex 1 0 0\n", "scan0") == set()
+        assert _parse_igmp("4\tscan0     :\n\t\t\t\tZZZZZZZZ     1\n", "scan0") == set()
+
+
+class TestFloodingEvidence:
+    """A group that arrived without being joined is what one port can observe;
+    the probe's own group reaching other ports is not."""
+
+    def _rows(self, scan_dir, observations, joined):
+        from unittest import mock
+        from ptnetinspector.output import intel
+
+        _write(scan_dir / "multicast_groups.csv", ["Group", "Version", "Source_MAC"],
+               [{"Group": g, "Version": v, "Source_MAC": m} for g, v, m in observations])
+        with mock.patch.object(intel, "get_joined_multicast_groups", return_value=set(joined)), \
+             mock.patch.object(intel, "get_current_interface", return_value="scan0"):
+            return intel._unjoined_multicast_rows()
+
+    def test_a_group_that_was_joined_is_not_evidence(self, scan_dir):
+        rows = self._rows(scan_dir,
+                          [("ff02::1", "IPv6", "aa:bb:cc:00:00:01")],
+                          {"ff02::1"})
+        assert rows == []
+
+    def test_a_group_that_arrived_unjoined_is_reported(self, scan_dir):
+        rows = self._rows(scan_dir,
+                          [("ff02::fb", "IPv6", "aa:bb:cc:00:00:01")],
+                          {"ff02::1"})
+        assert [r[0] for r in rows] == ["ff02::fb"]
+
+    def test_another_hosts_solicited_node_group_is_the_classic_signal(self, scan_dir):
+        rows = self._rows(scan_dir,
+                          [("ff02::1:ff05:b01a", "IPv6", "aa:bb:cc:00:00:02")],
+                          {"ff02::1", "ff02::1:ff00:77"})
+        assert [r[0] for r in rows] == ["ff02::1:ff05:b01a"]
+
+    def test_the_ipv4_control_block_is_flooded_by_design_and_excluded(self, scan_dir):
+        rows = self._rows(scan_dir,
+                          [("224.0.0.22", "IPv4", "aa:bb:cc:00:00:01"),
+                           ("224.0.0.251", "IPv4", "aa:bb:cc:00:00:01"),
+                           ("239.255.255.250", "IPv4", "aa:bb:cc:00:00:01")],
+                          set())
+        assert [r[0] for r in rows] == ["239.255.255.250"]
+
+    def test_senders_are_counted_and_listed(self, scan_dir):
+        rows = self._rows(scan_dir,
+                          [("ff02::16", "IPv6", "aa:bb:cc:00:00:01"),
+                           ("ff02::16", "IPv6", "aa:bb:cc:00:00:02")],
+                          set())
+        assert rows[0][2] == "2"
+        assert "aa:bb:cc:00:00:01" in rows[0][3] and "aa:bb:cc:00:00:02" in rows[0][3]
+
+    def test_membership_matches_across_spellings(self, scan_dir):
+        """A non-compressed spelling in the CSV must still match the join."""
+        rows = self._rows(scan_dir,
+                          [("ff02:0:0:0:0:0:0:fb", "IPv6", "aa:bb:cc:00:00:01")],
+                          {"ff02::fb"})
+        assert rows == []
+
+    def test_non_multicast_and_garbage_are_ignored(self, scan_dir):
+        rows = self._rows(scan_dir,
+                          [("192.168.1.5", "IPv4", "aa:bb:cc:00:00:01"),
+                           ("not-an-address", "IPv4", "aa:bb:cc:00:00:01")],
+                          set())
+        assert rows == []
+
+
+class TestOnlyInboundMulticastIsRecorded:
+    """The scanner's own probes pick their own groups, so counting them measured
+    the tool rather than the switch."""
+
+    def test_the_scanners_own_frames_are_skipped(self, scan_dir):
+        from ptnetinspector.scan import Save
+        from ptnetinspector.utils.path import get_csv_path
+
+        mine = Ether(bytes(Ether(src="aa:aa:aa:aa:aa:aa")
+                           / IPv6(dst="ff02::1:ff00:99") / ICMPv6ND_NS(tgt="fe80::99")))
+        theirs = Ether(bytes(Ether(src="bb:bb:bb:bb:bb:bb")
+                             / IPv6(dst="ff02::fb") / UDP(sport=5353, dport=5353) / DNS(qr=1)))
+
+        Save.save_multicast_destination(mine, "aa:aa:aa:aa:aa:aa")
+        Save.save_multicast_destination(theirs, "aa:aa:aa:aa:aa:aa")
+
+        rows = [r for r in csv.DictReader(open(get_csv_path("multicast_groups.csv"), newline=""))]
+        assert [r["Group"] for r in rows] == ["ff02::fb"]
+
+    def test_unicast_destinations_are_not_recorded(self, scan_dir):
+        from ptnetinspector.scan import Save
+        from ptnetinspector.utils.path import get_csv_path
+
+        packet = Ether(bytes(Ether(src="bb:bb:bb:bb:bb:bb")
+                             / IPv6(dst="fe80::2") / ICMPv6EchoReply()))
+        Save.save_multicast_destination(packet, "aa:aa:aa:aa:aa:aa")
+
+        rows = [r for r in csv.DictReader(open(get_csv_path("multicast_groups.csv"), newline=""))]
+        assert rows == []

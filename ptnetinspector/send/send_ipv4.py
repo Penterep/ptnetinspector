@@ -635,7 +635,11 @@ class SendIPv4:
     @staticmethod
     def send_igmp_snoop_probe(interface: str, group: str = "239.255.42.99") -> None:
         """
-        Join an otherwise unused IPv4 multicast group, to test for IGMP snooping.
+        Announce membership of an otherwise unused IPv4 multicast group.
+
+        Scored from a second capture point, not from here; see
+        send_mld_snoop_probe. The single-port evidence is the
+        "Multicast received without joining" report.
 
         Args:
             interface (str): The network interface to use

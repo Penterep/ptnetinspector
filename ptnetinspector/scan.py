@@ -41,6 +41,7 @@ from ptnetinspector.utils.csv_helpers import remove_duplicates_from_csv, sort_cs
 from ptnetinspector.entities.wsdiscovery import parse_wsdiscovery, WSDiscovery
 from ptnetinspector.entities.dnssd import DNSSD
 from ptnetinspector.entities.fingerprint import Fingerprint, guess_os_from_hop_limit
+from ptnetinspector.entities.multicast import MulticastGroup
 from ptnetinspector.entities.querier import Querier
 from ptnetinspector.entities.dhcpv6_options import DHCPv6Options
 from ptnetinspector.entities.ra_options import RAOption
@@ -367,6 +368,13 @@ class Save:
                 logger.debug("Skipping packet with an empty source MAC")
                 continue
 
+            # Which multicast groups actually reach this port. Compared against
+            # the host's own memberships at report time, this is the single-port
+            # half of the snooping question: a group we never joined arriving
+            # here means the segment floods rather than filters.
+            with _protocol_guard("multicast destination", mac_src):
+                Save.save_multicast_destination(packet, src_mac)
+
             packet_time = convert_timestamp_to_date(packet.time)
             packet_line = Save.packet_to_one_line(packet)
 
@@ -676,6 +684,37 @@ class Save:
                     continue
                 NodeInfo(mac, ip, label, address).save()
                 Node(mac, address).save_addresses()
+
+    @staticmethod
+    def save_multicast_destination(packet, src_mac=None):
+        """Record the multicast group an *inbound* frame was addressed to.
+
+        Direction is the whole point. The scanner's own probes are addressed to
+        groups it picked itself - a solicited-node group per address it
+        verifies, the WS-Discovery and SSDP groups - and counting those said
+        only that the tool sends what it sends. What the switch chose to deliver
+        here is the measurement.
+        """
+        if src_mac and packet[0].src == src_mac:
+            return
+
+        if IPv6 in packet:
+            destination = str(packet[IPv6].dst)
+            version = "IPv6"
+        elif IP in packet:
+            destination = str(packet[IP].dst)
+            version = "IPv4"
+        else:
+            return
+
+        try:
+            address = ipaddress.ip_address(destination)
+        except ValueError:
+            return
+        if not address.is_multicast:
+            return
+
+        MulticastGroup(destination, version, packet[0].src).save()
 
     @staticmethod
     def save_mld_querier(packet):

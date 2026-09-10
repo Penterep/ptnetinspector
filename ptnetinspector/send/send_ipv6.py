@@ -1292,12 +1292,14 @@ class SendIPv6:
     @staticmethod
     def send_mld_snoop_probe(interface: str, group: str = "ff02::1:3fff:fffe") -> None:
         """
-        Join a group nothing else uses, to see whether the switch snoops MLD.
+        Announce membership of a group nothing else uses.
 
-        If traffic for a group only this scanner joined still reaches ports that
-        never joined it, the switch is flooding rather than snooping. The result
-        is inferential and depends on switch configuration, so it is reported as
-        an observation rather than a verdict.
+        This half of the snooping test cannot be scored from here: whether the
+        group reaches ports that never joined it is only visible from one of
+        those ports, so the probe exists for an operator capturing elsewhere on
+        the segment. The evidence a single port *can* gather is reported instead
+        under "Multicast received without joining" - groups that arrived here
+        without this host ever joining them.
 
         Args:
             interface (str): The network interface to use.

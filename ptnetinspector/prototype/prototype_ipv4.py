@@ -350,7 +350,8 @@ class PrototypeIPv4Packet:
 
         Whether frames for a group only this scanner joined still reach ports
         that never joined it distinguishes an IGMP-snooping switch from one that
-        floods. Inferential: the answer depends on switch configuration.
+        floods. Inferential, and not scoreable from the sending port: it needs a
+        capture on one of those other ports.
         Args:
             src_mac: Source MAC address.
             src_ip: Source IPv4 address.

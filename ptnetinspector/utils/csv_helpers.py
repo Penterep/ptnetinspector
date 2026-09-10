@@ -181,6 +181,11 @@ def create_csv(interface: str | None = None) -> None:
         fieldnames = ['MAC', 'IP', 'Service', 'Instance', 'Target', 'Port', 'TXT']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
+    with open(f"{directory}/multicast_groups.csv", 'w', newline='') as csvfile:
+        fieldnames = ['Group', 'Version', 'Source_MAC']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
     with open(f"{directory}/querier.csv", 'w', newline='') as csvfile:
         fieldnames = ['MAC', 'IP', 'Protocol', 'Group', 'QRV', 'QQIC', 'Max_response']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)

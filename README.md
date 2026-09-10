@@ -159,6 +159,7 @@ Every run writes its artifacts to the interface's output directory
 | `ptnetinspector-output.txt` | The terminal report as text. |
 | `devices.csv` / `devices.txt` | Device inventory: MAC, vendor, role, hostname and addresses, one device per row, with no findings mixed in. Useful when a segment has many devices and the per-device report becomes hard to read. |
 | `device_addresses.csv` | The same inventory flattened to one row per address, with the owning device repeated on each row. Use this one to search: `grep <address>`, or filter a family with `awk -F, '$3==6'`. |
+| `multicast_groups.csv` | Every multicast group whose traffic arrived on the scanning port, and which MAC sent it. Compared against this host's own memberships to produce the flooding-evidence section of `network-intel.txt`. |
 | `network-intel.txt` | Recon detail collected during the scan: Router Advertisement options, discovered DNS-SD services, Node Information replies, the multicast querier, DHCPv6 options, passive fingerprints and reverse-DNS results. |
 
 ## What a Scan Collects

@@ -132,6 +132,75 @@ def restore_forwarding_state() -> None:
         pass
 
 
+def _parse_igmp6(text: str, interface: str) -> set[str]:
+    """Groups from /proc/net/igmp6, whose lines are `idx name hexaddr users flags timer`."""
+    groups: set[str] = set()
+    for line in text.splitlines():
+        fields = line.split()
+        if len(fields) < 3 or fields[1] != interface:
+            continue
+        raw = fields[2]
+        if len(raw) != 32:
+            continue
+        try:
+            packed = bytes.fromhex(raw)
+        except ValueError:
+            continue
+        groups.add(str(ipaddress.IPv6Address(packed)))
+    return groups
+
+
+def _parse_igmp(text: str, interface: str) -> set[str]:
+    """Groups from /proc/net/igmp.
+
+    The file is grouped by interface: an unindented header names the device and
+    the indented lines that follow list its groups, little-endian hex.
+    """
+    groups: set[str] = set()
+    current = None
+    for line in text.splitlines():
+        if not line or line.startswith(("Idx", "\t\t")):
+            if not line.startswith("\t\t"):
+                continue
+        if not line.startswith(("\t", " ")):
+            # "4\tscan0     :     1      V3"
+            head = line.split(":", 1)[0].split()
+            current = head[1] if len(head) > 1 else None
+            continue
+        if current != interface:
+            continue
+        fields = line.split()
+        if not fields:
+            continue
+        raw = fields[0]
+        if len(raw) != 8:
+            continue
+        try:
+            packed = bytes.fromhex(raw)[::-1]        # stored little-endian
+        except ValueError:
+            continue
+        groups.add(str(ipaddress.IPv4Address(packed)))
+    return groups
+
+
+def get_joined_multicast_groups(interface: str) -> set[str]:
+    """Multicast groups this host has actually joined on `interface`.
+
+    Read from the kernel rather than inferred, so it includes the memberships
+    the stack takes out on its own - all-nodes, the solicited-node group of
+    every local address, the IGMP all-hosts group. Without those the comparison
+    in the flooding report would call ordinary traffic unexpected.
+    """
+    groups: set[str] = set()
+    for path, parser in (("/proc/net/igmp6", _parse_igmp6), ("/proc/net/igmp", _parse_igmp)):
+        try:
+            with open(path, encoding="utf-8") as handle:
+                groups |= parser(handle.read(), interface)
+        except OSError as error:
+            logger.debug("Could not read %s: %s", path, error)
+    return groups
+
+
 def flush_tagged_rules() -> None:
     """Delete every rule this tool ever tagged, in both tables.
 

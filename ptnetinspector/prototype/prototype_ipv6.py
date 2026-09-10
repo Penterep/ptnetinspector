@@ -253,8 +253,9 @@ class PrototypeIPv6Packet:
         """Builds an MLDv2 report for a group nothing on the link has joined.
 
         Whether the frame comes back on ports that never joined is what tells an
-        MLD-snooping switch from a plain flooding one. Inferential by nature: the
-        result depends on the switch's configuration.
+        MLD-snooping switch from a plain flooding one. Inferential by nature, and
+        not scoreable from the sending port: it needs a capture on one of those
+        other ports.
 
         Args:
             src_mac: Source MAC address.

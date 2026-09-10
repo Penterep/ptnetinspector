@@ -12,8 +12,11 @@ import logging
 from ptlibs import ptprinthelper
 from tabulate import tabulate
 
+import ipaddress
+
+from ptnetinspector.utils.interface import get_joined_multicast_groups
 from ptnetinspector.utils.ip_utils import has_additional_data
-from ptnetinspector.utils.path import get_csv_path, get_tmp_path
+from ptnetinspector.utils.path import get_csv_path, get_current_interface, get_tmp_path
 
 
 logger = logging.getLogger(__name__)
@@ -114,6 +117,64 @@ def _reverse_dns_rows() -> list[list[str]]:
             for row in _read("reverse_dns.csv")]
 
 
+# IPv4's local network control block is flooded by design - IGMP snooping
+# explicitly does not filter 224.0.0.0/24 - so its groups are not evidence of
+# anything and are left out.
+_ALWAYS_FLOODED_V4 = ipaddress.ip_network("224.0.0.0/24")
+
+
+def _unjoined_multicast_rows(interface: str | None = None) -> list[list[str]]:
+    """Groups whose traffic arrived here that this host never joined.
+
+    A switch that snoops MLD/IGMP forwards a group only to ports that asked for
+    it, so this is flooding evidence, and it is the half of the snooping
+    question a single port can answer. It stays an observation rather than a
+    verdict: some link-local groups are flooded by design in many switches.
+    """
+    rows = _read("multicast_groups.csv")
+    if not rows:
+        return []
+
+    iface = interface or get_current_interface()
+    if not iface:
+        return []
+    joined = get_joined_multicast_groups(iface)
+
+    # Compare in canonical form, so a differently spelled address still matches.
+    def canonical(value: str) -> str:
+        try:
+            return str(ipaddress.ip_address(str(value).strip()))
+        except ValueError:
+            return str(value).strip()
+
+    joined_canonical = {canonical(group) for group in joined}
+
+    observed: dict[str, dict] = {}
+    for row in rows:
+        group = canonical(row.get("Group", ""))
+        if not group or group in joined_canonical:
+            continue
+        try:
+            address = ipaddress.ip_address(group)
+        except ValueError:
+            continue
+        # The recorder only stores multicast, but this file is read back from
+        # disk, so a unicast address must never be reported as a flooded group.
+        if not address.is_multicast:
+            continue
+        if address.version == 4 and address in _ALWAYS_FLOODED_V4:
+            continue
+        entry = observed.setdefault(group, {"version": row.get("Version", ""), "senders": set()})
+        sender = str(row.get("Source_MAC", "")).strip()
+        if sender:
+            entry["senders"].add(sender)
+
+    return [[group, data["version"], str(len(data["senders"])),
+             ", ".join(sorted(data["senders"])[:3])
+             + (" ..." if len(data["senders"]) > 3 else "")]
+            for group, data in sorted(observed.items())]
+
+
 _SECTIONS = (
     ("Router Advertisement options", ["Router", "Option", "Value", "Lifetime", "Flags"], _ra_option_rows),
     ("Discovered services (DNS-SD)", ["MAC", "Service", "Instance", "Host:Port", "TXT"], _service_rows),
@@ -123,6 +184,8 @@ _SECTIONS = (
     ("Passive fingerprints (heuristic, likely not certain)",
      ["MAC", "Hop limit", "Likely OS", "Interface identifier"], _fingerprint_rows),
     ("Reverse DNS", ["MAC", "IP", "Name", "Resolver"], _reverse_dns_rows),
+    ("Multicast received without joining (L2 flooding evidence, not a verdict)",
+     ["Group", "Version", "Senders", "Sending MACs"], _unjoined_multicast_rows),
 )
 
 
