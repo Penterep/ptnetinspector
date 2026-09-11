@@ -3,7 +3,7 @@ import csv
 import pytest
 from pathlib import Path
 
-from ptnetinspector.utils.runtime import can_reuse_tmp_data, _check_ips_in_addresses, _check_macs_in_role_node
+from ptnetinspector.utils.runtime import can_reuse_tmp_data, _check_ips_in_addresses, _check_macs_in_role_node, prepare_tmp_files
 
 
 BASE_SIG = {
@@ -153,3 +153,51 @@ class TestCanReuseTargetIps:
         current = _make_sig(target_ips=["192.168.1.99"])
         saved = _make_sig(target_ips=[])
         assert can_reuse_tmp_data(current, saved, tmp_path) is False
+
+
+class TestPrepareTmpFiles:
+    def test_force_fresh_recreates_files_even_when_cache_exists(self, tmp_path):
+        interface = "eth0"
+        current_signature = _make_sig()
+        calls = {"create": 0, "delete": 0, "write_sig": 0}
+
+        (tmp_path / "addresses.csv").write_text("MAC,IP\n", encoding="utf-8")
+        (tmp_path / "addresses_unfiltered.csv").write_text("MAC,IP\n", encoding="utf-8")
+        (tmp_path / "networks.csv").write_text("network_prefix,prefix_length\n", encoding="utf-8")
+        (tmp_path / "run_params.json").write_text("{}", encoding="utf-8")
+
+        def get_tmp_path_fn(_iface):
+            return tmp_path
+
+        def create_csv_fn(_iface):
+            calls["create"] += 1
+
+        def del_tmp_path_fn(_iface):
+            calls["delete"] += 1
+
+        def delete_json_output_fn():
+            return None
+
+        def write_run_signature_fn(_tmp, _sig):
+            calls["write_sig"] += 1
+
+        def load_run_signature_fn(_tmp):
+            return current_signature
+
+        reused = prepare_tmp_files(
+            interface,
+            retention_seconds=1800,
+            current_signature=current_signature,
+            get_tmp_path_fn=get_tmp_path_fn,
+            create_csv_fn=create_csv_fn,
+            del_tmp_path_fn=del_tmp_path_fn,
+            delete_json_output_fn=delete_json_output_fn,
+            write_run_signature_fn=write_run_signature_fn,
+            load_run_signature_fn=load_run_signature_fn,
+            required_files=["addresses.csv", "addresses_unfiltered.csv", "networks.csv"],
+            less_detail=True,
+            force_fresh=True,
+        )
+
+        assert reused is False
+        assert calls == {"create": 1, "delete": 1, "write_sig": 1}

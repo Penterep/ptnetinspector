@@ -37,7 +37,7 @@ FIELDS = ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_cou
 
 # Leading MAC/IP matches every other artifact this tool writes, so the flat
 # inventory can be read by the same helpers and eyeballed the same way.
-ADDRESS_FIELDS = ['MAC', 'IP', 'IP_version', 'Device', 'Vendor', 'Role', 'Hostname']
+ADDRESS_FIELDS = ['Device', 'MAC', 'IP', 'IP_version', 'Vendor', 'Role', 'Hostname']
 
 
 def _sort_key(ip: str) -> tuple:
@@ -178,14 +178,22 @@ def flatten_devices(devices: list[dict]) -> list[dict]:
             addresses = [("", "")]
         for ip, version in addresses:
             rows.append({
+                "Device": device["Device"],
                 "MAC": device["MAC"],
                 "IP": ip,
                 "IP_version": version,
-                "Device": device["Device"],
                 "Vendor": device["Vendor"],
                 "Role": device["Role"],
                 "Hostname": device["Hostname"],
             })
+
+    # Keep flat output aligned with the project-wide CSV ordering convention:
+    # MAC first, then numeric IP ordering (IPv4 before IPv6, then value).
+    rows.sort(key=lambda row: (
+        str(row.get("MAC", "")).upper(),
+        *_sort_key(str(row.get("IP", ""))),
+        str(row.get("Device", "")),
+    ))
     return rows
 
 

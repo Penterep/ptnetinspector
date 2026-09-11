@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from pandas.api.types import is_string_dtype
 from scapy.all import DNS, DNSQR, DNSRR, Ether, IP, IPv6, Raw, TCP, UDP
 from scapy.contrib.igmp import IGMP
 from scapy.contrib.igmpv3 import IGMPv3, IGMPv3gr, IGMPv3mq, IGMPv3mr
@@ -81,7 +82,7 @@ class TestCsvValuesRoundTrip:
         frame = read_csv_text(path)
 
         assert list(frame["Hop_limit"]) == ["255", ""]
-        assert frame["Hop_limit"].dtype == object
+        assert is_string_dtype(frame["Hop_limit"])
 
     def test_missing_value_does_not_become_the_string_nan(self, tmp_path):
         """An absent hostname was printed to the operator as "nan"."""

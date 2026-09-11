@@ -158,6 +158,22 @@ class TestNoCheckSkipsProbing:
             kept = {row['IP'] for row in csv.DictReader(handle)}
         assert kept == {"2001:db8:1::20"}
 
+    def test_nc_keeps_all_observed_addresses(self, scan_dir):
+        from ptnetinspector.utils import address_control
+
+        _write_csv(scan_dir / "addresses.csv", ['MAC', 'IP'], [
+            {'MAC': '00:11:22:33:44:55', 'IP': '192.168.153.2'},
+            {'MAC': '00:11:22:33:44:55', 'IP': '8.8.8.8'},
+            {'MAC': '00:11:22:33:44:55', 'IP': '2001:db8:1::20'},
+        ])
+        _set_networks(scan_dir, [("192.168.153.0", 24), ("2001:db8:1::", 64)])
+
+        address_control.validate_addresses_mapping("eth0", IPMode(True, True), verify=False)
+
+        with open(scan_dir / "addresses.csv") as handle:
+            kept = {row['IP'] for row in csv.DictReader(handle)}
+        assert kept == {"192.168.153.2", "8.8.8.8", "2001:db8:1::20"}
+
 
 class TestNoCheckKeepsLocalScope:
     """-nc drops the reachability probe, not the local-network filter.

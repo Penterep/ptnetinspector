@@ -564,6 +564,7 @@ def prepare_tmp_files(
     load_run_signature_fn: Callable[[Path], dict | None],
     required_files: Iterable[str],
     less_detail: bool = False,
+    force_fresh: bool = False,
 ) -> bool:
     """Prepare tmp folder scoped to interface; return True if existing data should be reused.
 
@@ -584,6 +585,14 @@ def prepare_tmp_files(
     """
     delete_json_output_fn()
     tmp_dir = get_tmp_path_fn(interface)
+
+    if force_fresh:
+        if not less_detail:
+            ptprinthelper.ptprint("\033[90mRepository-local output mode: recreating temporary files for this run\033[0m", "WARNING", condition=True, indent=4)
+        del_tmp_path_fn(interface)
+        create_csv_fn(interface)
+        write_run_signature_fn(tmp_dir, current_signature)
+        return False
 
     try:
         files = list(tmp_dir.iterdir())

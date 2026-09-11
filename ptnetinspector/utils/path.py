@@ -19,6 +19,39 @@ def get_current_interface() -> str | None:
     """Get the current interface context."""
     return _current_interface
 
+
+def _find_repo_output_dir() -> Path | None:
+    """Return repo-local output dir when running from a source checkout.
+
+    If the current working directory (or one of its parents) contains a
+    project root with ``pyproject.toml``/``setup.py`` and
+    ``ptnetinspector/output/tmp``, prefer that location for outputs so local
+    runs are easy to inspect inside the repository.
+
+    Installed pip runs outside the project tree fall back to AppDirs.
+    """
+    try:
+        start = Path.cwd().resolve()
+    except OSError:
+        return None
+
+    candidates = [start, *start.parents]
+    for root in candidates:
+        has_project_marker = (root / "pyproject.toml").exists() or (root / "setup.py").exists()
+        repo_tmp_dir = root / "ptnetinspector" / "output" / "tmp"
+        if has_project_marker and repo_tmp_dir.is_dir():
+            return repo_tmp_dir.parent
+    return None
+
+
+def is_repo_local_output_mode() -> bool:
+    """True when outputs are redirected to repo-local ``ptnetinspector/output``.
+
+    This is the development/source-tree mode where operators expect each run to
+    refresh files under the workspace.
+    """
+    return _find_repo_output_dir() is not None
+
 def get_output_dir(base_path: str | None = None) -> Path:
     """
     Get the output directory path for ptnetinspector.
@@ -31,7 +64,7 @@ def get_output_dir(base_path: str | None = None) -> Path:
         Path: Path to the output directory
     """
     if base_path is None:
-        output_dir = Path(AppDirs("ptnetinspector").get_data_dir())
+        output_dir = _find_repo_output_dir() or Path(AppDirs("ptnetinspector").get_data_dir())
     else:
         output_dir = Path(base_path)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -44,19 +77,26 @@ def get_tmp_path(interface: str | None = None) -> Path:
     Creates the directory if it doesn't exist.
 
     Args:
-        interface (str | None): Network interface name. If provided, tmp files are stored in tmp/<interface>/.
-                               If None, uses the module-level _current_interface if set, otherwise defaults to tmp/ root.
+        interface (str | None): Network interface name. In AppDirs mode, files are
+                               stored in tmp/<interface>/ when provided.
+                               In repository-local mode, files are always stored
+                               directly in tmp/ for easier inspection.
 
     Returns:
         Path: Path to .../tmp/ or .../tmp/<interface>/ if interface is provided or set in context
     """
     tmp_base = get_output_dir() / 'tmp'
 
-    iface = interface or _current_interface
-    if iface:
-        tmp_dir = tmp_base / iface
-    else:
+    if is_repo_local_output_mode():
+        # In source-tree mode keep artifacts in one visible folder so operators
+        # do not need to hunt through interface subdirectories.
         tmp_dir = tmp_base
+    else:
+        iface = interface or _current_interface
+        if iface:
+            tmp_dir = tmp_base / iface
+        else:
+            tmp_dir = tmp_base
 
     tmp_dir.mkdir(parents=True, exist_ok=True)
     return tmp_dir

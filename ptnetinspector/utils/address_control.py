@@ -329,18 +329,38 @@ def validate_addresses_mapping(interface: str, ip_mode: IPMode, passive: bool = 
         ip_mode: Enabled IP versions.
         passive: True for passive scans, which never emit probes.
         verify: False when -nc is used; skips the ARP/NS reachability probes so no
-            extra traffic is generated, and reports every observed address -
-            unresponsive ones and ones outside the detected subnets alike.
+            extra traffic is generated, and reports every observed address
+            (except malformed entries and families excluded by -4/-6).
     """
     validator = AddressValidator(interface)
 
     original_mappings = read_mappings()
-    filtered_mapping = filter_unicast_addresses(
-        original_mappings,
-        ip_mode,
-        keep_solicited_node=not verify,
-        keep_offlink=not verify,
-    )
+    if verify:
+        filtered_mapping = filter_unicast_addresses(
+            original_mappings,
+            ip_mode,
+            keep_solicited_node=False,
+            keep_offlink=False,
+        )
+    else:
+        # -nc keeps what was observed so operators can inspect all candidates.
+        # We still respect -4/-6 and drop malformed values.
+        filtered_mapping = []
+        for mapping in original_mappings:
+            try:
+                ip_obj = ipaddress.ip_address(mapping.ip)
+            except ValueError:
+                logger.debug(
+                    "Skipping invalid address mapping under -nc: MAC=%s, IP=%s",
+                    mapping.mac,
+                    mapping.ip,
+                )
+                continue
+            if isinstance(ip_obj, ipaddress.IPv4Address) and not ip_mode.ipv4:
+                continue
+            if isinstance(ip_obj, ipaddress.IPv6Address) and not ip_mode.ipv6:
+                continue
+            filtered_mapping.append(mapping)
 
     csv_file = get_csv_path('addresses.csv')
     unfiltered_file = Path(str(csv_file).replace('.csv', '_unfiltered.csv'))

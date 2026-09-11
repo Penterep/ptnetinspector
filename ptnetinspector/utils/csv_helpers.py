@@ -102,7 +102,7 @@ ARTIFACT_SCHEMAS = {
     'node_info.csv': ['MAC', 'IP', 'Type', 'Value'],
     'reverse_dns.csv': ['MAC', 'IP', 'Name', 'Resolver'],
     'devices.csv': ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_count'],
-    'device_addresses.csv': ['MAC', 'IP', 'IP_version', 'Device', 'Vendor', 'Role', 'Hostname'],
+    'device_addresses.csv': ['Device', 'MAC', 'IP', 'IP_version', 'Vendor', 'Role', 'Hostname'],
 }
 
 

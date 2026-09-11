@@ -291,9 +291,9 @@ class TestDeviceInventory:
         assert [(row["MAC"], row["IP"], row["IP_version"]) for row in rows] == [
             ("00:0c:29:5c:c5:a5", "192.168.1.3", "4"),
             ("00:0c:29:5c:c5:a5", "fe80::79d2:f812:ba84:9484", "6"),
-            ("ca:02:69:30:00:08", "192.168.1.1", "4"),
             # a device whose addresses never answered still has to be findable
             ("00:1b:21:33:44:55", "", ""),
+            ("ca:02:69:30:00:08", "192.168.1.1", "4"),
         ]
         # the device's identity repeats on each of its rows, so a match on an
         # address alone is enough to name the host
