@@ -1120,3 +1120,76 @@ class TestEntityGridMeasuresItsWidth:
         text = self._render(4, 50)
         assert "+---" not in text, "a grid that overflows must fall to the list form"
         assert "Vulnerable" in text
+
+
+# --------------------------------------------------------------------------
+# The ASCII banner is fixed-width art; below its width it must not wrap.
+# --------------------------------------------------------------------------
+class TestBannerFitsNarrowTerminals:
+    """The shared 64-column banner wrapped into fragments on a narrower
+    terminal. Below its width a compact one-line title is shown instead."""
+
+    def _show(self, width):
+        import io, re
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+        from ptnetinspector.utils import cli
+
+        cli._LOGO_SHOWN = False
+        with patch("ptnetinspector.output.non_json.Non_json._terminal_width",
+                   staticmethod(lambda default=100, w=width: w)):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                cli.display_logo(json_output=False, more_detail=False)
+        return re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
+
+    @pytest.mark.parametrize("width", [120, 100, 80, 64, 63, 50, 40, 30])
+    def test_the_header_never_exceeds_the_width(self, width):
+        text = self._show(width)
+        widest = max((len(l) for l in text.splitlines()), default=0)
+        assert widest <= width, f"{widest} > {width}"
+
+    def test_wide_terminal_keeps_the_full_banner(self):
+        assert "____" in self._show(100)
+
+    def test_narrow_terminal_shows_a_compact_title_with_name_and_url(self):
+        text = self._show(40)
+        assert "____" not in text
+        assert "ptnetinspector" in text
+        assert "penterep.com" in text
+
+    def test_helper_uses_the_supplied_banner_without_recursing(self):
+        """The help path swaps out ptprinthelper.print_banner, so the helper
+        must call the banner it is given, not the (now-patched) module one."""
+        from unittest.mock import patch
+        from ptnetinspector.utils import cli
+
+        calls = []
+        real_banner = lambda name, version: calls.append((name, version))
+        with patch("ptnetinspector.output.non_json.Non_json._terminal_width",
+                   staticmethod(lambda default=100: 120)):
+            cli._print_banner_fitting_width(real_banner)
+        assert len(calls) == 1                # called once, no recursion
+
+    def test_the_help_screen_banner_also_fits(self):
+        """The -h path prints its banner through the same width-aware helper."""
+        import io, re
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+        from ptnetinspector.utils import cli
+        from ptlibs import ptprinthelper
+
+        # reproduce the wiring parse_args uses for -h, at a narrow width
+        original = ptprinthelper.print_banner
+        with patch("ptnetinspector.output.non_json.Non_json._terminal_width",
+                   staticmethod(lambda default=100: 40)):
+            ptprinthelper.print_banner = lambda *a, **k: cli._print_banner_fitting_width(original)
+            try:
+                buf = io.StringIO()
+                with redirect_stdout(buf):
+                    ptprinthelper.help_print(cli.get_help(), cli.SCRIPTNAME, cli.__version__)
+            finally:
+                ptprinthelper.print_banner = original
+        text = re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
+        # the banner art must not be present, and the header must be compact
+        assert "____" not in text.split("Description")[0]

@@ -163,7 +163,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
                     pass
             # Show logo for errors unless -j without -vv
             if not json_output or more_detail:
-                ptprinthelper.print_banner(SCRIPTNAME, __version__)
+                _print_banner_fitting_width()
             _store_error_outputs(msg, json_output, interface, more_detail)
             # Print to terminal if not json_output OR if more_detail is set
             if not json_output or more_detail:
@@ -187,7 +187,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
                         pass
                 # Show logo for errors unless -j without -vv
                 if not json_output or more_detail:
-                    ptprinthelper.print_banner(SCRIPTNAME, __version__)
+                    _print_banner_fitting_width()
                 _store_error_outputs(msg, json_output, interface, more_detail)
                 # Print to terminal if not json_output OR if more_detail is set
                 if not json_output or more_detail:
@@ -244,7 +244,15 @@ def parse_args() -> argparse.Namespace:
 
     # Print help message if no arguments provided or "-h" is used
     if len(sys.argv) == 1 or "-h" in sys.argv:
-        ptprinthelper.help_print(get_help(), SCRIPTNAME, __version__)
+        # help_print prints the fixed-width banner itself; swap in the
+        # width-aware version for the duration so it does not wrap on a narrow
+        # terminal, then restore the library function.
+        _original_banner = ptprinthelper.print_banner
+        ptprinthelper.print_banner = lambda *a, **k: _print_banner_fitting_width(_original_banner)
+        try:
+            ptprinthelper.help_print(get_help(), SCRIPTNAME, __version__)
+        finally:
+            ptprinthelper.print_banner = _original_banner
         sys.exit(0)
 
     args, unknown_args = parser.parse_known_args()
@@ -254,7 +262,7 @@ def parse_args() -> argparse.Namespace:
         verbose_output = args.v or args.vv
         # Show logo for errors unless -j without -v/-vv
         if not args.j or verbose_output:
-            ptprinthelper.print_banner(SCRIPTNAME, __version__)
+            _print_banner_fitting_width()
         _store_error_outputs(msg, args.j, args.interface, verbose_output)
         if not args.j or verbose_output:
             ptprinthelper.ptprint(msg, "ERROR")
@@ -266,6 +274,23 @@ def parse_args() -> argparse.Namespace:
 # ============================================================================
 # SECTION 2: HELP & DOCUMENTATION FUNCTIONS
 # ============================================================================
+
+def _print_banner_fitting_width(banner=None) -> None:
+    """Print the banner, or a compact title when it will not fit.
+
+    The shared ASCII banner is 64 columns wide; on a narrower terminal it
+    wraps into unreadable fragments. Every place that shows the banner goes
+    through here so the fallback is consistent. `banner` lets a caller pass the
+    real print_banner explicitly, which the help path needs because it swaps
+    the module function out.
+    """
+    if Non_json._terminal_width() >= 64:
+        (banner or ptprinthelper.print_banner)(SCRIPTNAME, __version__)
+    else:
+        ptprinthelper.ptprint(f"{SCRIPTNAME} v{__version__}", "TEXT", condition=True)
+        ptprinthelper.ptprint("https://www.penterep.com", condition=True)
+        ptprinthelper.ptprint("", condition=True)
+
 
 def display_logo(json_output: bool = False, more_detail: bool = False) -> None:
     """
@@ -281,7 +306,7 @@ def display_logo(json_output: bool = False, more_detail: bool = False) -> None:
     if _LOGO_SHOWN:
         return
     if not json_output or more_detail:
-        ptprinthelper.print_banner(SCRIPTNAME, __version__)
+        _print_banner_fitting_width()
         _LOGO_SHOWN = True
 
 

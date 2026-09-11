@@ -287,6 +287,9 @@ Terminal width
   (Already-printed lines cannot reflow when a terminal is resized - that is the
   terminal's own behaviour - but the program no longer emits a table wider than
   the window for the terminal to mangle.)
+- The ASCII banner is 64 columns wide; on a narrower terminal it wrapped into
+  fragments. Below that width a compact one-line title with the version and URL is
+  shown instead, on every path that prints the banner, including the -h help screen.
 
 Large segments
 - Past ten devices the terminal report is condensed, as asked for in the review, and the
