@@ -7,6 +7,7 @@ actually produces for an IGMPv3 query.
 """
 import csv
 import os
+import re
 from pathlib import Path
 from unittest import mock
 
@@ -891,3 +892,151 @@ class TestHostnameBytesCannotAbortTheScan:
         names = [r["name"] for r in
                  csv.DictReader(open(get_csv_path("localname.csv"), newline=""))]
         assert all(name == "" or "�" not in name for name in names)
+
+
+# --------------------------------------------------------------------------
+# A segment with many devices must still produce a readable report.
+# --------------------------------------------------------------------------
+def _matrix_fixture(device_count, code_count=20):
+    """Codes alternate network / IPv4-device / IPv6-device, like the catalog."""
+    vulnerabilities, codes = {}, []
+    for i in range(code_count):
+        kind = i % 3
+        family = "6" if i % 2 else "4"
+        if kind == 0:
+            code = f"PTV-NET-IDENT-{family}-NET{i}"
+            entities = {"Network": i % 3}
+        else:
+            code = f"PTV-NET-IDENT-{family}-DEV{i}"
+            entities = {str(d): (d + i) % 3 for d in range(1, device_count + 1)}
+        codes.append(code)
+        vulnerabilities[code] = {"description": f"finding {i}", "entities": entities}
+    return sorted(codes), vulnerabilities
+
+
+def _render_matrix(device_count, columns, code_count=20):
+    import io, re
+    from contextlib import redirect_stdout
+    from unittest.mock import patch
+    from ptnetinspector.output.non_json import Non_json
+
+    codes, vulns = _matrix_fixture(device_count, code_count)
+    symbol = {0: "✓", 1: "✕", 2: "●"}.get
+    with patch.object(Non_json, "_terminal_width", staticmethod(lambda default=100, c=columns: c)):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            Non_json._print_vulnerability_matrix(codes, vulns, symbol, "—")
+    return re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
+
+
+class TestMatrixScalesWithDeviceCount:
+    """Item [49] of the review: past ten devices the tables must be condensed.
+
+    With codes as rows and devices as columns, 35 devices produced nine
+    116-line blocks of four devices each; 200 devices would have produced
+    fifty. Devices are the unbounded dimension, so they go on rows."""
+
+    def test_few_devices_keep_the_familiar_layout(self):
+        text = _render_matrix(5, 100)
+        assert "Vulnerability code" in text            # codes as rows
+        assert "one row per device" not in text
+
+    def test_many_devices_put_devices_on_rows(self):
+        text = _render_matrix(35, 100)
+        assert "one row per device" in text
+        assert "Vulnerability code" not in text
+
+    def test_network_and_device_findings_are_separated(self):
+        text = _render_matrix(35, 100)
+        assert "Network-scoped findings" in text
+        assert "IPv4 findings, one row per device" in text
+        assert "IPv6 findings, one row per device" in text
+
+    @pytest.mark.parametrize("columns", [120, 100, 80, 60])
+    @pytest.mark.parametrize("devices", [35, 200])
+    def test_nothing_overflows_the_terminal(self, columns, devices):
+        text = _render_matrix(devices, columns)
+        widest = max(len(line) for line in text.splitlines())
+        assert widest <= columns, f"{widest} chars at {columns} columns, {devices} devices"
+
+    def test_growth_is_linear_in_devices_not_blocks(self):
+        """Each device costs about one line per family table, not one block."""
+        lines_35 = len(_render_matrix(35, 100).splitlines())
+        lines_200 = len(_render_matrix(200, 100).splitlines())
+        per_device = (lines_200 - lines_35) / (200 - 35)
+        assert per_device < 4, f"{per_device:.1f} lines per extra device"
+
+    def test_every_device_has_a_row_in_every_family_table(self):
+        text = _render_matrix(50, 100)
+        for table in ("IPv4 findings", "IPv6 findings"):
+            section = text.split(table, 1)[1].split("findings, one row per device", 1)[0] \
+                if text.count("one row per device") > 1 else text.split(table, 1)[1]
+            rows = [l for l in section.splitlines() if l.strip() and l.strip()[0].isdigit()]
+            first_column = {l.split()[0] for l in rows}
+            assert {str(d) for d in range(1, 51)} <= first_column, table
+
+    def test_the_key_names_every_finding_number(self):
+        text = _render_matrix(35, 100)
+        codes, _ = _matrix_fixture(35)
+        key = text.split("Key", 1)[1]
+        for number, code in enumerate(codes, 1):
+            assert f"{number:>3}  {code.replace('PTV-NET-', '')}" in key, number
+
+    def test_the_key_drops_the_shared_prefix(self):
+        text = _render_matrix(35, 100)
+        assert "PTV-NET-" not in text.split("Key", 1)[1]
+
+
+class TestSummaryCondensesPastTheThreshold:
+    def test_threshold_constant_is_ten(self):
+        """The review named the number; keep it where a maintainer expects."""
+        from ptnetinspector.output import non_json
+        assert non_json.MANY_DEVICES == 10
+
+
+class TestPerFindingListsCondensePastTheThreshold:
+    def _render(self, device_count, file_lines):
+        import io, re
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+        from ptnetinspector.output.non_json import Non_json
+        from ptnetinspector.utils import runtime
+
+        devices = {str(i): i % 3 for i in range(1, device_count + 1)}
+        headers = ["Network"] + [f"Device {i}" for i in devices]
+        symbol = {0: "✓", 1: "✕", 2: "●"}.get
+        with patch.object(Non_json, "_terminal_width", staticmethod(lambda default=100: 100)), \
+             patch.object(runtime, "print_to_file_only", side_effect=file_lines.append):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                Non_json._print_entity_status(headers, ["x"] * len(headers), 0, devices, symbol)
+        return re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
+
+    def test_vulnerable_devices_are_listed_in_full_and_the_rest_counted(self):
+        file_lines = []
+        text = self._render(60, file_lines)
+        vulnerable = ", ".join(str(i) for i in range(1, 61) if i % 3 == 1)
+        assert f"Vulnerable (20): {vulnerable[:30]}" in text.replace("\n", " ").replace("  ", " ") \
+            or "Vulnerable (20):" in text
+        assert "Not vulnerable: 20" in text
+        assert "N/A: 20" in text
+        # no list of numbers for the two non-findings on the terminal
+        for line in text.splitlines():
+            if "Not vulnerable:" in line or "N/A:" in line:
+                assert "," not in line
+
+    def test_the_full_lists_go_to_the_file(self):
+        file_lines = []
+        self._render(60, file_lines)
+        joined = "\n".join(file_lines)
+        assert "Not vulnerable devices:" in joined
+        assert "N/A devices:" in joined
+        # every non-vulnerable device number is in the file
+        listed = {int(n) for n in re.findall(r"\b(\d+)\b", joined.split("devices:", 1)[1])}
+        assert {i for i in range(1, 61) if i % 3 != 1} <= listed
+
+    def test_below_the_threshold_nothing_is_condensed(self):
+        file_lines = []
+        text = self._render(8, file_lines)
+        assert file_lines == []
+        assert "Not vulnerable:" not in text or "Not vulnerable (" in text

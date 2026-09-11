@@ -76,6 +76,24 @@ V6_OWNERS = {
 V4_OWNERS = {ROUTER_V4: ROUTER_MAC, WIN_V4: WIN_MAC, PI_V4: PI_MAC, SW_V4: SW_MAC}
 HOP = {ROUTER_MAC: 64, WIN_MAC: 128, PI_MAC: 64, SW_MAC: 255}
 
+# Generic hosts, added with --extra-hosts, so a scan can be looked at with the
+# device count a wifi segment has rather than the four above.
+EXTRA = []          # (mac, ll, gua, v4, name)
+
+
+def add_extra_hosts(count):
+    for i in range(1, count + 1):
+        mac = "02:00:00:ee:%02x:%02x" % (i // 256, i % 256)
+        ll = "fe80::ee:%x" % i
+        gua = "fd00:73::ee:%x" % i
+        v4 = "192.168.73.%d" % (100 + i) if i <= 150 else "192.168.74.%d" % (i - 150)
+        name = "host-%d" % i
+        EXTRA.append((mac, ll, gua, v4, name))
+        V6_OWNERS[ll] = mac
+        V6_OWNERS[gua] = mac
+        V4_OWNERS[v4] = mac
+        HOP[mac] = 64 if i % 3 else 128
+
 stats = {}
 _lock = threading.Lock()
 
@@ -192,6 +210,14 @@ def beacon_loop(duration, stop, interval=2.0):
         if tick % 5 == 3:
             tx(igmpv3_report(WIN_MAC, WIN_V4, ["224.0.0.251", "224.0.0.252"]), "IGMPv3 report")
             tx(mdns_ptr_announce(), "mDNS announce")
+        if EXTRA:
+            # A few extra hosts per tick, so discovery does not depend on the
+            # scanner catching every one in a single burst.
+            start = (tick * 6) % len(EXTRA)
+            for mac, ll, gua, v4, name in EXTRA[start:start + 6]:
+                tx(mld_report(mac, ll, [sol_node(gua), "ff02::fb"]), "MLDv2 report (extra)")
+                tx(Ether(src=mac, dst="ff:ff:ff:ff:ff:ff")
+                   / ARP(op=2, psrc=v4, hwsrc=mac, pdst=v4, hwdst=mac), "ARP announce (extra)")
         if tick % 5 == 4:
             # Gratuitous ARP + a NA, so IPv4 and IPv6 device discovery both fire.
             tx(Ether(src=WIN_MAC, dst="ff:ff:ff:ff:ff:ff")
@@ -342,9 +368,10 @@ def handle(pkt):
             tx(mdns_ptr_announce(), "DNS-SD PTR reply")
             return
 
-        for mac, name, v6a, v4a, ll in (
+        for mac, name, v6a, v4a, ll in [
                 (WIN_MAC, WIN_NAME, WIN_EUI, WIN_V4, WIN_LL),
-                (PI_MAC, PI_NAME, PI_EUI, PI_V4, PI_LL)):
+                (PI_MAC, PI_NAME, PI_EUI, PI_V4, PI_LL)] + [
+                (m, n, g, v, l) for (m, l, g, v, n) in EXTRA]:
             short = name.split(".")[0]
             if qname in (f"{short}.local", short):
                 rr = [DNSRR(rrname=dnsl.qd[0].qname, type="AAAA", ttl=120, rdata=v6a),
@@ -374,17 +401,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--iface", required=True)
     ap.add_argument("-d", "--duration", type=float, default=40.0)
+    ap.add_argument("--extra-hosts", type=int, default=0,
+                    help="emulate this many additional generic hosts")
     ap.add_argument("--beacon-interval", type=float, default=2.0,
                     help="seconds between beacon ticks; raise it to keep the "
                          "responder idle and quick to answer probes")
     args = ap.parse_args()
     IFACE = args.iface
+    add_extra_hosts(args.extra_hosts)
 
     stop = threading.Event()
     beacon = threading.Thread(target=beacon_loop,
                               args=(args.duration, stop, args.beacon_interval), daemon=True)
     beacon.start()
-    print(f"[lan_sim] emulating 4 devices on {IFACE} for {args.duration}s", flush=True)
+    print(f"[lan_sim] emulating {4 + len(EXTRA)} devices on {IFACE} for {args.duration}s", flush=True)
     try:
         sniff(iface=IFACE, prn=handle, store=0, timeout=args.duration)
     finally:

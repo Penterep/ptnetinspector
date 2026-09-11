@@ -103,6 +103,19 @@ class DualWriter:
         # Do not close underlying file/terminal here; stop_output_logging handles it.
 
 
+def print_to_file_only(message: str) -> None:
+    """Write a line to the output file without echoing it to the terminal.
+
+    The terminal report is condensed on a large segment - a list of two
+    hundred device numbers that are *not* vulnerable tells the operator
+    nothing at a glance - but the file is the record, so it keeps the full
+    version. Outside a logged run there is no file, and the line is dropped.
+    """
+    if _output_capture and not _output_capture.closed:
+        _output_capture.write(message + "\n")
+        _output_capture.flush()
+
+
 def start_output_logging(output_file_path: Path) -> None:
     """Start logging all stdout to file while keeping terminal output.
 

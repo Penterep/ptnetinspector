@@ -271,6 +271,25 @@ Fixes found by fuzzing the parse and report paths
   `create_csv` and `read_csv_text` now share one schema table and a truncated file reads
   back as no rows with its proper columns
 
+Large segments
+- Past ten devices the terminal report is condensed, as asked for in the review, and the
+  output file keeps the full version. Measured on a 35-device scan: 1,799 terminal lines
+  became 812, and the matrix went from nine 116-line blocks to one table per family
+- The vulnerability matrix puts devices on rows once there are more than ten. With codes
+  as rows and devices as columns it split into one block per four devices - fifty blocks
+  at two hundred devices. Devices are the unbounded dimension, so they scroll; the columns
+  are the finding numbers from the analysis above, with a key printed under the tables.
+  Network-scoped and device-scoped findings are separated, and device findings are split
+  by IP family so each table is narrow enough to read at once and IPv4 and IPv6 verdicts
+  are not interleaved. Below ten devices the layout is unchanged
+- Each finding lists the vulnerable devices in full - they are the finding - and gives the
+  not-vulnerable and N/A devices as a count rather than a list of two hundred numbers. The
+  full lists still go to `ptnetinspector-output.txt`
+- The summary opens with the one line an operator wants first, "N of M devices have at
+  least one vulnerability", and past ten devices drops the boxed grid for one line per
+  device
+- The matrix legend is split across lines so it fits a narrow terminal
+
 Behaviour change
 - With neither `-4` nor `-6`, the scan is now IPv6 only; IPv4 is opt-in with `-4`. Scanning
   both families by default was a change from the tool's earlier behaviour and was reported
@@ -290,6 +309,8 @@ Testing
   ~90 hand-built frames that lie in their own count and length fields, and hostile CSV
   content through every output path. No root and no network; each exits non-zero on a
   crash or a hang, so they can be wired into CI
+- `test/testbed/` gained `EXTRA_HOSTS=N` to emulate a segment of any size, which is how
+  the large-segment layout was measured
 - `test/testbed/` runs the scanner against a simulated four-device LAN over a real veth
   link, in an unprivileged user namespace: no root, no second machine, and any firewall
   rule or sysctl the tool changes applies only inside that namespace

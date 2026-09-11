@@ -204,7 +204,9 @@ class TestNetworkScopedFindingsAreDisplayed:
 
     def test_verdict_is_not_forced_to_na(self, rendered):
         """802.1x was hardcoded to render N/A, hiding the verdict it had reached."""
-        cells = "\n".join(l for l in rendered().splitlines() if "Legend" not in l)
+        # the legend spans several lines; none of them are cells
+        cells = "\n".join(l for l in rendered().splitlines()
+                          if "Legend" not in l and " = " not in l)
         assert "✕" in cells, "a stored 'vulnerable' label must render as vulnerable"
         assert "●" not in cells, "nothing here is N/A"
 
@@ -291,8 +293,12 @@ class TestMatrixDistinguishesNotApplicable:
         assert '●' in row, "the device itself was tested and reached no verdict"
 
     def test_legend_explains_both_meanings(self, matrix):
+        """The legend spans a few short lines so it fits a narrow terminal;
+        both meanings must still be stated."""
         _, section = matrix
-        legend = next(l for l in section.splitlines() if l.strip().startswith("Legend"))
+        lines = section.splitlines()
+        start = next(i for i, l in enumerate(lines) if l.strip().startswith("Legend"))
+        legend = "\n".join(lines[start:start + 4])
         assert "N/A (tested, no verdict)" in legend
         assert "does not apply to this entity" in legend
 

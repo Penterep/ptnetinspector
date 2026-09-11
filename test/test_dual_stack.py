@@ -339,13 +339,32 @@ class TestVulnerabilityTableWidth:
         assert width <= 100, f"line of {width} chars overflows a 100-column terminal"
         assert '+---' not in text, "wide results must not use the per-device grid"
 
-    def test_large_network_lists_every_device(self):
+    def test_large_network_lists_every_vulnerable_device(self):
+        """Past MANY_DEVICES the terminal keeps the vulnerable list in full -
+        that is the finding - and collapses the other two to counts. The full
+        lists still go to the output file (covered separately)."""
         text, _ = self._render(30, 100)
+        vulnerable = {str(i) for i in range(1, 31) if i % 3 == 1}
+        listed = set()
+        counted = []
+        for line in text.splitlines():
+            if 'Vulnerable (' in line and '):' in line:
+                listed.update(p.strip() for p in line.split('):', 1)[1].split(','))
+            elif line.strip().startswith(('* Not vulnerable:', '* N/A:')):
+                counted.append(line.strip())
+        assert vulnerable.issubset(listed)
+        # the two non-findings are a count each, not a list of numbers
+        assert len(counted) == 2
+        assert all(':' in c and ',' not in c for c in counted)
+
+    def test_small_network_still_lists_every_device(self):
+        """Below the threshold nothing is condensed."""
+        text, _ = self._render(8, 40)      # narrow, so it falls to the list form
         listed = set()
         for line in text.splitlines():
             if '(' in line and '):' in line:
                 listed.update(p.strip() for p in line.split('):', 1)[1].split(','))
-        assert {str(i) for i in range(1, 31)}.issubset(listed)
+        assert {str(i) for i in range(1, 9)}.issubset(listed)
 
     def test_narrow_terminal_still_fits(self):
         _, width = self._render(30, 60)

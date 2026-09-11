@@ -41,6 +41,7 @@ Environment variables:
 | `SIM_DURATION` | `45` | how long the simulated LAN keeps transmitting |
 | `BEACON_INTERVAL` | `2` | seconds between unsolicited bursts; raise it to keep the responder idle and quick to answer probes |
 | `PCAP` | unset | write a capture of `scan0` to this path |
+| `EXTRA_HOSTS` | `0` | emulate this many additional generic hosts, to see the report at the size of a real segment |
 
 Results land in the usual place, under `tmp/scan0/` in the tool's data
 directory.

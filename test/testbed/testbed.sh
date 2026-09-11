@@ -45,7 +45,7 @@ if [ -n "${PCAP:-}" ]; then
   echo "== capturing to $PCAP =="
 fi
 
-nsenter -t "$PEER" -n python3 "$SIM" -i lan0 -d "$SIM_DURATION" --beacon-interval "${BEACON_INTERVAL:-2}" > /tmp/lan_sim.log 2>&1 &
+nsenter -t "$PEER" -n python3 "$SIM" -i lan0 -d "$SIM_DURATION" --beacon-interval "${BEACON_INTERVAL:-2}" --extra-hosts "${EXTRA_HOSTS:-0}" > /tmp/lan_sim.log 2>&1 &
 SIMPID=$!
 sleep 1.5
 

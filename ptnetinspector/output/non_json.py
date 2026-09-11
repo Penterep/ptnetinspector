@@ -28,6 +28,13 @@ from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test, load_vu
 logger = logging.getLogger(__name__)
 
 
+# Above this many devices the terminal report is condensed: per-finding lists
+# of devices that are not vulnerable collapse to a count, the summary drops the
+# boxed grid for one line per device, and the matrix puts devices on rows so it
+# scrolls instead of splitting into blocks. The file keeps the full version.
+MANY_DEVICES = 10
+
+
 class Non_json:
     @staticmethod
     def _resolve_vulnerability_file(preferred_name: str, fallback_name: str | None = None) -> str:
@@ -408,8 +415,21 @@ class Non_json:
 
         # Print summary table
         if summary_table_data:
+            # The one line an operator wants first on a large segment.
+            affected = sum(1 for counts in device_vuln_counts.values() if counts['vuln'] > 0)
+            if device_vuln_counts:
+                ptprinthelper.ptprint(
+                    f"{affected} of {len(device_vuln_counts)} devices have at least one vulnerability",
+                    condition=True, indent=4,
+                )
+                ptprinthelper.ptprint("", condition=True)
+
             headers = ['Entity', f'{RED}Vulnerable{END}', f'{GREEN}Not Vulnerable{END}', f'{WHITE}N/A{END}']
-            table = tabulate(summary_table_data, headers=headers, tablefmt='grid', colalign=('left', 'center', 'center', 'center'))
+            # The boxed grid spends two lines per device; past the threshold one
+            # line per device keeps a segment of two hundred hosts scannable.
+            table_format = 'simple' if len(device_vuln_counts) > MANY_DEVICES else 'grid'
+            table = tabulate(summary_table_data, headers=headers, tablefmt=table_format,
+                             colalign=('left', 'center', 'center', 'center'))
             # Indent each line of the summary table
             for line in table.split('\n'):
                 ptprinthelper.ptprint(line, condition=True, indent=4)
@@ -417,11 +437,16 @@ class Non_json:
         # Print the per-code matrix (codes as rows, entities as columns)
         ptprinthelper.ptprint("")
         Non_json.print_box("Vulnerability Matrix")
+        # One meaning per line past the first, so the legend itself never
+        # overflows a narrow terminal.
         ptprinthelper.ptprint(
-            f"Legend: {RED}✕{END} = Vulnerable | {GREEN}✓{END} = Not Vulnerable | "
-            f"{WHITE}●{END} = N/A (tested, no verdict) | {not_applicable_symbol} = does not apply to this entity",
+            f"Legend: {RED}✕{END} = Vulnerable | {GREEN}✓{END} = Not Vulnerable",
             condition=True, indent=4,
         )
+        ptprinthelper.ptprint(f"        {WHITE}●{END} = N/A (tested, no verdict)",
+                              condition=True, indent=4)
+        ptprinthelper.ptprint(f"        {not_applicable_symbol} = does not apply to this entity",
+                              condition=True, indent=4)
         ptprinthelper.ptprint("")
         Non_json._print_vulnerability_matrix(
             sorted_codes, vulnerabilities, get_status_symbol, not_applicable_symbol
@@ -429,6 +454,134 @@ class Non_json:
 
     @staticmethod
     def _print_vulnerability_matrix(vuln_codes, vulnerabilities, get_status_symbol,
+                                    not_applicable_symbol) -> None:
+        """Render the matrix in whichever orientation fits the device count.
+
+        With a handful of devices, codes as rows and devices as columns reads
+        well and fits in one block. Past MANY_DEVICES that orientation splits
+        into one block per few devices - 35 devices produced nine 116-line
+        tables - so the axes swap: devices become rows, which a terminal
+        scrolls, and the columns are the finding numbers from the analysis
+        above, which is bounded. Network-scoped and device-scoped findings are
+        separated, because a row that applies to only one of them is all
+        dashes in the other.
+        """
+        device_ids = {
+            entity_id
+            for code in vuln_codes
+            for entity_id in vulnerabilities[code]['entities']
+            if entity_id != 'Network'
+        }
+        if len(device_ids) > MANY_DEVICES:
+            Non_json._print_matrix_devices_as_rows(
+                vuln_codes, vulnerabilities, get_status_symbol, not_applicable_symbol
+            )
+            return
+        Non_json._print_matrix_codes_as_rows(
+            vuln_codes, vulnerabilities, get_status_symbol, not_applicable_symbol
+        )
+
+    @staticmethod
+    def _print_matrix_devices_as_rows(vuln_codes, vulnerabilities, get_status_symbol,
+                                      not_applicable_symbol) -> None:
+        """One row per device; columns are finding numbers, grouped by family."""
+        indent = 4
+        numbered = {code: index for index, code in enumerate(vuln_codes, 1)}
+
+        network_codes = [c for c in vuln_codes if 'Network' in vulnerabilities[c]['entities']
+                         and len(vulnerabilities[c]['entities']) == 1]
+        device_codes = [c for c in vuln_codes
+                        if any(e != 'Network' for e in vulnerabilities[c]['entities'])]
+        device_ids = sorted(
+            {e for c in device_codes for e in vulnerabilities[c]['entities'] if e != 'Network'},
+            key=lambda x: int(x) if str(x).isdigit() else x,
+        )
+        available = max(40, Non_json._terminal_width() - indent)
+
+        ptprinthelper.ptprint(
+            "Columns are finding numbers (key below).",
+            condition=True, indent=indent,
+        )
+
+        def chunk_columns(codes, label_width):
+            """Split columns to the terminal width. Bounded by the number of
+            findings, never by the number of devices."""
+            chunks, current, width = [], [], label_width
+            for code in codes:
+                # tabulate's simple format pads a centred column by two on each
+                # side of the wider of header and cell.
+                column_width = len(str(numbered[code])) + 4
+                if current and width + column_width > available:
+                    chunks.append(current)
+                    current, width = [], label_width
+                current.append(code)
+                width += column_width
+            if current:
+                chunks.append(current)
+            return chunks
+
+        def emit(title, headers, rows):
+            ptprinthelper.ptprint("", condition=True)
+            ptprinthelper.ptprint(title, condition=True, indent=indent)
+            table = tabulate(rows, headers=headers, tablefmt='simple',
+                             colalign=('left',) + ('center',) * (len(headers) - 1))
+            for line in table.split('\n'):
+                ptprinthelper.ptprint(line, condition=True, indent=indent)
+
+        def emit_chunked(title, label, codes, rows_for):
+            chunks = chunk_columns(codes, len(label) + 2)
+            for index, chunk in enumerate(chunks, 1):
+                headers = [label] + [str(numbered[c]) for c in chunk]
+                suffix = f" (columns {index} of {len(chunks)})" if len(chunks) > 1 else ""
+                emit(title + suffix, headers, rows_for(chunk))
+
+        if network_codes:
+            emit_chunked(
+                "Network-scoped findings", "Entity", network_codes,
+                lambda chunk: [['Network'] + [
+                    get_status_symbol(vulnerabilities[c]['entities']['Network']) for c in chunk]],
+            )
+
+        # Device-scoped findings, split by family so IPv4 and IPv6 results are
+        # not interleaved and each table is narrow enough to read at once.
+        families = (
+            ("IPv4 findings, one row per device", [c for c in device_codes if '-4-' in c]),
+            ("IPv6 findings, one row per device", [c for c in device_codes if '-6-' in c]),
+            ("Other findings, one row per device",
+             [c for c in device_codes if '-4-' not in c and '-6-' not in c]),
+        )
+        for title, codes in families:
+            if not codes:
+                continue
+
+            def rows_for(chunk):
+                rows = []
+                for device_id in device_ids:
+                    cells = []
+                    for code in chunk:
+                        entities = vulnerabilities[code]['entities']
+                        cells.append(get_status_symbol(entities[device_id])
+                                     if device_id in entities else not_applicable_symbol)
+                    rows.append([str(device_id)] + cells)
+                return rows
+
+            emit_chunked(title, "Device", codes, rows_for)
+
+        # The key: finding number -> code, with the shared prefix dropped so it
+        # reads at a glance. Two entries per line keeps it short.
+        ptprinthelper.ptprint("", condition=True)
+        ptprinthelper.ptprint("Key", condition=True, indent=indent)
+        entries = [f"{numbered[c]:>3}  {c.replace('PTV-NET-', '', 1)}" for c in vuln_codes]
+        column_width = max(len(e) for e in entries) + 3
+        per_line = max(1, available // column_width)
+        for i in range(0, len(entries), per_line):
+            ptprinthelper.ptprint(
+                "".join(e.ljust(column_width) for e in entries[i:i + per_line]).rstrip(),
+                condition=True, indent=indent,
+            )
+
+    @staticmethod
+    def _print_matrix_codes_as_rows(vuln_codes, vulnerabilities, get_status_symbol,
                                     not_applicable_symbol) -> None:
         """Render one grid with vulnerability codes as rows and entities as columns.
 
@@ -554,13 +707,26 @@ class Non_json:
         for device_id, label in devices.items():
             grouped.setdefault(label if label in grouped else 2, []).append(device_id)
 
+        condensed = len(devices) > MANY_DEVICES
+
         for label, caption in ((1, 'Vulnerable'), (0, 'Not vulnerable'), (2, 'N/A')):
             ids = sorted(grouped[label], key=lambda x: int(x) if str(x).isdigit() else x)
             if not ids:
                 continue
             symbol = get_status_symbol(label)
-            prefix = f"{symbol} {caption} ({len(ids)}): "
             body = ", ".join(str(i) for i in ids)
+
+            # On a large segment the vulnerable devices are the finding; the
+            # other two lists are noise at a glance, so the terminal gets their
+            # count and the file keeps the numbers.
+            if condensed and label != 1:
+                # runtime imports this module, so the import is deferred.
+                from ptnetinspector.utils.runtime import print_to_file_only
+                ptprinthelper.ptprint(f"{symbol} {caption}: {len(ids)}", condition=True, indent=indent)
+                print_to_file_only(f"{' ' * indent}    ({caption} devices: {body})")
+                continue
+
+            prefix = f"{symbol} {caption} ({len(ids)}): "
             # Wrap on the plain-text prefix length; the symbol's escape codes are zero-width.
             wrapped = textwrap.wrap(body, width=max(20, Non_json._terminal_width() - indent - len(caption) - 12))
             ptprinthelper.ptprint(f"{prefix}{wrapped[0] if wrapped else ''}",
