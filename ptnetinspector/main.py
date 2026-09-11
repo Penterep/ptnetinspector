@@ -566,13 +566,10 @@ def main():
             target_ips=target_ips,
         )
         if device_count and inventory_dir:
-            print_message(
-                f"Device inventory written for {device_count} device(s): "
-                f"{inventory_dir}/devices.csv, {inventory_dir}/devices.txt, "
-                f"{inventory_dir}/device_addresses.csv",
-                "INFO",
-                indent=4,
-            )
+            # One path per line: three on one line ran to 250 characters.
+            print_message(f"Device inventory written for {device_count} device(s):", "INFO", indent=4)
+            for name in ("devices.csv", "devices.txt", "device_addresses.csv"):
+                print_message(f"{inventory_dir}/{name}", "INFO", indent=8)
 
         # Print final JSON output at the end
         if json_output:

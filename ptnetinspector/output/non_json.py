@@ -689,12 +689,13 @@ class Non_json:
         lists of device numbers grouped by status.
         """
         indent = 8
-        # tabulate's grid uses '+' separators, so a column costs its width plus one.
-        grid_width = sum(max(len(h), 3) + 3 for h in headers) + 1
 
-        if grid_width <= Non_json._terminal_width() - indent:
-            table = tabulate([table_row], headers=headers, tablefmt='grid',
-                             colalign=('center',) * len(headers))
+        # Render the grid, then measure it: an estimate of the width undercounts
+        # what tabulate actually draws, so a grid that the estimate passed still
+        # overflowed a narrow terminal. If the real table fits, use it.
+        table = tabulate([table_row], headers=headers, tablefmt='grid',
+                         colalign=('center',) * len(headers))
+        if max(len(line) for line in table.split('\n')) <= Non_json._terminal_width() - indent:
             for line in table.split('\n'):
                 ptprinthelper.ptprint(line, condition=True, indent=indent)
             return

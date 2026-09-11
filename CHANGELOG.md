@@ -271,6 +271,23 @@ Fixes found by fuzzing the parse and report paths
   `create_csv` and `read_csv_text` now share one schema table and a truncated file reads
   back as no rows with its proper columns
 
+Terminal width
+- Every table is rendered to the terminal width read at the moment it is
+  printed, so a report is no longer left as shattered box-drawing after the
+  window is resized, maximized, or zoomed. The intelligence tables carried
+  values taken off the wire - a TXT record, a captive portal URL, a list of
+  MACs - and were drawn at their natural width, so one long value pushed every
+  row past the edge; they now wrap their prose columns, never their
+  identifiers (a MAC or address is never split), and stack one block per row
+  on a very narrow terminal. The per-finding status grid and the matrix
+  estimated their width and the estimate ran short, so tables the estimate
+  passed still overflowed; both now measure the rendered result and fall back
+  when it does not fit. The matrix legend and the device-inventory paths, which
+  ran to 250 characters on one line, are split across lines.
+  (Already-printed lines cannot reflow when a terminal is resized - that is the
+  terminal's own behaviour - but the program no longer emits a table wider than
+  the window for the terminal to mangle.)
+
 Large segments
 - Past ten devices the terminal report is condensed, as asked for in the review, and the
   output file keeps the full version. Measured on a 35-device scan: 1,799 terminal lines

@@ -13,6 +13,7 @@ from ptlibs import ptprinthelper
 from tabulate import tabulate
 
 import ipaddress
+import textwrap
 
 from ptnetinspector.utils.interface import get_joined_multicast_groups
 from ptnetinspector.utils.ip_utils import has_additional_data
@@ -223,6 +224,83 @@ def write_report() -> tuple[str | None, dict[str, int]]:
     return str(path), counts
 
 
+def _is_prose(value: str) -> bool:
+    """True for a value that can be wrapped at a space without losing meaning.
+
+    A MAC, an address, a hostname or a URL has no spaces and must not be
+    broken; a TXT record or a list of senders has and can be.
+    """
+    return " " in value.strip()
+
+
+def _fit_table(rows: list[list[str]], headers: list[str], available: int) -> str:
+    """Render a table no wider than `available` without breaking identifiers.
+
+    These tables carry values taken off the wire - a TXT record, a captive
+    portal URL, a list of sending MACs - and were rendered at their natural
+    width, so one long value made every row wider than the terminal. A
+    terminal that reflows on resize then rewrapped the whole table, which is
+    what a broken report looks like.
+
+    Only prose columns are wrapped, widest first, down to a floor. If the
+    table still does not fit - a row of identifiers that is simply too wide
+    for a narrow terminal - it is rendered stacked, one block per row, so an
+    address is never cut in half to make a column fit.
+    """
+    columns = len(headers)
+    cells = [[str(c) for c in row] + [""] * (columns - len(row)) for row in rows]
+    natural = [max([len(headers[i])] + [len(r[i]) for r in cells]) for i in range(columns)]
+    separators = 2 * (columns - 1)
+    floor = 12
+
+    if sum(natural) + separators <= available:
+        return tabulate(cells, headers=headers, tablefmt="simple", disable_numparse=True)
+
+    wrappable = {i for i in range(columns) if any(_is_prose(r[i]) for r in cells)}
+
+    def shrink(budget):
+        limits = list(natural)
+        while sum(limits) + separators > budget:
+            candidates = [i for i in wrappable if limits[i] > floor]
+            if not candidates:
+                return None
+            widest = max(candidates, key=lambda i: limits[i])
+            excess = sum(limits) + separators - budget
+            limits[widest] = max(floor, limits[widest] - excess)
+        return limits
+
+    # tabulate wraps at spaces, so a single word longer than a column's limit
+    # keeps the column wider than asked. Measure the result rather than trust
+    # the estimate, and tighten the budget a few times before giving up.
+    budget = available
+    for _ in range(4):
+        limits = shrink(budget)
+        if limits is None:
+            break
+        maxcolwidths = [w if w < n else None for w, n in zip(limits, natural)]
+        table = tabulate(cells, headers=headers, tablefmt="simple",
+                         disable_numparse=True, maxcolwidths=maxcolwidths)
+        widest = max(len(line) for line in table.splitlines())
+        if widest <= available:
+            return table
+        budget -= widest - available
+
+    # Stacked: label column, then the value wrapped at the remaining width.
+    label_width = max(len(h) for h in headers) + 2
+    value_width = max(20, available - label_width)
+    blocks = []
+    for row in cells:
+        lines = []
+        for header, value in zip(headers, row):
+            if not value:
+                continue
+            wrapped = textwrap.wrap(value, width=value_width) or [""]
+            lines.append(f"{header:<{label_width}}{wrapped[0]}")
+            lines.extend(" " * label_width + more for more in wrapped[1:])
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
 def print_report(detailed: bool = False) -> None:
     """Print the sections to the terminal, truncating long ones to the file.
 
@@ -245,9 +323,15 @@ def print_report(detailed: bool = False) -> None:
 
         shown = rows if detailed else rows[:TERMINAL_ROW_LIMIT]
         ptprinthelper.ptprint(title, "INFO", condition=True, indent=4)
-        table = tabulate(shown, headers=headers, tablefmt="simple", disable_numparse=True)
+        # Read the width per table, so a terminal resized during the scan is
+        # honoured by everything printed after it.
+        available = max(40, Non_json._terminal_width() - 8)
+        table = _fit_table(shown, headers, available)
         for line in table.splitlines():
-            ptprinthelper.ptprint(line, condition=True, indent=8)
+            if line:
+                ptprinthelper.ptprint(line, condition=True, indent=8)
+            else:
+                ptprinthelper.ptprint("", condition=True, indent=0)
         if len(shown) < len(rows):
             ptprinthelper.ptprint(
                 f"... {len(rows) - len(shown)} more row(s); full table in network-intel.txt",

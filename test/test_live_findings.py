@@ -1040,3 +1040,83 @@ class TestPerFindingListsCondensePastTheThreshold:
         text = self._render(8, file_lines)
         assert file_lines == []
         assert "Not vulnerable:" not in text or "Not vulnerable (" in text
+
+
+# --------------------------------------------------------------------------
+# Tables must fit the terminal width read at print time, so a report is not
+# left as shattered box-drawing after a resize.
+# --------------------------------------------------------------------------
+class TestIntelTablesFitTheWidth:
+    """Intel tables carry values taken off the wire - a TXT record, a captive
+    portal URL, a list of MACs - and were rendered at their natural width, so
+    one long value made every row wider than the terminal."""
+
+    HEADERS = ["MAC", "Service", "Instance", "Host:Port", "TXT"]
+    ROWS = [
+        ["b8:27:eb:11:22:33", "_ipp._tcp.local", "officeprinter._ipp._tcp.local",
+         "officeprinter.local:631",
+         "ty=HP LaserJet 400; rp=ipp/print; adminurl=http://officeprinter.local/admin; note=2nd floor"],
+        ["08:00:27:aa:bb:01", "_http._tcp.local", "desktop._http._tcp.local", "desktop.local:80", "path=/"],
+    ]
+
+    @pytest.mark.parametrize("width", [160, 120, 100, 80, 72, 60, 48])
+    def test_the_table_never_exceeds_the_width(self, width):
+        from ptnetinspector.output.intel import _fit_table
+        rendered = _fit_table(self.ROWS, self.HEADERS, width)
+        widest = max(len(line) for line in rendered.splitlines())
+        assert widest <= width, f"{widest} > {width}"
+
+    @pytest.mark.parametrize("width", [80, 60, 48])
+    def test_identifiers_are_never_broken(self, width):
+        """A MAC, address or hostname has no spaces and must stay on one line;
+        only prose columns wrap."""
+        from ptnetinspector.output.intel import _fit_table
+        rendered = _fit_table(self.ROWS, self.HEADERS, width)
+        # every identifier appears intact somewhere in the output
+        for identifier in ("b8:27:eb:11:22:33", "officeprinter._ipp._tcp.local",
+                           "officeprinter.local:631", "08:00:27:aa:bb:01"):
+            assert identifier in rendered, f"{identifier} was broken at width {width}"
+
+    def test_a_wide_prose_value_wraps_rather_than_overflows(self):
+        from ptnetinspector.output.intel import _fit_table
+        rendered = _fit_table(self.ROWS, self.HEADERS, 80)
+        assert max(len(l) for l in rendered.splitlines()) <= 80
+        # the long TXT content is still all present, just across lines
+        assert "adminurl=http://officeprinter.local/admin" in rendered.replace("\n", "")
+
+    def test_a_narrow_terminal_stacks_rows(self):
+        from ptnetinspector.output.intel import _fit_table
+        rendered = _fit_table(self.ROWS, self.HEADERS, 40)
+        assert max(len(l) for l in rendered.splitlines()) <= 40
+        assert "\n\n" in rendered            # one block per row
+
+
+class TestEntityGridMeasuresItsWidth:
+    """The per-finding status grid estimated its width and the estimate was
+    short, so a four-device grid still overflowed a narrow terminal."""
+
+    def _render(self, device_count, width):
+        import io, re
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+        from ptnetinspector.output.non_json import Non_json
+
+        devices = {str(i): i % 3 for i in range(1, device_count + 1)}
+        headers = ["Network"] + [f"Device {i}" for i in devices]
+        with patch.object(Non_json, "_terminal_width", staticmethod(lambda default=100, w=width: w)):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                Non_json._print_entity_status(headers, ["x"] * len(headers), 0, devices, {0: "✓", 1: "✕", 2: "●"}.get)
+        return re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
+
+    @pytest.mark.parametrize("width", [120, 100, 80, 60, 50])
+    @pytest.mark.parametrize("devices", [3, 4, 6])
+    def test_small_grid_never_overflows(self, width, devices):
+        text = self._render(devices, width)
+        widest = max(len(l) for l in text.splitlines())
+        assert widest <= width, f"{widest} > {width} at {devices} devices"
+
+    def test_grid_falls_to_the_list_when_it_will_not_fit(self):
+        text = self._render(4, 50)
+        assert "+---" not in text, "a grid that overflows must fall to the list form"
+        assert "Vulnerable" in text
