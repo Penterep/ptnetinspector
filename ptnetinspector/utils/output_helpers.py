@@ -88,6 +88,24 @@ def transform_role_print(role: str) -> str:
     return " | ".join(result)
 
 
+def normalize_label(value) -> int:
+    """A vulnerability verdict as an int: 1 vulnerable, 0 not, 2 N/A.
+
+    The Label column is read back from CSV as a string, so a bare ``== 1``
+    against it is always False - which silently dropped every finding from the
+    JSON output and from the detailed network sections. Anything that is not a
+    clean 0 or 1 is treated as N/A (2), which is how an untested entity is
+    already represented.
+    """
+    text = str(value).strip()
+    if text in ("0", "1"):
+        return int(text)
+    try:
+        return int(float(text))
+    except (TypeError, ValueError):
+        return 2
+
+
 def mode_matches(mode: str | None, mode_field: str) -> bool:
     """Whether a finding recorded for `mode_field` belongs to scan mode `mode`.
 

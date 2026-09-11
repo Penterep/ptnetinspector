@@ -1193,3 +1193,97 @@ class TestBannerFitsNarrowTerminals:
         text = re.sub(r"\x1b\[[0-9;]*m", "", buf.getvalue())
         # the banner art must not be present, and the header must be compact
         assert "____" not in text.split("Description")[0]
+
+
+# --------------------------------------------------------------------------
+# The Label column round-trips through CSV as a string; a verdict comparison
+# must not silently drop every finding.
+# --------------------------------------------------------------------------
+class TestVulnerabilityVerdictsSurviveTheCsvRoundTrip:
+    """Regression for a real defect: reading CSVs as strings (to stop pandas
+    turning 255 into "255.0") made every `Label == 1` comparison compare a
+    string to an int, which is always False - so the JSON output and the
+    detailed network sections emitted zero vulnerabilities while the CSVs were
+    full of them. No test covered JSON vuln emission, so it shipped."""
+
+    def test_normalize_label_coerces_strings_and_ints(self):
+        from ptnetinspector.utils.output_helpers import normalize_label
+        assert normalize_label("1") == 1 and normalize_label(1) == 1
+        assert normalize_label("0") == 0 and normalize_label(0) == 0
+        assert normalize_label("2") == 2 and normalize_label("") == 2
+        assert normalize_label(None) == 2 and normalize_label("nan") == 2
+        assert normalize_label("1.0") == 1        # a stringified float still reads
+
+    def _seed_vulns(self, scan_dir):
+        _write(scan_dir / "addresses.csv", ["MAC", "IP"],
+               [{"MAC": "aa:bb:cc:00:00:01", "IP": "fe80::1"},
+                {"MAC": "aa:bb:cc:00:00:01", "IP": "192.168.1.10"}])
+        _write(scan_dir / "role_node.csv", ["MAC", "Device_Number", "Role"],
+               [{"MAC": "aa:bb:cc:00:00:01", "Device_Number": "1", "Role": "Host"}])
+        _write(scan_dir / "vulnerability_net.csv",
+               ["ID", "Mode", "IPver", "Code", "Description", "Label"],
+               [{"ID": "Network", "Mode": "a", "IPver": "6", "Code": "PTV-NET-NETVULN-YES",
+                 "Description": "net vulnerable", "Label": "1"},
+                {"ID": "Network", "Mode": "a", "IPver": "6", "Code": "PTV-NET-NETVULN-NO",
+                 "Description": "net safe", "Label": "0"},
+                {"ID": "Network", "Mode": "a", "IPver": "6", "Code": "PTV-NET-NETVULN-NA",
+                 "Description": "net na", "Label": "2"}])
+        _write(scan_dir / "vulnerability_ip.csv",
+               ["ID", "IP", "Mode", "IPver", "Code", "Description", "Label"],
+               [{"ID": "1", "IP": "fe80::1", "Mode": "a", "IPver": "6",
+                 "Code": "PTV-NET-DEVVULN-6-YES", "Description": "dev vuln", "Label": "1"},
+                {"ID": "1", "IP": "192.168.1.10", "Mode": "a", "IPver": "4",
+                 "Code": "PTV-NET-DEVVULN-4-NO", "Description": "dev safe", "Label": "0"}])
+        _write(scan_dir / "vulnerability_mac.csv",
+               ["ID", "MAC", "Mode", "IPver", "Code", "Description", "Label"], [])
+
+    def test_json_emits_vulnerable_codes_and_only_those(self, scan_dir):
+        import json as _json
+        import ptnetinspector.output.json as json_output
+        from ptnetinspector.output.json import Json
+        from ptnetinspector.send.send import IPMode
+
+        self._seed_vulns(scan_dir)
+        json_output.ptjsonlib_object.__init__()
+        doc = _json.loads(Json.output_object(True, None, ipver=IPMode(True, True)))
+        flat = _json.dumps(doc)
+
+        # the two 'vulnerable' verdicts are present
+        assert "PTV-NET-NETVULN-YES" in flat
+        assert "PTV-NET-DEVVULN-6-YES" in flat
+        # the not-vulnerable and N/A verdicts are not reported as findings
+        assert "PTV-NET-NETVULN-NO" not in flat
+        assert "PTV-NET-NETVULN-NA" not in flat
+        assert "PTV-NET-DEVVULN-4-NO" not in flat
+
+    def test_json_network_vulnerabilities_are_not_empty_when_the_csv_has_them(self, scan_dir):
+        import json as _json
+        import ptnetinspector.output.json as json_output
+        from ptnetinspector.output.json import Json
+        from ptnetinspector.send.send import IPMode
+
+        self._seed_vulns(scan_dir)
+        json_output.ptjsonlib_object.__init__()
+        doc = _json.loads(Json.output_object(True, None, ipver=IPMode(True, True)))
+        net = doc["results"].get("vulnerabilities", [])
+        assert [v["vulnCode"] for v in net] == ["PTV-NET-NETVULN-YES"]
+
+    def test_the_device_node_carries_its_vulnerability(self, scan_dir):
+        import json as _json
+        import ptnetinspector.output.json as json_output
+        from ptnetinspector.output.json import Json
+        from ptnetinspector.send.send import IPMode
+
+        self._seed_vulns(scan_dir)
+        json_output.ptjsonlib_object.__init__()
+        doc = _json.loads(Json.output_object(True, None, ipver=IPMode(True, True)))
+
+        def codes(node, out):
+            for v in node.get("vulnerabilities", []) or []:
+                out.append(v.get("vulnCode"))
+            for c in node.get("nodes", []) or []:
+                codes(c, out)
+        found = []
+        for n in doc["results"]["nodes"]:
+            codes(n, found)
+        assert "PTV-NET-DEVVULN-6-YES" in found

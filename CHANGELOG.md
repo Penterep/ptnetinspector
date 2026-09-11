@@ -271,6 +271,17 @@ Fixes found by fuzzing the parse and report paths
   `create_csv` and `read_csv_text` now share one schema table and a truncated file reads
   back as no rows with its proper columns
 
+JSON output reported no vulnerabilities (regression fix)
+- The `-j` output was emitting an empty vulnerability list and no per-device findings,
+  even when the scan had found plenty. Reading the CSV artifacts as strings - the fix that
+  stopped a hop limit of 255 being written back as "255.0" - also made the `Label` column
+  a string, and the verdict test compared it to the integer 1, which is always false. Every
+  finding was silently dropped from the JSON, and from the detailed network sections of the
+  terminal report; the main analysis, summary and matrix tables were unaffected because
+  they coerce the label to an int. Verdicts are now normalized to an int at every comparison
+  through one helper, and a regression test drives the JSON path and asserts the vulnerable
+  codes are present and the not-vulnerable and N/A ones are not
+
 Terminal width
 - Every table is rendered to the terminal width read at the moment it is
   printed, so a report is no longer left as shattered box-drawing after the

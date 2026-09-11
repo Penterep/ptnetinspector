@@ -15,7 +15,7 @@ from ptlibs import ptprinthelper
 from ptnetinspector.send.send import IPMode
 from ptnetinspector.utils.path import get_csv_path
 from ptnetinspector.utils.csv_helpers import delete_middle_content_csv, read_csv_text
-from ptnetinspector.utils.output_helpers import filter_ips_by_mode, transform_role_print, extract_short_code, mode_matches
+from ptnetinspector.utils.output_helpers import filter_ips_by_mode, transform_role_print, extract_short_code, mode_matches, normalize_label
 from ptnetinspector.utils.ip_utils import (
     has_additional_data, is_global_unicast_ipv6, is_ipv6_ula, is_link_local_ipv6,
     is_valid_ipv6, is_llsnm_ipv6, is_dhcp_slaac
@@ -761,7 +761,7 @@ class Non_json:
                         continue
                     if not mode_matches(mode, vuln_row['Mode']):
                         continue
-                    label = vuln_row.get('Label', '')
+                    label = normalize_label(vuln_row.get('Label'))
                     network_vuln_results.append(
                         (vuln_row.get('Description', ''), extract_short_code(code), label, code)
                     )
@@ -778,7 +778,7 @@ class Non_json:
                     if target_macs_set and vuln_row.get('MAC', '').strip().upper() not in target_macs_set:
                         continue
                     if mode_matches(mode, vuln_row.get('Mode', '')):
-                        all_vuln_results.append(vuln_row.get('Label', ''))
+                        all_vuln_results.append(normalize_label(vuln_row.get('Label')))
 
             if all_vuln_results:
                 has_any_vuln = any(label == 1 for label in all_vuln_results)
@@ -994,7 +994,7 @@ class Non_json:
                     code = vuln_row.get('Code', '')
                     desc = vuln_row.get('Description', '')
                     ipver_vuln = vuln_row.get('IPver', '')
-                    label = vuln_row.get('Label', '')
+                    label = normalize_label(vuln_row.get('Label'))
                     short_code = extract_short_code(code)
                     if mode_matches(mode, vuln_row.get('Mode', '')):
                         if label in (0, 1):
@@ -1088,7 +1088,7 @@ class Non_json:
                             code = vuln_row.get('Code', '')
                             desc = vuln_row.get('Description', '')
                             ipver_vuln = vuln_row.get('IPver', '')
-                            label = vuln_row.get('Label', '')
+                            label = normalize_label(vuln_row.get('Label'))
 
                             # If target MACs specified, only show network vulns related to target device vulns
                             if target_macs_set:
@@ -1212,7 +1212,7 @@ class Non_json:
                                 code = vuln_row.get('Code', '')
                                 desc = vuln_row.get('Description', '')
                                 ipver_vuln = vuln_row.get('IPver', '')
-                                label = vuln_row.get('Label', '')
+                                label = normalize_label(vuln_row.get('Label'))
                                 short_code = extract_short_code(code)
                                 if mode_matches(mode, vuln_row['Mode']):
                                     if label in (0, 1):

@@ -12,7 +12,7 @@ import pandas as pd
 from ptlibs.app_dirs import AppDirs
 from ptnetinspector.utils.path import get_csv_path, get_output_dir, get_tmp_path
 from ptnetinspector.utils.csv_helpers import delete_middle_content_csv, read_csv_text
-from ptnetinspector.utils.output_helpers import filter_ips_by_mode, convert_role_to_list, mode_matches
+from ptnetinspector.utils.output_helpers import filter_ips_by_mode, convert_role_to_list, mode_matches, normalize_label
 from ptnetinspector.utils.ip_utils import (
     has_additional_data, is_global_unicast_ipv6, is_ipv6_ula, is_link_local_ipv6,
     is_valid_ipv6, is_llsnm_ipv6, is_dhcp_slaac
@@ -65,7 +65,7 @@ class Json:
                 continue
             if target_codes and code.strip().upper() not in target_codes:
                 continue
-            if vuln_row.get('Label', 0) == 1:
+            if normalize_label(vuln_row.get('Label')) == 1:
                 vuln_codes.append(code.strip())
         return vuln_codes
 
@@ -94,7 +94,7 @@ class Json:
                 continue
             if target_codes and code.strip().upper() not in target_codes:
                 continue
-            if vuln_row.get('Label', 0) == 1:
+            if normalize_label(vuln_row.get('Label')) == 1:
                 code_clean = code.strip()
                 if code_clean not in vuln_codes:
                     vuln_codes.append(code_clean)
