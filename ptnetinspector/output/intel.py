@@ -74,6 +74,26 @@ def _node_info_rows() -> list[list[str]]:
             for row in _read("node_info.csv")]
 
 
+def _observed_ports_rows() -> list[list[str]]:
+    """Ports seen in captured traffic, one row per device/address/port.
+
+    The service name is a convenience label for a well-known port, not a probe
+    result; the port itself is the observation.
+    """
+    from ptnetinspector.entities.port import Port
+
+    rows = []
+    for row in _read("observed_ports.csv"):
+        proto = row.get("Proto", "")
+        port = row.get("Port", "")
+        if not port:
+            continue
+        service = Port.service_name(proto, port)
+        label = f"{port}/{proto}" + (f" ({service})" if service else "")
+        rows.append([row.get("MAC", ""), row.get("IP", ""), label])
+    return rows
+
+
 def _querier_rows() -> list[list[str]]:
     return [[row.get("MAC", ""), row.get("IP", ""), row.get("Protocol", ""),
              row.get("QRV", ""), row.get("QQIC", "")]
@@ -180,6 +200,8 @@ _SECTIONS = (
     ("Router Advertisement options", ["Router", "Option", "Value", "Lifetime", "Flags"], _ra_option_rows),
     ("Discovered services (DNS-SD)", ["MAC", "Service", "Instance", "Host:Port", "TXT"], _service_rows),
     ("Node information replies", ["MAC", "Type", "Value"], _node_info_rows),
+    ("Observed ports (passive, seen in traffic - not a port scan)",
+     ["MAC", "IP", "Port"], _observed_ports_rows),
     ("Multicast querier", ["MAC", "IP", "Protocol", "QRV", "QQIC"], _querier_rows),
     ("DHCPv6 options offered", ["MAC", "Option", "Value"], _dhcpv6_rows),
     ("Passive fingerprints (heuristic, likely not certain)",

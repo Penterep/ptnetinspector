@@ -262,6 +262,11 @@ class Json:
         if services:
             properties["Services"] = services
 
+        from ptnetinspector.entities.port import Port
+        ports = [f"{port}/{proto}" for proto, port in Port.collect_by_mac().get(mac, [])]
+        if ports:
+            properties["Ports"] = ports
+
         return properties
 
     @staticmethod

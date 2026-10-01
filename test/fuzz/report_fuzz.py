@@ -60,6 +60,7 @@ SCHEMAS = {
     "ra_options.csv": ["MAC", "IP", "Option", "Value", "Lifetime", "Flags"],
     "fingerprint.csv": ["MAC", "Hop_limit", "OS_guess", "IID_type", "Reachable_time", "Retrans_time", "Router_lft"],
     "dnssd.csv": ["MAC", "IP", "Service", "Instance", "Target", "Port", "TXT"],
+    "observed_ports.csv": ["MAC", "IP", "Proto", "Port"],
     "querier.csv": ["MAC", "IP", "Protocol", "Group", "QRV", "QQIC", "Max_response"],
     "node_info.csv": ["MAC", "IP", "Type", "Value"],
     "dhcpv6_options.csv": ["MAC", "IP", "Option", "Value"],

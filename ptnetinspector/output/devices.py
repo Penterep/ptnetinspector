@@ -33,7 +33,7 @@ from ptnetinspector.utils.path import get_csv_path, get_tmp_path
 
 logger = logging.getLogger(__name__)
 
-FIELDS = ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_count']
+FIELDS = ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_count', 'Ports']
 
 # Leading MAC/IP matches every other artifact this tool writes, so the flat
 # inventory can be read by the same helpers and eyeballed the same way.
@@ -115,6 +115,8 @@ def collect_devices(
         selected_macs = set(addresses_df["MAC"].astype(str).str.upper().tolist())
 
     hostnames = _load_hostnames()
+    from ptnetinspector.entities.port import Port
+    ports_by_mac = Port.collect_by_mac()
     devices = []
 
     for _, row in role_df.iterrows():
@@ -157,6 +159,8 @@ def collect_devices(
             "IPv4": " ".join(ipv4_addresses),
             "IPv6": " ".join(ipv6_addresses),
             "IP_count": str(len(ipv4_addresses) + len(ipv6_addresses)),
+            "Ports": " ".join(f"{port}/{proto}"
+                              for proto, port in ports_by_mac.get(mac.upper(), [])),
         })
 
     devices.sort(key=lambda d: int(d["Device"]) if d["Device"].isdigit() else 0)
@@ -206,19 +210,20 @@ def _render_table(devices: list[dict]) -> str:
     """
     rows = []
     for device in devices:
+        ports = device.get("Ports", "") or "-"
         addresses = [ip for ip in device["IPv4"].split() + device["IPv6"].split() if ip]
         if not addresses:
             rows.append([device["Device"], device["MAC"], device["Vendor"],
-                         device["Role"], device["Hostname"], "-"])
+                         device["Role"], device["Hostname"], "-", ports])
             continue
         for index, ip in enumerate(addresses):
             if index == 0:
                 rows.append([device["Device"], device["MAC"], device["Vendor"],
-                             device["Role"], device["Hostname"], ip])
+                             device["Role"], device["Hostname"], ip, ports])
             else:
-                rows.append(["", "", "", "", "", ip])
+                rows.append(["", "", "", "", "", ip, ""])
 
-    headers = ["#", "MAC", "Vendor", "Role", "Hostname", "IP address"]
+    headers = ["#", "MAC", "Vendor", "Role", "Hostname", "IP address", "Ports"]
     return tabulate(rows, headers=headers, tablefmt="simple", disable_numparse=True)
 
 

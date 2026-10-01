@@ -13,7 +13,7 @@ from scapy.all import *
 from scapy.contrib.igmp import IGMP
 from scapy.contrib.igmpv3 import IGMPv3, IGMPv3mr, IGMPv3mq
 from scapy.layers.eap import EAP, EAPOL
-from scapy.layers.inet import IP, UDP
+from scapy.layers.inet import IP, UDP, TCP
 from scapy.layers.inet6 import IPv6, ICMPv6ND_RA, ICMPv6NDOptRDNSS, ICMPv6NDOptMTU, ICMPv6NDOptPrefixInfo, \
     ICMPv6MLReport2, ICMPv6MLDMultAddrRec, ICMPv6MLReport, ICMPv6MLDone, ICMPv6EchoReply, ICMPv6EchoRequest, \
     ICMPv6ND_NA, ICMPv6ND_NS, ICMPv6DestUnreach, ICMPv6ParamProblem, ICMPv6ND_Redirect, \
@@ -49,6 +49,7 @@ from ptnetinspector.entities.node_info import NodeInfo
 from ptnetinspector.utils.interface import Interface
 from ptnetinspector.entities.router import Router
 from ptnetinspector.entities.node import Node
+from ptnetinspector.entities.port import Port
 from ptnetinspector.entities.dhcp import DHCP as DHCP_ptnet
 from ptnetinspector.entities.igmpv1v2 import IGMPv1v2
 from ptnetinspector.entities.igmpv3 import IGMPv3 as IGMPv3_ptnet
@@ -570,7 +571,44 @@ class Save:
 
             with _protocol_guard("fingerprint", mac_src):
                 Save.save_fingerprint(packet, src_mac)
+
+            with _protocol_guard("ports", mac_src):
+                Save.save_observed_ports(packet, ip_mode, src_mac)
         sort_csv(get_csv_path('packets.csv'), get_csv_path('addresses.csv'))
+
+    @staticmethod
+    def save_observed_ports(packet, ip_mode, src_mac):
+        """Record the transport port a device was seen sending from.
+
+        Purely passive: the source port of every TCP/UDP frame is attributed to
+        the device that sent it (its source MAC and IP). This is an observation,
+        not a scan - it says the port was in use on that device during the
+        capture window, not that it is open. The scanner's own frames are
+        skipped, and an address family the run disabled is ignored.
+        """
+        mac = packet[0].src
+        if mac == src_mac:
+            return
+
+        if TCP in packet:
+            proto, sport = "tcp", packet[TCP].sport
+        elif UDP in packet:
+            proto, sport = "udp", packet[UDP].sport
+        else:
+            return
+
+        if IPv6 in packet:
+            if not ip_mode.ipv6:
+                return
+            ip = packet[IPv6].src
+        elif IP in packet:
+            if not ip_mode.ipv4:
+                return
+            ip = packet[IP].src
+        else:
+            return
+
+        Port(mac, ip, proto, str(sport)).save()
 
     @staticmethod
     def save_router_advertisement(packet):

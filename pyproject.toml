@@ -54,4 +54,4 @@ include = ["ptnetinspector*"]
 version = {attr = "ptnetinspector._version.__version__"}
 
 [tool.setuptools.package-data]
-ptnetinspector = ["data/manuf", "data/vuln_catalog.csv"]
+ptnetinspector = ["data/manuf", "data/vuln_catalog.csv", "data/services.csv"]

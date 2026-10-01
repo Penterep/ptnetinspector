@@ -345,3 +345,23 @@ Testing
 - `test/testbed/` runs the scanner against a simulated four-device LAN over a real veth
   link, in an unprivileged user namespace: no root, no second machine, and any firewall
   rule or sysctl the tool changes applies only inside that namespace
+
+Version 0.2.3
+-------------
+- Added passive port observation in every mode: the transport port each device is seen
+  sending from is recorded against its MAC and address, extending the per-device facts from
+  MAC/IP to MAC/IP/port. A device can carry several addresses and several ports
+- New `observed_ports.csv` artifact (`MAC, IP, Proto, Port`); the per-device terminal report
+  now prints a `Ports` row directly below each device's addresses, the device inventory
+  (`devices.csv`/`devices.txt`) gains a `Ports` column, and `network-intel.txt` gains an
+  "Observed ports" section. Ports are annotated with their service name in the terminal;
+  JSON reports each device's ports as a plain `proto/port` list
+- Service names come from a bundled IANA registry (`data/services.csv`, distilled from the
+  IANA service-name/port assignments), so the names are identical on every host rather than
+  depending on the scanning machine's `/etc/services`. A small set of ports whose IANA label
+  is cryptic are relabelled to the term professionals use (53 `domain`->`dns`, 3389
+  `ms-wbt-server`->`rdp`, 445 `microsoft-ds`->`smb`, 2049 `shilp`->`nfs`, 1521
+  `ncube-lm`->`oracle`, and a handful more)
+- Purely passive: a port is recorded because a frame carrying it crossed the wire, which is
+  an observation, not a port scan, and not a claim that the port is open. The scanner's own
+  frames are skipped and a disabled address family (`-4`/`-6`) is ignored

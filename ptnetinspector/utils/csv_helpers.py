@@ -96,12 +96,13 @@ ARTIFACT_SCHEMAS = {
     'ra_options.csv': ['MAC', 'IP', 'Option', 'Value', 'Lifetime', 'Flags'],
     'fingerprint.csv': ['MAC', 'Hop_limit', 'OS_guess', 'IID_type', 'Reachable_time', 'Retrans_time', 'Router_lft'],
     'dnssd.csv': ['MAC', 'IP', 'Service', 'Instance', 'Target', 'Port', 'TXT'],
+    'observed_ports.csv': ['MAC', 'IP', 'Proto', 'Port'],
     'multicast_groups.csv': ['Group', 'Version', 'Source_MAC'],
     'querier.csv': ['MAC', 'IP', 'Protocol', 'Group', 'QRV', 'QQIC', 'Max_response'],
     'dhcpv6_options.csv': ['MAC', 'IP', 'Option', 'Value'],
     'node_info.csv': ['MAC', 'IP', 'Type', 'Value'],
     'reverse_dns.csv': ['MAC', 'IP', 'Name', 'Resolver'],
-    'devices.csv': ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_count'],
+    'devices.csv': ['Device', 'MAC', 'Vendor', 'Role', 'Hostname', 'IPv4', 'IPv6', 'IP_count', 'Ports'],
     'device_addresses.csv': ['Device', 'MAC', 'IP', 'IP_version', 'Vendor', 'Role', 'Hostname'],
 }
 

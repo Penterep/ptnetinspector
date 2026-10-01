@@ -157,10 +157,11 @@ Every run writes its artifacts to the interface's output directory
 |------|----------|
 | `ptnetinspector-output.json` | Full normalized JSON report (written with `-j`). |
 | `ptnetinspector-output.txt` | The terminal report as text. |
-| `devices.csv` / `devices.txt` | Device inventory: MAC, vendor, role, hostname and addresses, one device per row, with no findings mixed in. Useful when a segment has many devices and the per-device report becomes hard to read. |
+| `devices.csv` / `devices.txt` | Device inventory: MAC, vendor, role, hostname, addresses and observed ports, one device per row, with no findings mixed in. Useful when a segment has many devices and the per-device report becomes hard to read. |
 | `device_addresses.csv` | The same inventory flattened to one row per address, with the owning device repeated on each row. Use this one to search: `grep <address>`, or filter a family with `awk -F, '$3==6'`. |
+| `observed_ports.csv` | Transport ports seen in captured traffic, one row per device/address/port (`MAC, IP, Proto, Port`). Passive only — a port is recorded because a device was seen sending from it, which is not the same as the port being open. |
 | `multicast_groups.csv` | Every multicast group whose traffic arrived on the scanning port, and which MAC sent it. Compared against this host's own memberships to produce the flooding-evidence section of `network-intel.txt`. |
-| `network-intel.txt` | Recon detail collected during the scan: Router Advertisement options, discovered DNS-SD services, Node Information replies, the multicast querier, DHCPv6 options, passive fingerprints and reverse-DNS results. |
+| `network-intel.txt` | Recon detail collected during the scan: Router Advertisement options, discovered DNS-SD services, Node Information replies, observed ports, the multicast querier, DHCPv6 options, passive fingerprints and reverse-DNS results. |
 
 ## What a Scan Collects
 
@@ -178,6 +179,11 @@ Beyond the vulnerability findings, a scan extracts:
   means "no support", not "no host".
 - **DNS-SD service tree** — service types, instances, and the SRV host/port plus TXT
   metadata each instance publishes.
+- **Observed ports** — the transport port each device was seen sending from, attributed
+  to that device's MAC and address. Purely passive, so coverage is limited to what crosses
+  the wire during the capture window; a known port is annotated with its service name (from
+  a bundled IANA registry, so names match across hosts) in the terminal and
+  `network-intel.txt`. This is an observation of traffic, not a port scan.
 - **DHCPv6 options** — from an Information-Request: resolvers, domain search list,
   NTP/SNTP and SIP servers, boot-file URL, vendor class and the server's DUID.
 - **Multicast querier and L2 snooping** — which device sends MLD/IGMP General Queries,

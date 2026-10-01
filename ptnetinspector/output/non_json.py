@@ -928,6 +928,8 @@ class Non_json:
             num_devices = len(role_node_df)
             ptprinthelper.ptprint(f"Number of devices: {num_devices}", "INFO", condition=True, indent=4)
             all_ip = addresses_df['IP'].to_list()
+            from ptnetinspector.entities.port import Port
+            ports_by_mac = Port.collect_by_mac()
             for index, row in role_node_df.iterrows():
                 mac_address = row['MAC']
                 device_number = row['Device_Number']
@@ -964,6 +966,16 @@ class Non_json:
                             except ipaddress.AddressValueError:
                                 # Ignore non-IPv4 entries while printing mixed address lists.
                                 continue
+
+                # Ports seen in traffic for this device, one row below its addresses,
+                # with a service name for the ones that have a well-known one.
+                device_ports = ports_by_mac.get(str(mac_address).strip().upper(), [])
+                if device_ports:
+                    labelled = []
+                    for proto, port in device_ports:
+                        service = Port.service_name(proto, port)
+                        labelled.append(f"{port}/{proto}" + (f" ({service})" if service else ""))
+                    ptprinthelper.ptprint(f"Ports {', '.join(labelled)}", condition=True, indent=8)
 
 
                 vuln_df = read_csv_text(vulnerability_file)
