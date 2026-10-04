@@ -105,33 +105,6 @@ def _dhcpv6_rows() -> list[list[str]]:
             for row in _read("dhcpv6_options.csv")]
 
 
-def _fingerprint_rows() -> list[list[str]]:
-    """One row per device, merging the separate observations made about it.
-
-    A device is observed many times during a scan; listing each observation
-    separately made the same MAC appear repeatedly with conflicting guesses.
-    """
-    merged: dict[str, dict[str, list[str]]] = {}
-
-    for row in _read("fingerprint.csv"):
-        mac = str(row.get("MAC", "")).strip()
-        if not mac:
-            continue
-        entry = merged.setdefault(mac, {"hop": [], "os": [], "iid": []})
-        for key, column in (("hop", "Hop_limit"), ("os", "OS_guess"), ("iid", "IID_type")):
-            value = str(row.get(column, "")).strip()
-            if value and value not in entry[key]:
-                entry[key].append(value)
-
-    rows = []
-    for mac, entry in merged.items():
-        if not (entry["os"] or entry["iid"]):
-            continue
-        rows.append([mac, ", ".join(entry["hop"]), ", ".join(entry["os"]),
-                     ", ".join(entry["iid"])])
-    return rows
-
-
 def _reverse_dns_rows() -> list[list[str]]:
     return [[row.get("MAC", ""), row.get("IP", ""), row.get("Name", ""),
              row.get("Resolver", "")]
@@ -204,8 +177,9 @@ _SECTIONS = (
      ["MAC", "IP", "Port"], _observed_ports_rows),
     ("Multicast querier", ["MAC", "IP", "Protocol", "QRV", "QQIC"], _querier_rows),
     ("DHCPv6 options offered", ["MAC", "Option", "Value"], _dhcpv6_rows),
-    ("Passive fingerprints (heuristic, likely not certain)",
-     ["MAC", "Hop limit", "Likely OS", "Interface identifier"], _fingerprint_rows),
+    # The passive fingerprint (hop-limit OS guess and interface-identifier type)
+    # is still collected into fingerprint.csv, but it is too unreliable to show,
+    # so it is omitted from the report until the heuristic is improved.
     ("Reverse DNS", ["MAC", "IP", "Name", "Resolver"], _reverse_dns_rows),
     ("Multicast received without joining (L2 flooding evidence, not a verdict)",
      ["Group", "Version", "Senders", "Sending MACs"], _unjoined_multicast_rows),

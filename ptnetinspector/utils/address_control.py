@@ -334,7 +334,28 @@ def validate_addresses_mapping(interface: str, ip_mode: IPMode, passive: bool = 
     """
     validator = AddressValidator(interface)
 
-    original_mappings = read_mappings()
+    csv_file = get_csv_path('addresses.csv')
+    unfiltered_file = Path(str(csv_file).replace('.csv', '_unfiltered.csv'))
+
+    # Reuse the raw observed mappings from a previous pass only when the file
+    # actually holds data rows. It is created with a header up front, so a plain
+    # size check treats a header-only file as populated, reads nothing from it,
+    # and then rewrites addresses.csv empty - wiping a freshly scanned inventory.
+    from ptnetinspector.utils.csv_helpers import has_additional_data
+    if has_additional_data(str(unfiltered_file)):
+        try:
+            with open(unfiltered_file, 'r', newline='') as f:
+                reader = csv.DictReader(f)
+                original_mappings = [
+                    AddressMapping(mac=row['MAC'], ip=row['IP'])
+                    for row in reader
+                    if row.get('MAC') and row.get('IP')
+                ]
+        except (FileNotFoundError, KeyError, ValueError, csv.Error):
+            original_mappings = read_mappings()
+    else:
+        original_mappings = read_mappings()
+
     if verify:
         filtered_mapping = filter_unicast_addresses(
             original_mappings,
@@ -343,27 +364,22 @@ def validate_addresses_mapping(interface: str, ip_mode: IPMode, passive: bool = 
             keep_offlink=False,
         )
     else:
-        # -nc keeps what was observed so operators can inspect all candidates.
-        # We still respect -4/-6 and drop malformed values.
-        filtered_mapping = []
-        for mapping in original_mappings:
-            try:
-                ip_obj = ipaddress.ip_address(mapping.ip)
-            except ValueError:
-                logger.debug(
-                    "Skipping invalid address mapping under -nc: MAC=%s, IP=%s",
-                    mapping.mac,
-                    mapping.ip,
-                )
-                continue
-            if isinstance(ip_obj, ipaddress.IPv4Address) and not ip_mode.ipv4:
-                continue
-            if isinstance(ip_obj, ipaddress.IPv6Address) and not ip_mode.ipv6:
-                continue
-            filtered_mapping.append(mapping)
+        # -nc keeps every LOCAL candidate without probing - addresses that were
+        # never confirmed, and neighbours on a second private range of the same
+        # segment - but it must not report an address merely relayed through the
+        # gateway (which carries the gateway's MAC and a remote host's IP) as the
+        # gateway's own. The on-link filter in its keep-offlink form does exactly
+        # that: on-link, link-local and private-scope addresses stay, public
+        # addresses routed in from elsewhere are dropped, and solicited-node
+        # groups are retained. The raw observation is still in
+        # addresses_unfiltered.csv for anyone who wants every candidate.
+        filtered_mapping = filter_unicast_addresses(
+            original_mappings,
+            ip_mode,
+            keep_solicited_node=True,
+            keep_offlink=True,
+        )
 
-    csv_file = get_csv_path('addresses.csv')
-    unfiltered_file = Path(str(csv_file).replace('.csv', '_unfiltered.csv'))
     write_mappings(original_mappings, file_path=unfiltered_file)
 
     if not passive and verify:

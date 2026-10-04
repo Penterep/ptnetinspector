@@ -158,7 +158,11 @@ class TestNoCheckSkipsProbing:
             kept = {row['IP'] for row in csv.DictReader(handle)}
         assert kept == {"2001:db8:1::20"}
 
-    def test_nc_keeps_all_observed_addresses(self, scan_dir):
+    def test_nc_keeps_local_candidates_but_drops_relayed_public(self, scan_dir):
+        # -nc keeps every local candidate without probing, but a public address
+        # reaches the scanner only by being routed through the gateway, which
+        # lends it the gateway's MAC. Attributing 8.8.8.8 to the gateway would be
+        # wrong, so it is dropped from the per-device view and kept only raw.
         from ptnetinspector.utils import address_control
 
         _write_csv(scan_dir / "addresses.csv", ['MAC', 'IP'], [
@@ -167,6 +171,28 @@ class TestNoCheckSkipsProbing:
             {'MAC': '00:11:22:33:44:55', 'IP': '2001:db8:1::20'},
         ])
         _set_networks(scan_dir, [("192.168.153.0", 24), ("2001:db8:1::", 64)])
+
+        address_control.validate_addresses_mapping("eth0", IPMode(True, True), verify=False)
+
+        with open(scan_dir / "addresses.csv") as handle:
+            kept = {row['IP'] for row in csv.DictReader(handle)}
+        assert kept == {"192.168.153.2", "2001:db8:1::20"}
+
+        with open(scan_dir / "addresses_unfiltered.csv") as handle:
+            raw = {row['IP'] for row in csv.DictReader(handle)}
+        assert "8.8.8.8" in raw
+
+    def test_nc_prefers_the_raw_capture_snapshot_when_present(self, scan_dir):
+        from ptnetinspector.utils import address_control
+
+        _write_csv(scan_dir / "addresses.csv", ['MAC', 'IP'], [
+            {'MAC': '00:11:22:33:44:55', 'IP': '192.168.153.2'},
+        ])
+        _write_csv(scan_dir / "addresses_unfiltered.csv", ['MAC', 'IP'], [
+            {'MAC': '00:11:22:33:44:55', 'IP': '192.168.153.2'},
+            {'MAC': '00:11:22:33:44:55', 'IP': '8.8.8.8'},
+            {'MAC': '00:11:22:33:44:55', 'IP': '2001:db8:1::20'},
+        ])
 
         address_control.validate_addresses_mapping("eth0", IPMode(True, True), verify=False)
 

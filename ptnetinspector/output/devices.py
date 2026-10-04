@@ -19,13 +19,20 @@ Three artifacts are produced next to the other output files:
 import csv
 import ipaddress
 import logging
+import textwrap
 
 import pandas as pd
-from tabulate import tabulate
 
 from ptnetinspector.utils.csv_helpers import read_csv_text
 from ptnetinspector.send.send import IPMode
-from ptnetinspector.utils.ip_utils import has_additional_data, is_llsnm_ipv6, is_valid_ipv6
+from ptnetinspector.utils.ip_utils import (
+    has_additional_data,
+    in6_getansma,
+    in6_getnsma,
+    is_llsnm_ipv6,
+    is_valid_ipv6,
+    normalize_ipv6,
+)
 from ptnetinspector.utils.oui import lookup_vendor_from_csv
 from ptnetinspector.utils.output_helpers import transform_role_print
 from ptnetinspector.utils.path import get_csv_path, get_tmp_path
@@ -88,18 +95,38 @@ def collect_devices(
     to ignore -target entirely, so asking for one device still produced the
     whole segment while every other output was scoped.
     """
-    addresses_file = get_csv_path("addresses.csv")
     role_file = get_csv_path("role_node.csv")
 
-    if not (has_additional_data(addresses_file) and has_additional_data(role_file)):
+    # role_node.csv is the authoritative device list, so it alone gates the
+    # inventory. addresses.csv is where the addresses come from, but it can be
+    # empty at output time even when devices were found - under -nc it is
+    # rewritten from whatever mappings survived, and an aggressive IPv6 run can
+    # leave it empty while the devices still exist in role_node.csv. When that
+    # happens the unfiltered file is the next-best address source; if both are
+    # empty the devices are still reported, just without addresses, rather than
+    # the whole summary disappearing.
+    if not has_additional_data(role_file):
         return []
 
+    addresses_file = get_csv_path("addresses.csv")
+    if not has_additional_data(addresses_file):
+        unfiltered_file = get_csv_path("addresses_unfiltered.csv")
+        if has_additional_data(unfiltered_file):
+            addresses_file = unfiltered_file
+
     try:
-        addresses_df = read_csv_text(addresses_file)
         role_df = read_csv_text(role_file)
     except (OSError, ValueError, pd.errors.ParserError) as error:
         logger.debug("Could not read device inventory sources: %s", error)
         return []
+
+    try:
+        addresses_df = (read_csv_text(addresses_file)
+                        if has_additional_data(addresses_file)
+                        else pd.DataFrame(columns=["MAC", "IP"]))
+    except (OSError, ValueError, pd.errors.ParserError) as error:
+        logger.debug("Could not read device addresses, continuing without them: %s", error)
+        addresses_df = pd.DataFrame(columns=["MAC", "IP"])
 
     target_macs_set = {str(mac).strip().upper() for mac in target_macs} if target_macs else None
     target_ips_set = {str(ip).strip() for ip in target_ips} if target_ips else None
@@ -129,6 +156,7 @@ def collect_devices(
         device_ips = addresses_df.loc[addresses_df["MAC"] == mac, "IP"].astype(str).tolist()
 
         ipv4_addresses, ipv6_addresses = [], []
+        solicited_groups = []
         for ip in device_ips:
             ip = ip.strip()
             if not ip:
@@ -136,19 +164,45 @@ def collect_devices(
             if is_valid_ipv6(ip):
                 if not ipver.ipv6:
                     continue
-                if is_llsnm_ipv6(ip) and not include_solicited_node:
+                address = ipaddress.IPv6Address(ip)
+                # The unspecified address "::" is observed on the wire (e.g. as a
+                # DAD source) and recorded under -nc, but it is never a host's
+                # own address, so it has no place in the inventory.
+                if address.is_unspecified:
+                    continue
+                # A solicited-node group is a multicast address the host listens
+                # on, not an address it owns; it stands in for a unicast address
+                # that was never confirmed, so it is derived into a "possible"
+                # address below rather than listed as the host's own.
+                if is_llsnm_ipv6(ip):
+                    solicited_groups.append(ip)
+                    continue
+                if address.is_multicast:
                     continue
                 ipv6_addresses.append(ip)
             else:
                 try:
-                    ipaddress.IPv4Address(ip)
+                    ipv4 = ipaddress.IPv4Address(ip)
                 except ipaddress.AddressValueError:
+                    continue
+                if ipv4.is_unspecified:
                     continue
                 if ipver.ipv4:
                     ipv4_addresses.append(ip)
 
         ipv4_addresses = sorted(set(ipv4_addresses), key=_sort_key)
         ipv6_addresses = sorted(set(ipv6_addresses), key=_sort_key)
+
+        # Under -nc, turn the solicited-node groups that no confirmed address
+        # already accounts for into the "possible" unicast addresses they imply,
+        # matching the derivation the verbose per-device view and JSON use.
+        possible_ipv6 = []
+        if include_solicited_node and solicited_groups:
+            confirmed = {normalize_ipv6(in6_getnsma(ip)) for ip in ipv6_addresses}
+            for group in solicited_groups:
+                if normalize_ipv6(group) not in confirmed:
+                    possible_ipv6.append(in6_getansma(group))
+            possible_ipv6 = sorted(set(possible_ipv6))
 
         devices.append({
             "Device": str(row.get("Device_Number", "")).strip(),
@@ -158,6 +212,7 @@ def collect_devices(
             "Hostname": hostnames.get(mac.upper(), ""),
             "IPv4": " ".join(ipv4_addresses),
             "IPv6": " ".join(ipv6_addresses),
+            "IPv6_possible": " ".join(possible_ipv6),
             "IP_count": str(len(ipv4_addresses) + len(ipv6_addresses)),
             "Ports": " ".join(f"{port}/{proto}"
                               for proto, port in ports_by_mac.get(mac.upper(), [])),
@@ -201,30 +256,102 @@ def flatten_devices(devices: list[dict]) -> list[dict]:
     return rows
 
 
-def _render_table(devices: list[dict]) -> str:
-    """Render the inventory with one row per address, so nothing is truncated.
+# Fixed width used when rendering to a file, where there is no terminal to
+# measure. 100 columns comfortably holds an IPv6 address plus the table framing
+# while staying readable when pasted into a ticket or diffed.
+_FILE_WIDTH = 100
 
-    A device with six addresses would otherwise produce an unreadably wide cell;
-    repeating the address column keeps every value on its own line while the
-    identifying columns are printed once per device.
+
+def _device_table_row(device: dict) -> list[str]:
+    """One grid row per device: identity, then its addresses and ports stacked.
+
+    Device, MAC and Vendor identify the device and appear once. The vendor comes
+    from the MAC's OUI, so unlike the OS guess it is reliable and worth showing.
+    The addresses and ports are packed into their own cells, one per line, so a
+    device with many of either grows its cell downward rather than widening the
+    row - the table never has to span to the right to show everything, and the
+    grid rule falls between devices, not between every address.
     """
-    rows = []
-    for device in devices:
-        ports = device.get("Ports", "") or "-"
-        addresses = [ip for ip in device["IPv4"].split() + device["IPv6"].split() if ip]
-        if not addresses:
-            rows.append([device["Device"], device["MAC"], device["Vendor"],
-                         device["Role"], device["Hostname"], "-", ports])
-            continue
-        for index, ip in enumerate(addresses):
-            if index == 0:
-                rows.append([device["Device"], device["MAC"], device["Vendor"],
-                             device["Role"], device["Hostname"], ip, ports])
-            else:
-                rows.append(["", "", "", "", "", ip, ""])
+    addresses = [ip for ip in device.get("IPv4", "").split() + device.get("IPv6", "").split() if ip]
+    # Derived, unconfirmed addresses (from -nc solicited-node groups) follow the
+    # confirmed ones, each marked so it is not mistaken for a real address.
+    addresses += [f"{ip} (possible)" for ip in device.get("IPv6_possible", "").split() if ip]
+    ports = [port for port in (device.get("Ports", "") or "").split() if port]
 
-    headers = ["#", "MAC", "Vendor", "Role", "Hostname", "IP address", "Ports"]
-    return tabulate(rows, headers=headers, tablefmt="simple", disable_numparse=True)
+    return [
+        device.get("Device", ""),
+        device.get("MAC", ""),
+        (device.get("Vendor", "") or "").strip() or "-",
+        "\n".join(addresses) if addresses else "-",
+        "\n".join(ports) if ports else "-",
+    ]
+
+
+def _render_device_table(devices: list[dict], width: int = 0) -> str:
+    """Render the Device / MAC / IP / Port table as a bordered grid.
+
+    Each device is a single grid row whose IP and Port cells stack their values
+    one per line, so the box rule separates devices (matching the other reports)
+    while the table still only grows downward: an address never shares a line
+    with another, and the width is bounded by one IPv6 column, not by how many
+    addresses or ports a device has. ``width`` is unused - the grid sizes itself
+    to its content - but kept so callers can pass the terminal width uniformly.
+    """
+    from tabulate import tabulate
+
+    rows = [_device_table_row(device) for device in devices]
+    if not rows:
+        return ""
+
+    return tabulate(rows, headers=["Device", "MAC", "Vendor", "IP", "Port"],
+                    tablefmt="grid", disable_numparse=True,
+                    colalign=("left", "left", "left", "left", "left"))
+
+
+def _render_table(devices: list[dict]) -> str:
+    """Render the inventory for ``devices.txt``, at a fixed readable width.
+
+    Kept under its historical name because the file writer and tests call it.
+    """
+    return _render_device_table(devices, _FILE_WIDTH)
+
+
+def print_device_summary(
+    ipver: IPMode,
+    include_solicited_node: bool = False,
+    target_macs: list[str] | None = None,
+    target_ips: list[str] | None = None,
+) -> None:
+    """Print the final device summary to the operator-facing terminal."""
+    from ptnetinspector.output.non_json import Non_json
+    from ptlibs import ptprinthelper
+
+    devices = collect_devices(
+        ipver,
+        include_solicited_node=include_solicited_node,
+        target_macs=target_macs,
+        target_ips=target_ips,
+    )
+    if not devices:
+        return
+
+    address_count = sum(int(device["IP_count"]) for device in devices)
+    port_count = sum(len(device.get("Ports", "").split()) for device in devices)
+
+    Non_json.print_box("Device Summary")
+    summary = f"{len(devices)} device(s), {address_count} address(es), {port_count} port(s)"
+    ptprinthelper.ptprint(summary, condition=True, indent=4)
+    ptprinthelper.ptprint("", condition=True, indent=0)
+
+    # Fit the table to the live terminal, leaving room for the indent the
+    # printer adds so the columns never wrap off the right edge.
+    width = Non_json._terminal_width() - 4
+    table = _render_device_table(devices, width)
+    for line in table.splitlines():
+        if line:
+            ptprinthelper.ptprint(line, condition=True, indent=4)
+        else:
+            ptprinthelper.ptprint("", condition=True, indent=0)
 
 
 def write_device_inventory(
@@ -252,7 +379,9 @@ def write_device_inventory(
 
     try:
         with open(output_dir / "devices.csv", "w", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=FIELDS)
+            # IPv6_possible is a render-time detail for the summary, not a column
+            # of the flat inventory, so it is dropped rather than written here.
+            writer = csv.DictWriter(handle, fieldnames=FIELDS, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(devices)
     except OSError as error:
@@ -271,12 +400,16 @@ def write_device_inventory(
 
     try:
         address_count = sum(int(device["IP_count"]) for device in devices)
+        port_count = sum(len(device.get("Ports", "").split()) for device in devices)
+        # The file carries the same Device / MAC / IP / Port table shown on the
+        # terminal, so it stands on its own.
         header = (
-            f"ptnetinspector device inventory\n"
-            f"{len(devices)} device(s), {address_count} address(es)\n\n"
+            f"Device Summary\n"
+            f"{len(devices)} device(s), {address_count} address(es), "
+            f"{port_count} port(s)\n\n"
         )
-        (output_dir / "devices.txt").write_text(header + _render_table(devices) + "\n",
-                                                encoding="utf-8")
+        content = header + _render_table(devices) + "\n"
+        (output_dir / "devices.txt").write_text(content, encoding="utf-8")
     except OSError as error:
         logger.debug("Could not write devices.txt: %s", error)
 

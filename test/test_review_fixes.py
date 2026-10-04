@@ -237,6 +237,44 @@ class TestVulnerabilityAddressFamily:
 class TestDeviceInventory:
     """DOCX: a plain device list, readable when a segment has many hosts."""
 
+    def test_device_summary_uses_device_mac_ip_port_table_with_likely_os(self, scan_dir):
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "192.168.1.3"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "fe80::79d2:f812:ba84:9484"])
+        with open(scan_dir / "role_node.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Device_Number", "Role"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "1", "Node"])
+        with open(scan_dir / "fingerprint.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Hop_limit", "OS_guess", "IID_type"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "64", "Linux / macOS / BSD", "randomized"])
+        with open(scan_dir / "localname.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "name"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "host-01"])
+
+        from ptnetinspector.output.devices import write_device_inventory
+
+        write_device_inventory(IPMode(True, True))
+
+        text = (scan_dir / "devices.txt").read_text(encoding="utf-8")
+        assert "Device Summary" in text
+        assert "Network intelligence" not in text
+        assert "192.168.1.3" in text
+        assert "fe80::79d2:f812:ba84:9484" in text
+        assert "Linux / macOS / BSD" not in text
+        # The inventory renders as a bordered Device / MAC / Vendor / IP / Port grid.
+        assert any(line.replace("|", " ").split() == ["Device", "MAC", "Vendor", "IP", "Port"]
+                   for line in text.splitlines())
+        assert "00:0c:29:5c:c5:a5" in text
+        assert "+" in text and "|" in text
+
+        rows = _rows(scan_dir / "devices.csv")
+        assert "Likely OS" not in rows[0].keys()
+
     def test_inventory_lists_each_device_once_with_its_addresses(self, scan_dir):
         with open(scan_dir / "addresses.csv", "w", newline="") as handle:
             writer = csv.writer(handle)
@@ -261,6 +299,293 @@ class TestDeviceInventory:
         assert rows[0]["IPv4"] == "192.168.1.3"
         assert rows[0]["IPv6"] == "fe80::79d2:f812:ba84:9484"
         assert (scan_dir / "devices.txt").exists()
+
+    def test_device_summary_expands_vertically_when_many_values_are_present(self, scan_dir):
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "192.168.1.3"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "fe80::79d2:f812:ba84:9484"])
+        with open(scan_dir / "role_node.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Device_Number", "Role"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "1", "Node"])
+        with open(scan_dir / "observed_ports.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP", "Proto", "Port"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "192.168.1.3", "tcp", "80"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "192.168.1.3", "udp", "53"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "192.168.1.3", "tcp", "443"])
+
+        from ptnetinspector.output.devices import _render_table, collect_devices
+
+        table = _render_table(collect_devices(IPMode(True, True)))
+        assert "192.168.1.3" in table
+        assert "fe80::79d2:f812:ba84:9484" in table
+        assert "80/tcp" in table
+        assert "53/udp" in table
+        assert "443/tcp" in table
+        header = next(line for line in table.splitlines() if "Device" in line and "Port" in line)
+        assert header.replace("|", " ").split() == ["Device", "MAC", "Vendor", "IP", "Port"]
+        # Each address and each port is on its own line (vertical growth), so the
+        # three ports produce three distinct lines rather than one wide cell.
+        assert sum(1 for line in table.splitlines() if "/tcp" in line or "/udp" in line) == 3
+
+    def test_many_ports_grow_the_table_down_not_across(self):
+        """A host with dozens of ports flows onto more lines, not a wider one.
+
+        Each address and each port takes its own line inside its grid cell, so
+        the table grows downward; the width is bounded by one IPv6 column, not by
+        how many ports the device has.
+        """
+        from ptnetinspector.output.devices import _render_device_table
+
+        device = {
+            "Device": "1",
+            "MAC": "00:0c:29:5c:c5:a5",
+            "Vendor": "VMware, Inc.",
+            "Role": "Host",
+            "Hostname": "host-01",
+            "IPv4": "192.168.1.3",
+            "IPv6": "fe80::29ea:7c83:de9a:f21d 2001:db8::1",
+            "IP_count": "3",
+            "Ports": " ".join(f"{port}/tcp" for port in range(1000, 1040)),
+        }
+
+        text = _render_device_table([device])
+        lines = text.splitlines()
+        # 40 ports each take a line; the width stays bounded by the columns (one
+        # IPv6, the identity fields), nowhere near 40 ports laid side by side.
+        assert sum(1 for line in lines if "/tcp" in line) == 40
+        # Bounded by the columns (grid borders + one IPv6), not by 40 ports.
+        assert max(len(line) for line in lines) <= 90
+        assert "fe80::29ea:7c83:de9a:f21d" in text
+        assert "2001:db8::1" in text
+
+    def test_grid_separates_devices_and_shows_identity_once(self):
+        """Each device is one grid block; its MAC appears once, not per address."""
+        from ptnetinspector.output.devices import _render_device_table
+
+        devices = [
+            {"Device": "1", "MAC": "00:0c:29:00:00:01", "Vendor": "", "Role": "Host",
+             "Hostname": "", "IPv4": "192.168.1.1 192.168.1.9", "IPv6": "", "IP_count": "2",
+             "Ports": "22/tcp 80/tcp"},
+            {"Device": "2", "MAC": "00:0c:29:00:00:02", "Vendor": "", "Role": "Host",
+             "Hostname": "", "IPv4": "192.168.1.2", "IPv6": "", "IP_count": "1",
+             "Ports": ""},
+        ]
+
+        text = _render_device_table(devices)
+        assert "+" in text and "|" in text  # bordered grid, like the other tables
+        # Identity is printed once per device even though device 1 has two IPs.
+        assert text.count("00:0c:29:00:00:01") == 1
+        assert text.count("00:0c:29:00:00:02") == 1
+        # Device 2 has no ports: its Port cell is a dash, not borrowed from device 1.
+        assert "-" in text
+
+    def test_summary_survives_an_empty_addresses_file(self, scan_dir):
+        """role_node.csv is the device list, so the summary must appear from it.
+
+        Under -nc an aggressive IPv6 run can leave addresses.csv empty by the time
+        output runs, even though the devices were discovered (role_node.csv is
+        built from the addresses that were there earlier). The inventory used to
+        require both files and so vanished entirely; now the devices are reported,
+        with ports, and simply carry no address counts.
+        """
+        # addresses.csv exists but holds only its header - the failing condition.
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            csv.writer(handle).writerow(["MAC", "IP"])
+        with open(scan_dir / "role_node.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Device_Number", "Role"])
+            writer.writerow(["00:0c:29:35:45:d8", "1", "Host"])
+            writer.writerow(["ca:01:08:2b:00:00", "2", "Preferred router;IPv6 default GW"])
+        with open(scan_dir / "observed_ports.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP", "Proto", "Port"])
+            writer.writerow(["00:0c:29:35:45:d8", "", "udp", "5353"])
+
+        from ptnetinspector.output.devices import collect_devices, _render_device_table
+
+        devices = collect_devices(IPMode(ipv4=False, ipv6=True))
+        assert len(devices) == 2
+        macs = {device["MAC"] for device in devices}
+        assert macs == {"00:0c:29:35:45:d8", "ca:01:08:2b:00:00"}
+        # Addresses are absent, but the port that was observed still shows.
+        assert devices[0]["IPv6"] == ""
+        assert "5353/udp" in devices[0]["Ports"]
+
+        text = _render_device_table(devices, 80)
+        assert "00:0c:29:35:45:d8" in text
+        assert "ca:01:08:2b:00:00" in text
+
+    def test_summary_drops_unspecified_and_derives_possible_addresses(self, scan_dir):
+        """-nc records noise; the summary must read as real device addresses.
+
+        The unspecified address "::" is never a host's own and is dropped. A
+        solicited-node multicast group is not an address the host owns either, so
+        it is turned into the "possible" unicast address it implies - unless a
+        confirmed address already accounts for that group, in which case it adds
+        nothing and is not shown.
+        """
+        from ptnetinspector.utils.ip_utils import in6_getnsma
+        from ptnetinspector.output.devices import collect_devices, _render_device_table
+
+        confirmed = "fe80::20c:29ff:fe2f:d20c"
+        covered_group = in6_getnsma(confirmed)          # already implied by `confirmed`
+        orphan_group = "ff02::1:ff00:0005"              # no confirmed address implies it
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            writer.writerow(["00:0c:29:2f:d2:0c", "::"])
+            writer.writerow(["00:0c:29:2f:d2:0c", confirmed])
+            writer.writerow(["00:0c:29:2f:d2:0c", covered_group])
+            writer.writerow(["00:0c:29:2f:d2:0c", orphan_group])
+        with open(scan_dir / "role_node.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Device_Number", "Role"])
+            writer.writerow(["00:0c:29:2f:d2:0c", "1", "Host"])
+
+        devices = collect_devices(IPMode(ipv4=False, ipv6=True), include_solicited_node=True)
+        device = devices[0]
+        assert device["IPv6"] == confirmed            # "::" and the groups are not here
+        assert "::" not in device["IPv6"].split()
+        # The orphan group becomes one possible address; the covered one does not.
+        possible = device["IPv6_possible"].split()
+        assert len(possible) == 1 and possible[0].endswith("0005")
+
+        text = _render_device_table(devices, 120)
+        assert f"{confirmed}" in text
+        assert "(possible)" in text
+        assert "ff02::1:ff00:0005" not in text        # shown derived, not raw
+
+    def test_validate_keeps_addresses_when_unfiltered_is_header_only(self, scan_dir):
+        """A fresh scan must not have its addresses.csv wiped during validation.
+
+        addresses_unfiltered.csv is created with a header up front, so the old
+        size>0 check treated it as populated, read zero mappings from it, and
+        rewrote addresses.csv empty - which is what left the -nc aggressive run
+        with no addresses and no device inventory even though devices were found.
+        """
+        from ptnetinspector.utils.address_control import validate_addresses_mapping
+        from ptnetinspector.utils.csv_helpers import has_additional_data
+
+        # The scan has already converted packets.csv into addresses.csv ...
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            writer.writerow(["00:0c:29:35:45:d8", "fe80::29ea:7c83:de9a:f21d"])
+            writer.writerow(["00:0c:29:35:45:d8", "2001:db8::1"])
+        # ... while the unfiltered file still holds only its header.
+        with open(scan_dir / "addresses_unfiltered.csv", "w", newline="") as handle:
+            csv.writer(handle).writerow(["MAC", "IP"])
+
+        validate_addresses_mapping(
+            "testiface", IPMode(ipv4=False, ipv6=True), passive=True, verify=False,
+        )
+
+        assert has_additional_data(str(scan_dir / "addresses.csv"))
+        text = (scan_dir / "addresses.csv").read_text(encoding="utf-8")
+        assert "2001:db8::1" in text
+        assert "fe80::29ea:7c83:de9a:f21d" in text
+
+    def test_nc_keeps_local_candidates_but_not_relayed_public_addresses(self, scan_dir):
+        """-nc keeps unverified local candidates, but not relayed transit.
+
+        No address is probed, so none may be dropped for being unverified or for
+        sitting on a second private range of the segment. But a public address
+        routed in through the gateway arrives with the gateway's MAC and the
+        remote host's IP; attributing it to the gateway is wrong, so it is kept
+        only in addresses_unfiltered.csv, not in the per-device addresses.csv.
+        """
+        from ptnetinspector.utils.address_control import validate_addresses_mapping
+
+        # The scanner knows its own subnet, which is what makes "off-link"
+        # meaningful; without it every IPv4 would be kept as a possible local.
+        with open(scan_dir / "networks.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["Network", "Prefix_length"])
+            writer.writerow(["192.168.1.0", "24"])
+
+        kept = [
+            ("00:0c:29:5c:c5:a5", "192.168.1.3"),    # on-link IPv4
+            ("00:0c:29:5c:c5:a5", "fe80::79d2:f812:ba84:9484"),  # link-local
+            ("00:50:56:c0:00:02", "192.168.73.1"),   # off-link but private scope
+        ]
+        dropped = [
+            ("00:50:56:e9:10:2e", "140.82.121.5"),   # public, relayed through gw
+            ("00:50:56:e9:10:2e", "18.97.36.59"),    # public, relayed through gw
+        ]
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            writer.writerows(kept + dropped)
+        with open(scan_dir / "addresses_unfiltered.csv", "w", newline="") as handle:
+            csv.writer(handle).writerow(["MAC", "IP"])
+
+        validate_addresses_mapping(
+            "testiface", IPMode(ipv4=True, ipv6=True), passive=True, verify=False,
+        )
+
+        filtered = (scan_dir / "addresses.csv").read_text(encoding="utf-8")
+        for _mac, ip in kept:
+            assert ip in filtered, f"{ip} (a local candidate) must be kept under -nc"
+        for _mac, ip in dropped:
+            assert ip not in filtered, f"{ip} (relayed public) must not be attributed to a device"
+
+        # The raw view keeps absolutely everything.
+        raw = (scan_dir / "addresses_unfiltered.csv").read_text(encoding="utf-8")
+        for _mac, ip in kept + dropped:
+            assert ip in raw, f"{ip} must still appear in the unfiltered view"
+
+    def test_handle_output_keeps_device_summary_visible_in_verbose_json_mode(self, scan_dir, capsys):
+        with open(scan_dir / "addresses.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "IP"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "192.168.1.3"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "fe80::79d2:f812:ba84:9484"])
+        with open(scan_dir / "role_node.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["MAC", "Device_Number", "Role"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "1", "Node"])
+        with open(scan_dir / "vulnerability_mac.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["ID", "MAC", "Mode", "IPver", "Code", "Description", "Label"])
+            writer.writerow(["1", "00:0c:29:5c:c5:a5", "a", "4", "PTV-TEST-1", "Demo", "1"])
+        with open(scan_dir / "vulnerability_net.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["ID", "Mode", "Code", "Description", "Label"])
+            writer.writerow(["Network", "a", "PTV-NET-1", "Demo", "1"])
+
+        from ptnetinspector.utils.runtime import configure_output_flags
+        from ptnetinspector.utils.runtime import handle_output
+        from ptnetinspector.send.send import IPMode
+
+        configure_output_flags(json_output=True, more_detail=True, less_detail=False)
+        handle_output(
+            "a",
+            [],
+            [],
+            json_output=True,
+            more_detail=True,
+            less_detail=False,
+            check_addresses=True,
+            interface="eth0",
+            ip_mode=IPMode(True, True),
+            target_codes=None,
+            get_csv_path_fn=lambda name: str(scan_dir / name),
+            target_macs=None,
+            target_ips=None,
+        )
+
+        captured = capsys.readouterr()
+        assert "Device Summary" in captured.out
+        assert "192.168.1.3" in captured.out
+        assert "fe80::79d2:f812:ba84:9484" in captured.out
+        # The Device Summary is placed between the two vulnerability sections.
+        assert (captured.out.index("Vulnerability Summary")
+                < captured.out.index("Device Summary")
+                < captured.out.index("Vulnerability Matrix"))
 
     def test_the_flat_form_gives_every_address_its_own_row(self, scan_dir):
         """The searchable form Jan asked for: one row per address, not per device.
@@ -396,6 +721,49 @@ class TestSmallFixes:
 
         rows = [row for row in _rows(scan_dir / "packets.csv") if row["src MAC"] == "aa:bb:cc:00:00:0a"]
         assert rows[0]["length"] == str(len(packet))
+
+
+class TestVendorLookup:
+    """The MAC vendor is the one reliable device label, so its lookup must cover
+    the smaller IEEE allocations, not just the classic /24 OUI blocks."""
+
+    def _db(self, tmp_path):
+        from ptnetinspector.utils.oui import load_mac_database
+        manuf = tmp_path / "manuf"
+        manuf.write_text(
+            "# comment line\n"
+            "00:0C:29\tVMware\tVMware, Inc.\n"
+            "00:55:DA:00/28\tShinko\tShinko Technos co.,ltd.\n"
+            "00:1B:C5:00:00/36\tConverging\tConverging Systems Inc.\n"
+            "00:1B:C5:00:10/36\tOpenRB\tOpenRB.com, Direct SIA\n",
+            encoding="utf-8",
+        )
+        return load_mac_database(str(manuf))
+
+    def test_ma_l_24_bit_oui_still_resolves(self, tmp_path):
+        from ptnetinspector.utils.oui import get_vendor
+        assert get_vendor("00:0c:29:aa:bb:cc", self._db(tmp_path)) == "VMware, Inc."
+
+    def test_ma_m_28_bit_block_resolves(self, tmp_path):
+        # Regression: the /28 mask used to be stripped and the vendor lost.
+        from ptnetinspector.utils.oui import get_vendor
+        assert get_vendor("00:55:DA:05:11:22", self._db(tmp_path)) == "Shinko Technos co.,ltd."
+
+    def test_ma_s_36_bit_blocks_resolve_to_distinct_vendors(self, tmp_path):
+        # Two /36 blocks share a /24; the longer prefix must win, not collapse.
+        from ptnetinspector.utils.oui import get_vendor
+        db = self._db(tmp_path)
+        assert get_vendor("00:1b:c5:00:05:66", db) == "Converging Systems Inc."
+        assert get_vendor("00:1b:c5:00:15:66", db) == "OpenRB.com, Direct SIA"
+
+    def test_locally_administered_mac_is_named_not_called_unknown(self, tmp_path):
+        from ptnetinspector.utils.oui import get_vendor
+        for mac in ("ca:01:08:2b:00:00", "02:00:00:00:00:01"):
+            assert get_vendor(mac, self._db(tmp_path)) == "Locally administered (no vendor)"
+
+    def test_globally_unique_but_absent_mac_is_unknown(self, tmp_path):
+        from ptnetinspector.utils.oui import get_vendor
+        assert get_vendor("08:00:27:11:22:33", self._db(tmp_path)) == "Unknown Vendor"
 
 
 class TestExitCodes:

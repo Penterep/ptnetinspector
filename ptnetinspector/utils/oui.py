@@ -26,15 +26,41 @@ def get_manuf_path() -> Path:
     return project_root / 'data' / 'manuf'
 
 
+def _mac_nibbles(mac_address: str) -> str:
+    """The hex digits of a MAC, upper-cased, with separators removed."""
+    return mac_address.upper().replace(":", "").replace("-", "")
+
+
+def _is_locally_administered(nibbles: str) -> bool:
+    """True when the U/L bit is set: a randomized or hand-assigned MAC.
+
+    Such an address was never allocated to a manufacturer (virtual NICs, MAC
+    randomization, many routers' synthetic addresses), so an OUI lookup can only
+    ever miss on it - saying so is more honest than "Unknown Vendor".
+    """
+    try:
+        first_octet = int(nibbles[:2], 16)
+    except ValueError:
+        return False
+    return bool(first_octet & 0x02)
+
+
 def load_mac_database(filename: str | Path) -> dict:
     """
     Loads the MAC-to-vendor mapping from the manuf file.
+
+    The file mixes MA-L (/24), MA-M (/28) and MA-S (/36) allocations - the two
+    smaller ones are over half the entries. Each is keyed by the hex nibbles its
+    mask actually covers (6, 7 or 9), so a MAC can be matched against the right
+    prefix length. Keying by colon-groups, as before, silently dropped every
+    /28 and /36 vendor because their 3.5- and 4.5-octet prefixes never lined up
+    on a group boundary.
 
     Args:
         filename (str | Path): The path to the manuf file.
 
     Returns:
-        dict: A dictionary mapping MAC prefixes to vendor names.
+        dict: A dictionary mapping MAC hex-nibble prefixes to vendor names.
     """
     mac_db = {}
 
@@ -44,13 +70,32 @@ def load_mac_database(filename: str | Path) -> dict:
             if line.startswith('#') or not line.strip():
                 continue
             parts = line.split()
-            if len(parts) < 3:
+            if len(parts) < 2:
                 continue
-            oui = parts[0].split('/')[0].upper()
-            vendor = ' '.join(parts[2:])
-            mac_db[oui] = vendor
+            token = parts[0]
+            if '/' in token:
+                address, _, mask = token.partition('/')
+                try:
+                    bits = int(mask)
+                except ValueError:
+                    bits = 24
+            else:
+                address, bits = token, 24
+            key = _mac_nibbles(address)[: max(0, bits // 4)]
+            if not key:
+                continue
+            # The long name (columns 3+) is preferred; fall back to the short
+            # name when a line has no long form.
+            vendor = ' '.join(parts[2:]) if len(parts) >= 3 else parts[1]
+            mac_db[key] = vendor
 
     return mac_db
+
+# Prefix lengths, in hex nibbles, for the IEEE allocation sizes in the manuf
+# file: MA-S (/36), MA-M (/28), MA-L (/24). Longest first so the most specific
+# registration wins.
+_PREFIX_NIBBLES = (9, 7, 6)
+
 
 def get_vendor(mac_address: str, mac_db: dict) -> str:
     """
@@ -61,15 +106,20 @@ def get_vendor(mac_address: str, mac_db: dict) -> str:
         mac_db (dict): The MAC-to-vendor mapping.
 
     Returns:
-        str: The vendor name or "Unknown Vendor" if not found.
+        str: The vendor name, "Locally administered (no vendor)" for a MAC that
+        carries no manufacturer, or "Unknown Vendor" when it is globally unique
+        but absent from the database.
     """
-    mac_address = mac_address.upper().replace("-", ":")
+    nibbles = _mac_nibbles(mac_address)
 
-    # check longer prefixes first with 5 groups, then 4, then 3
-    for i in [5, 4, 3]:
-        mac_prefix = ":".join(mac_address.split(":")[:i])
-        if mac_prefix in mac_db:
-            return mac_db[mac_prefix]
+    # A locally administered address was never assigned to a vendor, so there is
+    # nothing to look up; naming that is more accurate than an empty lookup.
+    if len(nibbles) >= 2 and _is_locally_administered(nibbles):
+        return "Locally administered (no vendor)"
+
+    for length in _PREFIX_NIBBLES:
+        if nibbles[:length] in mac_db:
+            return mac_db[nibbles[:length]]
 
     return "Unknown Vendor"
 
@@ -144,6 +194,10 @@ def lookup_vendor_from_csv(mac_address: str) -> str:
         logger.debug("Vendor lookup failed for %s: %s", mac_address, e)
         return "Unknown Vendor"
 
+    # Not pre-computed into vendors.csv: still name a locally administered MAC
+    # rather than calling it unknown.
+    if _is_locally_administered(_mac_nibbles(mac_address)):
+        return "Locally administered (no vendor)"
     return "Unknown Vendor"
 
 def create_vendor_csv() -> None:

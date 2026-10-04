@@ -18,7 +18,6 @@ logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 from ptnetinspector.output.json import Json
 from ptnetinspector.output.devices import write_device_inventory
-from ptnetinspector.output.intel import print_report as print_intel_report, write_report as write_intel_report
 from ptnetinspector.send.reverse_dns import resolve_discovered_addresses
 from ptnetinspector.output.non_json import Non_json
 from ptnetinspector.scan import Run
@@ -58,14 +57,14 @@ warnings.filterwarnings("ignore")
 
 ptjsonlib_object = PtJsonLib()
 args = parse_args()
-verbose_output = args.v or args.vv
+verbose_output = args.v or args.vv or args.vvv
 
-# Display logo at startup unless -j without -v/-vv
+# Display logo at startup unless -j without -v/-vv/-vvv
 from ptnetinspector.utils.cli import display_logo
 display_logo(args.j, verbose_output)
 
-# Configure chatty DEBUG diagnostics only for -vv.
-configure_debug_logging(args.vv, args.j, verbose_output)
+# Configure chatty DEBUG diagnostics for -vv/-vvv output mode.
+configure_debug_logging(args.vv or args.vvv, args.j, verbose_output)
 
 # Validate and process parameters FIRST (before acquiring lock)
 # This ensures invalid parameters cause immediate errors without waiting in queue
@@ -248,6 +247,7 @@ def output_802_1x_results():
         target_codes=target_codes,
         target_macs=target_macs,
         target_ips=target_ips,
+        check_addresses=check_addresses,
     )
 
 
@@ -548,14 +548,9 @@ def main():
                 indent=4,
             )
 
-        # Recon detail the extended parsers collected: RA options, discovered
-        # services, node information, the querier, DHCPv6 options, fingerprints.
-        from ptnetinspector.utils.runtime import _suppress_non_json as suppress_output
-        if not suppress_output:
-            print_intel_report(detailed=more_detail)
-        intel_path, _ = write_intel_report()
-        if intel_path:
-            print_message(f"Network intelligence written: {intel_path}", "INFO", indent=4)
+        # A concise device summary is the default human-readable report.
+        # The older network-intelligence dump is intentionally suppressed because
+        # it is too verbose for the final operator-facing output.
 
         # A flat device list, written separately from the per-device findings.
         # On a segment with many hosts the interleaved report is unreadable, and
@@ -567,10 +562,7 @@ def main():
             target_ips=target_ips,
         )
         if device_count and inventory_dir:
-            # One path per line: three on one line ran to 250 characters.
-            print_message(f"Device inventory written for {device_count} device(s):", "INFO", indent=4)
-            for name in ("devices.csv", "devices.txt", "device_addresses.csv"):
-                print_message(f"{inventory_dir}/{name}", "INFO", indent=8)
+            pass
 
         # Print final JSON output at the end
         if json_output:

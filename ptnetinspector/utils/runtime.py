@@ -739,7 +739,11 @@ def handle_output(
             target_macs=target_macs,
             target_ips=target_ips,
         )
-        Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes, target_macs=target_macs, target_ips=target_ips)
+        # The device summary is printed inside read_vulnerability_table, between
+        # the Vulnerability Summary counts and the Vulnerability Matrix.
+        Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes,
+                                          target_macs=target_macs, target_ips=target_ips,
+                                          check_addresses=check_addresses)
 
         if more_detail:
             time_file = get_csv_path_fn("time_incoming.csv")

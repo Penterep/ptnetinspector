@@ -136,6 +136,7 @@ class Non_json:
         target_codes: set[str] | None = None,
         target_macs: set[str] | None = None,
         target_ips: set[str] | None = None,
+        check_addresses: bool = True,
     ) -> None:
         """
         Read vulnerability CSV file and create individual tables for each vulnerability,
@@ -433,6 +434,17 @@ class Non_json:
             # Indent each line of the summary table
             for line in table.split('\n'):
                 ptprinthelper.ptprint(line, condition=True, indent=4)
+
+        # The device inventory belongs between the per-entity counts above and
+        # the per-code matrix below: it names the devices those columns refer to.
+        ptprinthelper.ptprint("")
+        from ptnetinspector.output.devices import print_device_summary
+        print_device_summary(
+            ipver,
+            include_solicited_node=not check_addresses,
+            target_macs=target_macs,
+            target_ips=target_ips,
+        )
 
         # Print the per-code matrix (codes as rows, entities as columns)
         ptprinthelper.ptprint("")

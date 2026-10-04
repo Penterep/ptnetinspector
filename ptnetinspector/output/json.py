@@ -229,15 +229,9 @@ class Json:
             if str(row.get("Type", "")).strip() == "Node name":
                 properties.setdefault("Node name", str(row.get("Value", "")).strip())
 
-        for row in Json._read_rows("fingerprint.csv"):
-            if str(row.get("MAC", "")).strip().upper() != mac:
-                continue
-            os_guess = str(row.get("OS_guess", "")).strip()
-            iid_type = str(row.get("IID_type", "")).strip()
-            if os_guess:
-                properties.setdefault("Likely OS", os_guess)
-            if iid_type:
-                properties.setdefault("Interface identifier", iid_type)
+        # The passive fingerprint (hop-limit OS guess and interface-identifier
+        # type) is still collected into fingerprint.csv but is too unreliable to
+        # report, so it is intentionally not surfaced here.
 
         # An instance shows up once as a bare PTR answer and again with its SRV
         # host and port; keep the resolved form and drop the bare duplicate.
@@ -312,17 +306,6 @@ class Json:
             if protocol.startswith("IGMP") and not ipver.ipv4:
                 continue
             _publish("Multicast querier", f"{row.get('MAC', '')} ({protocol})")
-
-        # Groups that reached this port without being joined. Imported here
-        # rather than at module scope to keep the output modules independent.
-        from ptnetinspector.output.intel import _unjoined_multicast_rows
-
-        for group, version, _senders, _macs in _unjoined_multicast_rows():
-            if version == "IPv6" and not ipver.ipv6:
-                continue
-            if version == "IPv4" and not ipver.ipv4:
-                continue
-            _publish("Multicast flooded to this port", group)
 
         for name, values in collected.items():
             ptjsonlib_object.add_properties(
