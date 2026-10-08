@@ -318,7 +318,9 @@ def get_help() -> list:
     """
     return [
         {"description": [
-            "Network reconnaissance scanner for local IPv6 and IPv4 networks"
+            "Network reconnaissance scanner for local IPv6 and IPv4 networks",
+            "Reports each device's MAC, vendor, role, addresses and the ports it",
+            "was passively seen using (observation of traffic, not a port scan)"
         ]},
         {"usage": ["ptnetinspector -t <mode> -i <interface> [options]"]},
         {"options": [
