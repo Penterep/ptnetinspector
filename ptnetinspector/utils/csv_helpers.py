@@ -94,7 +94,7 @@ ARTIFACT_SCHEMAS = {
     'vulnerability_net.csv': ['ID', 'Mode', 'IPver', 'Code', 'Description', 'Label'],
     'networks.csv': ['network_prefix', 'prefix_length'],
     'ra_options.csv': ['MAC', 'IP', 'Option', 'Value', 'Lifetime', 'Flags'],
-    'fingerprint.csv': ['MAC', 'Hop_limit', 'OS_guess', 'IID_type', 'Reachable_time', 'Retrans_time', 'Router_lft'],
+    'fingerprint.csv': ['MAC', 'Hop_limit', 'IID_type', 'Reachable_time', 'Retrans_time', 'Router_lft'],
     'dnssd.csv': ['MAC', 'IP', 'Service', 'Instance', 'Target', 'Port', 'TXT'],
     'observed_ports.csv': ['MAC', 'IP', 'Proto', 'Port'],
     'multicast_groups.csv': ['Group', 'Version', 'Source_MAC'],

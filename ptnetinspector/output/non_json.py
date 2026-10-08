@@ -426,10 +426,9 @@ class Non_json:
                 ptprinthelper.ptprint("", condition=True)
 
             headers = ['Entity', f'{RED}Vulnerable{END}', f'{GREEN}Not Vulnerable{END}', f'{WHITE}N/A{END}']
-            # The boxed grid spends two lines per device; past the threshold one
-            # line per device keeps a segment of two hundred hosts scannable.
-            table_format = 'simple' if len(device_vuln_counts) > MANY_DEVICES else 'grid'
-            table = tabulate(summary_table_data, headers=headers, tablefmt=table_format,
+            # Always render the boxed grid so the summary reads the same whether a
+            # segment has three devices or three hundred; a large result scrolls.
+            table = tabulate(summary_table_data, headers=headers, tablefmt='grid',
                              colalign=('left', 'center', 'center', 'center'))
             # Indent each line of the summary table
             for line in table.split('\n'):
@@ -515,37 +514,48 @@ class Non_json:
             condition=True, indent=indent,
         )
 
-        def chunk_columns(codes, label_width):
-            """Split columns to the terminal width. Bounded by the number of
-            findings, never by the number of devices."""
-            chunks, current, width = [], [], label_width
+        def render(label, chunk, rows_for):
+            """Render one grid for a chunk of finding columns, and its width."""
+            headers = [label] + [str(numbered[c]) for c in chunk]
+            table = tabulate(rows_for(chunk), headers=headers, tablefmt='grid',
+                             colalign=('left',) + ('center',) * len(chunk))
+            widest = max((len(line) for line in table.split('\n')), default=0)
+            return table, widest
+
+        def chunk_columns(label, codes, rows_for):
+            """Split finding columns so each grid fits the terminal.
+
+            tabulate's grid padding is awkward to predict exactly, so each chunk
+            is grown one column at a time and rendered: the moment the real table
+            would exceed the available width the column starts a new chunk. The
+            number of chunks is therefore bounded by the finding count, never by
+            the number of devices - the whole point of this orientation.
+            """
+            chunks, current = [], []
             for code in codes:
-                # tabulate's simple format pads a centred column by two on each
-                # side of the wider of header and cell.
-                column_width = len(str(numbered[code])) + 4
-                if current and width + column_width > available:
+                trial = current + [code]
+                _, widest = render(label, trial, rows_for)
+                if current and widest > available:
                     chunks.append(current)
-                    current, width = [], label_width
-                current.append(code)
-                width += column_width
+                    current = [code]
+                else:
+                    current = trial
             if current:
                 chunks.append(current)
             return chunks
 
-        def emit(title, headers, rows):
+        def emit(title, table):
             ptprinthelper.ptprint("", condition=True)
             ptprinthelper.ptprint(title, condition=True, indent=indent)
-            table = tabulate(rows, headers=headers, tablefmt='simple',
-                             colalign=('left',) + ('center',) * (len(headers) - 1))
             for line in table.split('\n'):
                 ptprinthelper.ptprint(line, condition=True, indent=indent)
 
         def emit_chunked(title, label, codes, rows_for):
-            chunks = chunk_columns(codes, len(label) + 2)
+            chunks = chunk_columns(label, codes, rows_for)
             for index, chunk in enumerate(chunks, 1):
-                headers = [label] + [str(numbered[c]) for c in chunk]
                 suffix = f" (columns {index} of {len(chunks)})" if len(chunks) > 1 else ""
-                emit(title + suffix, headers, rows_for(chunk))
+                table, _ = render(label, chunk, rows_for)
+                emit(title + suffix, table)
 
         if network_codes:
             emit_chunked(

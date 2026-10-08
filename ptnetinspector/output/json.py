@@ -217,8 +217,8 @@ class Json:
         """Per-device facts the extended parsers learned about this MAC.
 
         The hostname and address list come from a node's own Node Information
-        reply, the OS and interface-identifier guesses are passive heuristics
-        (reported as "likely"), and the services come from the DNS-SD walk.
+        reply, and the services come from the DNS-SD walk. These are facts the
+        device advertised about itself, not guesses: no OS is inferred.
         """
         mac = str(mac_address).strip().upper()
         properties: dict = {}
@@ -229,9 +229,11 @@ class Json:
             if str(row.get("Type", "")).strip() == "Node name":
                 properties.setdefault("Node name", str(row.get("Value", "")).strip())
 
-        # The passive fingerprint (hop-limit OS guess and interface-identifier
-        # type) is still collected into fingerprint.csv but is too unreliable to
-        # report, so it is intentionally not surfaced here.
+        # The passive fingerprint (hop limit and interface-identifier type) is
+        # still collected into fingerprint.csv but is too unreliable to report,
+        # so it is intentionally not surfaced here. The hop-limit OS guess was
+        # removed entirely: without active port probing it misled more than it
+        # informed.
 
         # An instance shows up once as a bare PTR answer and again with its SRV
         # host and port; keep the resolved form and drop the bare duplicate.

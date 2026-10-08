@@ -41,7 +41,7 @@ def _read(name: str) -> list[dict]:
 def _section(title: str, headers: list[str], rows: list[list[str]]) -> str:
     if not rows:
         return ""
-    return f"{title}\n" + tabulate(rows, headers=headers, tablefmt="simple",
+    return f"{title}\n" + tabulate(rows, headers=headers, tablefmt="grid",
                                    disable_numparse=True) + "\n\n"
 
 
@@ -177,9 +177,10 @@ _SECTIONS = (
      ["MAC", "IP", "Port"], _observed_ports_rows),
     ("Multicast querier", ["MAC", "IP", "Protocol", "QRV", "QQIC"], _querier_rows),
     ("DHCPv6 options offered", ["MAC", "Option", "Value"], _dhcpv6_rows),
-    # The passive fingerprint (hop-limit OS guess and interface-identifier type)
-    # is still collected into fingerprint.csv, but it is too unreliable to show,
-    # so it is omitted from the report until the heuristic is improved.
+    # The passive fingerprint (hop limit and interface-identifier type) is still
+    # collected into fingerprint.csv, but it is too unreliable to show, so it is
+    # omitted from the report. The hop-limit OS guess was removed entirely:
+    # without active port probing it misled more than it informed.
     ("Reverse DNS", ["MAC", "IP", "Name", "Resolver"], _reverse_dns_rows),
     ("Multicast received without joining (L2 flooding evidence, not a verdict)",
      ["Group", "Version", "Senders", "Sending MACs"], _unjoined_multicast_rows),
@@ -246,11 +247,13 @@ def _fit_table(rows: list[list[str]], headers: list[str], available: int) -> str
     columns = len(headers)
     cells = [[str(c) for c in row] + [""] * (columns - len(row)) for row in rows]
     natural = [max([len(headers[i])] + [len(r[i]) for r in cells]) for i in range(columns)]
-    separators = 2 * (columns - 1)
+    # grid draws a border before every column and after the last, and pads each
+    # cell by one space on each side: (columns + 1) borders + 2 per column.
+    separators = 3 * columns + 1
     floor = 12
 
     if sum(natural) + separators <= available:
-        return tabulate(cells, headers=headers, tablefmt="simple", disable_numparse=True)
+        return tabulate(cells, headers=headers, tablefmt="grid", disable_numparse=True)
 
     wrappable = {i for i in range(columns) if any(_is_prose(r[i]) for r in cells)}
 
@@ -274,7 +277,7 @@ def _fit_table(rows: list[list[str]], headers: list[str], available: int) -> str
         if limits is None:
             break
         maxcolwidths = [w if w < n else None for w, n in zip(limits, natural)]
-        table = tabulate(cells, headers=headers, tablefmt="simple",
+        table = tabulate(cells, headers=headers, tablefmt="grid",
                          disable_numparse=True, maxcolwidths=maxcolwidths)
         widest = max(len(line) for line in table.splitlines())
         if widest <= available:
@@ -301,7 +304,7 @@ def print_report(detailed: bool = False) -> None:
     """Print the sections to the terminal, truncating long ones to the file.
 
     Args:
-        detailed: True under -v/-vv, where full tables are printed instead of
+        detailed: True under -vv, where full tables are printed instead of
             the first few rows.
     """
     from ptnetinspector.output.non_json import Non_json

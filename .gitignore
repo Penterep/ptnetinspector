@@ -172,4 +172,11 @@ cython_debug/
 !tmp/ports_*.csv
 tmp/*
 
+# Repo-local run artifacts. Output now always goes to the ptlibs AppDirs data
+# directory, but a source checkout may still have this folder on disk from an
+# older build or a developer pointing output here; never track its contents.
+ptnetinspector/output/tmp/
+ptnetinspector/output/ptnetinspector-output.*
+ptnetinspector/output/.ptnetinspector.lock
+
 **/.$*.drawio.bkp

@@ -75,9 +75,9 @@ class TestCsvValuesRoundTrip:
         an integer column float64.
         """
         path = tmp_path / "fingerprint.csv"
-        _write(path, ["MAC", "Hop_limit", "OS_guess"],
-               [{"MAC": "00:11:22:33:44:55", "Hop_limit": "255", "OS_guess": "router"},
-                {"MAC": "00:11:22:33:44:66", "Hop_limit": "", "OS_guess": ""}])
+        _write(path, ["MAC", "Hop_limit", "IID_type"],
+               [{"MAC": "00:11:22:33:44:55", "Hop_limit": "255", "IID_type": "low-bit"},
+                {"MAC": "00:11:22:33:44:66", "Hop_limit": "", "IID_type": ""}])
 
         frame = read_csv_text(path)
 
@@ -961,19 +961,28 @@ class TestMatrixScalesWithDeviceCount:
         assert widest <= columns, f"{widest} chars at {columns} columns, {devices} devices"
 
     def test_growth_is_linear_in_devices_not_blocks(self):
-        """Each device costs about one line per family table, not one block."""
+        """Each device costs a bounded number of lines, not one block.
+
+        In the universal grid format every device is one data row plus the
+        box rule beneath it, in each of the IPv4 and IPv6 family tables, so a
+        device costs on the order of four lines - still linear in devices, and
+        nothing like the one-block-per-few-devices growth of codes-as-rows."""
         lines_35 = len(_render_matrix(35, 100).splitlines())
         lines_200 = len(_render_matrix(200, 100).splitlines())
         per_device = (lines_200 - lines_35) / (200 - 35)
-        assert per_device < 4, f"{per_device:.1f} lines per extra device"
+        assert per_device < 6, f"{per_device:.1f} lines per extra device"
 
     def test_every_device_has_a_row_in_every_family_table(self):
         text = _render_matrix(50, 100)
         for table in ("IPv4 findings", "IPv6 findings"):
             section = text.split(table, 1)[1].split("findings, one row per device", 1)[0] \
                 if text.count("one row per device") > 1 else text.split(table, 1)[1]
-            rows = [l for l in section.splitlines() if l.strip() and l.strip()[0].isdigit()]
-            first_column = {l.split()[0] for l in rows}
+            # Grid rows look like "| 1 | ✓ | ... |"; take the first cell of each.
+            first_column = set()
+            for line in section.splitlines():
+                cells = [c.strip() for c in line.strip().strip('|').split('|')]
+                if cells and cells[0].isdigit():
+                    first_column.add(cells[0])
             assert {str(d) for d in range(1, 51)} <= first_column, table
 
     def test_the_key_names_every_finding_number(self):

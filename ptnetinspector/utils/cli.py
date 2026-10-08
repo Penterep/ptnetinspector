@@ -50,8 +50,8 @@ def _stringify_error(message) -> str:
 
 
 def _is_more_detail_enabled() -> bool:
-    """Return True when verbose terminal output is enabled (-v, -vv, or -vvv)."""
-    return any(flag in sys.argv for flag in ('-v', '-vv', '-vvv'))
+    """Return True when verbose terminal output is enabled (-vv)."""
+    return '-vv' in sys.argv
 
 
 def _store_error_outputs(message, json_output: bool, interface: str | None = None, more_detail: bool = False) -> None:
@@ -221,9 +221,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-i", dest="interface", help="second mandatory argument")
     parser.add_argument("-j", action="store_true")
     parser.add_argument("-target", dest="targets", nargs="+", action="append", help="target MAC/IP address(es) for results filtering (space-separated; -target can be repeated)")
-    parser.add_argument("-v", dest="v", action="store_true", default=False)
     parser.add_argument("-vv", dest="vv", action="store_true", default=False)
-    parser.add_argument("-vvv", dest="vvv", action="store_true", default=False)
     parser.add_argument("-less", action="store_true", default=False)
     parser.add_argument("-nc", action="store_false", default=True)
     parser.add_argument("-4", dest="ipv4", action="store_true", default=False)
@@ -260,8 +258,8 @@ def parse_args() -> argparse.Namespace:
 
     if unknown_args:
         msg = "Unexpected arguments found."
-        verbose_output = args.v or args.vv or args.vvv
-        # Show logo for errors unless -j without -v/-vv/-vvv
+        verbose_output = args.vv
+        # Show logo for errors unless -j without -vv
         if not args.j or verbose_output:
             _print_banner_fitting_width()
         _store_error_outputs(msg, args.j, args.interface, verbose_output)
@@ -332,8 +330,7 @@ def get_help() -> list:
             ["-i              ", "Interface (mandatory)"],
             ["-j              ", "Output in JSON format"],
             ["-target         ", "Target MAC/IP address(es) for filtering (space-separated; MAC => device + all IPs, IP => only that address)"],
-            ["-vv             ", "Show full details of network scan"],
-            ["-vvv            ", "Show full details plus DEBUG diagnostics"],
+            ["-vv             ", "Show full details of network scan plus DEBUG diagnostics"],
             ["-less           ", "Show minimum details of network scan"],
             ["-nc             ", "Do not probe found addresses for reachability (reports all observed addresses)"],
             ["-rdns           ", "Reverse-resolve discovered addresses (PTR) against the DNS servers found on the link"],
@@ -1068,8 +1065,7 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
 
         if more_detail:
             ptprinthelper.ptprint("Displaying full detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
-            if '-vvv' in sys.argv:
-                ptprinthelper.ptprint("Chatty DEBUG diagnostics enabled (-vvv)", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint("Chatty DEBUG diagnostics enabled (-vv)", "INFO", condition=True, indent=4)
         if not more_detail:
             ptprinthelper.ptprint("Displaying only basic detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
         # Reachability probes only exist in the modes that may transmit; passive and

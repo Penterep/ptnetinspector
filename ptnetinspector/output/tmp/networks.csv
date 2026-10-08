@@ -1,3 +1,0 @@
-network_prefix,prefix_length
-192.168.1.0,24
-2001:a:b:c::,64

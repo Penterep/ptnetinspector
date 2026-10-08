@@ -59,27 +59,23 @@ class TestCLIParsing:
         assert args.ipv4 is False
         assert args.ipv6 is True
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a', '-i', 'eth0', '-v'])
-    def test_parse_args_basic_verbose(self):
-        """Test parsing the basic verbose flag."""
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a', '-i', 'eth0'])
+    def test_parse_args_verbose_defaults_off(self):
+        """The single verbose flag defaults off when not given."""
         args = parse_args()
-        assert args.v is True
         assert args.vv is False
 
     @patch('sys.argv', ['ptnetinspector', '-t', 'a', '-i', 'eth0', '-vv'])
-    def test_parse_args_double_verbose(self):
-        """Test parsing the higher verbosity flag."""
+    def test_parse_args_verbose(self):
+        """-vv is the only verbose flag; it shows full detail plus DEBUG."""
         args = parse_args()
         assert args.vv is True
-        assert args.v is False
 
-    @patch('sys.argv', ['ptnetinspector', '-t', 'a', '-i', 'eth0', '-j', '-vvv'])
-    def test_parse_args_triple_verbose(self):
-        """Test parsing the chatty debug verbosity flag."""
-        args = parse_args()
-        assert args.vvv is True
-        assert args.vv is False
-        assert args.v is False
+    @patch('sys.argv', ['ptnetinspector', '-t', 'a', '-i', 'eth0', '-vvv'])
+    def test_parse_args_triple_verbose_rejected(self):
+        """-vvv was removed; it is no longer a recognised flag."""
+        with pytest.raises(SystemExit):
+            parse_args()
 
     def test_block_and_enable_print(self, capsys):
         """Test blocking and enabling print output."""

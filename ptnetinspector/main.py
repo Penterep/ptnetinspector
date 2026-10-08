@@ -26,7 +26,7 @@ from ptnetinspector.utils.cli import enablePrint, parameter_control, parse_args
 from ptnetinspector.utils.csv_helpers import create_csv, sort_all_csv, has_additional_data
 from ptnetinspector.utils.interface import Interface, IptablesRule, flush_tagged_rules, restore_forwarding_state
 from ptnetinspector.utils.oui import create_vendor_csv
-from ptnetinspector.utils.path import del_tmp_path, get_csv_path, get_output_dir, get_tmp_path, is_repo_local_output_mode, set_current_interface
+from ptnetinspector.utils.path import del_tmp_path, get_csv_path, get_output_dir, get_tmp_path, set_current_interface
 from ptnetinspector.utils.lock import acquire_global_lock
 from ptnetinspector.utils.runtime import (
     build_run_signature,
@@ -57,14 +57,14 @@ warnings.filterwarnings("ignore")
 
 ptjsonlib_object = PtJsonLib()
 args = parse_args()
-verbose_output = args.v or args.vv or args.vvv
+verbose_output = args.vv
 
-# Display logo at startup unless -j without -v/-vv/-vvv
+# Display logo at startup unless -j without -vv
 from ptnetinspector.utils.cli import display_logo
 display_logo(args.j, verbose_output)
 
-# Configure chatty DEBUG diagnostics for -vv/-vvv output mode.
-configure_debug_logging(args.vv or args.vvv, args.j, verbose_output)
+# Configure chatty DEBUG diagnostics for -vv output mode.
+configure_debug_logging(args.vv, args.j, verbose_output)
 
 # Validate and process parameters FIRST (before acquiring lock)
 # This ensures invalid parameters cause immediate errors without waiting in queue
@@ -530,7 +530,6 @@ def main():
         load_run_signature,
         required_files,
         less_detail,
-        force_fresh=is_repo_local_output_mode(),
     )
 
     # Start logging terminal output to text file after tmp prep/cleanup

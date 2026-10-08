@@ -40,7 +40,7 @@ from ptnetinspector.utils.ip_utils import belongs_to_any_prefix, check_ipv6_addr
 from ptnetinspector.utils.csv_helpers import remove_duplicates_from_csv, sort_csv_role_node, delete_middle_content_csv
 from ptnetinspector.entities.wsdiscovery import parse_wsdiscovery, WSDiscovery
 from ptnetinspector.entities.dnssd import DNSSD
-from ptnetinspector.entities.fingerprint import Fingerprint, guess_os_from_hop_limit
+from ptnetinspector.entities.fingerprint import Fingerprint
 from ptnetinspector.entities.multicast import MulticastGroup
 from ptnetinspector.entities.querier import Querier
 from ptnetinspector.entities.dhcpv6_options import DHCPv6Options
@@ -138,12 +138,11 @@ def _is_link_scoped_multicast(address) -> bool:
 def _hop_limit_is_stack_default(packet) -> bool:
     """True when the hop limit in the header is the sender's own default.
 
-    Reading a hop limit as an OS fingerprint only works for traffic the stack
-    emitted with its configured default. Neighbour Discovery and Node
-    Information Queries mandate 255, MLD and IGMP mandate 1, and mDNS and
-    LLMNR mandate 255 even when they answer by unicast. Treating any of those
-    as an OS default put "network device (Cisco/router-class default)" on
-    every host that merely answered a solicitation.
+    A recorded hop limit is only worth keeping for traffic the stack emitted
+    with its configured default. Neighbour Discovery and Node Information
+    Queries mandate 255, MLD and IGMP mandate 1, and mDNS and LLMNR mandate 255
+    even when they answer by unicast, so a hop limit read off any of those
+    describes the protocol, not the host, and is not recorded.
     """
     if any(packet.haslayer(layer) for layer in _FIXED_HOP_LIMIT_LAYERS):
         return False
@@ -904,7 +903,6 @@ class Save:
 
         hop_limit = ""
         iid_type = ""
-        os_guess = ""
 
         hop_limit_is_meaningful = _hop_limit_is_stack_default(packet)
 
@@ -912,11 +910,9 @@ class Save:
             iid_type = classify_ipv6_iid(packet[IPv6].src, mac)
             if hop_limit_is_meaningful:
                 hop_limit = str(packet[IPv6].hlim)
-                os_guess = guess_os_from_hop_limit(packet[IPv6].hlim)
         elif IP in packet:
             if hop_limit_is_meaningful:
                 hop_limit = str(packet[IP].ttl)
-                os_guess = guess_os_from_hop_limit(packet[IP].ttl)
 
         reachable_time = retrans_time = router_lft = ""
         if ICMPv6ND_RA in packet:
@@ -931,7 +927,7 @@ class Save:
         # One row per MAC per distinct observation is enough; the registry keys
         # on the full tuple, so an unchanged repeat is dropped.
 
-        Fingerprint(mac, hop_limit, os_guess, iid_type,
+        Fingerprint(mac, hop_limit, iid_type,
                     reachable_time, retrans_time, router_lft).save()
 
 class Run:

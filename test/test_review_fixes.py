@@ -249,8 +249,8 @@ class TestDeviceInventory:
             writer.writerow(["00:0c:29:5c:c5:a5", "1", "Node"])
         with open(scan_dir / "fingerprint.csv", "w", newline="") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["MAC", "Hop_limit", "OS_guess", "IID_type"])
-            writer.writerow(["00:0c:29:5c:c5:a5", "64", "Linux / macOS / BSD", "randomized"])
+            writer.writerow(["MAC", "Hop_limit", "IID_type"])
+            writer.writerow(["00:0c:29:5c:c5:a5", "64", "randomized"])
         with open(scan_dir / "localname.csv", "w", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerow(["MAC", "name"])
@@ -686,9 +686,11 @@ class TestPassiveFingerprinting:
     def test_invalid_input_yields_no_claim(self):
         assert classify_ipv6_iid("not-an-address", "ca:02:69:30:00:08") == ""
 
-    def test_neighbour_discovery_hop_limits_make_no_os_claim(self, scan_dir):
-        # ND mandates hop limit 255; reading it as an OS default reported every
-        # host answering an NS as router-class hardware.
+    def test_fingerprint_makes_no_os_claim(self, scan_dir):
+        # The hop-limit OS guess was removed entirely: without active port
+        # probing it misled more than it informed (ND mandates hop limit 255,
+        # which the old heuristic read as router-class hardware for every host
+        # answering an NS). The fingerprint now carries no OS column at all.
         packet = Ether(raw(
             Ether(src="aa:bb:cc:00:00:09") / IPv6(src="fe80::9") / ICMPv6ND_RA()
         ))
@@ -697,7 +699,7 @@ class TestPassiveFingerprinting:
 
         rows = [row for row in _rows(scan_dir / "fingerprint.csv") if row["MAC"] == "aa:bb:cc:00:00:09"]
         assert rows
-        assert all(row["OS_guess"] == "" for row in rows)
+        assert all("OS_guess" not in row for row in rows)
 
 
 class TestSmallFixes:
