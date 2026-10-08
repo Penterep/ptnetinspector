@@ -201,3 +201,96 @@ class TestPrepareTmpFiles:
 
         assert reused is False
         assert calls == {"create": 1, "delete": 1, "write_sig": 1}
+
+
+class TestRetentionWindow:
+    """-tmpret governs whether a repeated run reuses the cache or rescans.
+
+    These exercise prepare_tmp_files end to end so the age-based decision is
+    covered directly: a regression here once let the repo-local force_fresh
+    path silently bypass the retention window entirely.
+    """
+
+    REQUIRED = ["addresses.csv", "addresses_unfiltered.csv", "networks.csv"]
+
+    def _run(self, tmp_path, retention, *, age=None, saved_sig=None,
+             current_sig=None, make_required=True, make_params=True):
+        import os
+        import time
+
+        current_sig = current_sig or _make_sig()
+        saved_sig = saved_sig if saved_sig is not None else current_sig
+        calls = {"create": 0, "delete": 0, "write_sig": 0}
+
+        if make_required:
+            for name in self.REQUIRED:
+                (tmp_path / name).write_text("MAC,IP\n", encoding="utf-8")
+        if make_params:
+            (tmp_path / "run_params.json").write_text("{}", encoding="utf-8")
+        if age is not None:
+            stamp = time.time() - age
+            for path in tmp_path.iterdir():
+                os.utime(path, (stamp, stamp))
+
+        def create_csv_fn(_iface):
+            calls["create"] += 1
+            for name in self.REQUIRED:
+                (tmp_path / name).write_text("MAC,IP\n", encoding="utf-8")
+
+        def del_tmp_path_fn(_iface):
+            calls["delete"] += 1
+            for path in list(tmp_path.iterdir()):
+                if path.is_file():
+                    path.unlink()
+
+        reused = prepare_tmp_files(
+            "eth0",
+            retention_seconds=retention,
+            current_signature=current_sig,
+            get_tmp_path_fn=lambda _iface: tmp_path,
+            create_csv_fn=create_csv_fn,
+            del_tmp_path_fn=del_tmp_path_fn,
+            delete_json_output_fn=lambda: None,
+            write_run_signature_fn=lambda _t, _s: calls.__setitem__("write_sig", calls["write_sig"] + 1),
+            load_run_signature_fn=lambda _t: saved_sig,
+            required_files=self.REQUIRED,
+            less_detail=True,
+        )
+        return reused, calls
+
+    def test_fresh_when_no_tmp_files_exist(self, tmp_path):
+        reused, calls = self._run(tmp_path, 1800, make_required=False, make_params=False)
+        assert reused is False
+        assert calls["create"] == 1
+
+    def test_reuses_within_the_window_with_matching_signature(self, tmp_path):
+        reused, calls = self._run(tmp_path, 1800, age=10)
+        assert reused is True
+        assert calls["delete"] == 0 and calls["create"] == 0
+
+    def test_refreshes_once_older_than_the_window(self, tmp_path):
+        reused, calls = self._run(tmp_path, 1800, age=2000)
+        assert reused is False
+        assert calls["delete"] == 1 and calls["create"] == 1
+
+    def test_age_just_under_the_window_still_reuses(self, tmp_path):
+        reused, _ = self._run(tmp_path, 100, age=50)
+        assert reused is True
+
+    def test_a_tiny_retention_forces_a_refresh(self, tmp_path):
+        # The "set small for dev reset" case: last run's files are already stale.
+        reused, calls = self._run(tmp_path, 0.001, age=1)
+        assert reused is False
+        assert calls["delete"] == 1
+
+    def test_signature_mismatch_refreshes_even_within_the_window(self, tmp_path):
+        reused, calls = self._run(tmp_path, 1800, age=10,
+                                  saved_sig=_make_sig(scanning_type=["a"]),
+                                  current_sig=_make_sig(scanning_type=["p"]))
+        assert reused is False
+        assert calls["delete"] == 1
+
+    def test_missing_required_file_refreshes_within_the_window(self, tmp_path):
+        reused, calls = self._run(tmp_path, 1800, age=10, make_required=False)
+        assert reused is False
+        assert calls["create"] == 1
