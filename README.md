@@ -110,14 +110,14 @@ The following options are applicable to all scan modes:
 | `-i`    | Interface (**mandatory**) |
 | `-target` | Target device(s) by MAC address (space-separated or repeated). Filters output to only show results for specified MAC(s). Example: `-target ca:01:08:2b:00:01 -target 00:0c:29:35:45:d8` or `-target ca:01:08:2b:00:01 00:0c:29:35:45:d8` |
 | `-j`    | Output in JSON format. Displays only JSON output unless used with other options. Includes errors if present. |
-| `-vv` | Displays full details of the network scan. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown. |
+| `-vv` | Displays full details of the network scan plus DEBUG diagnostics. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown. |
 | `-less` | Displays minimum details of the network scan. When used with `-j`, outputs minimal and JSON data. Default: Basic details are shown. |
 | `-nc`   | Disables checking if found addresses are valid and responsive. No ARP/Neighbour-Solicitation probes are sent, and every observed address is reported instead of only the ones that answered — including neighbours on a private range outside the auto-detected subnets. Publicly routable addresses seen in transit stay excluded (they belong to hosts beyond the router, not to the device that relayed the frame); the raw view is always in `addresses_unfiltered.csv`. |
 | `-4`    | Only scan IPv4 traffic (cannot be used alone for `a+` mode). |
 | `-6`    | Only scan IPv6 traffic. |
 | *(neither `-4` nor `-6`)* | IPv6 only. Add `-4` to also scan IPv4. On an interface with no IPv6 address the scan falls back to IPv4 with a warning rather than scanning nothing. |
 | `-ts`   | Filter vulnerabilities by Test code (space-separated). Only selected tests will be scanned and reported. The tool will **automatically infer and schedule the required scan mode(s)**. Example: `-ts 4-MDNS 4-LLMNR 6-OUTRANGE` will auto-infer mode `a` (active). Mixed modes like `-ts 6-OUTRANGE 802-1X` will infer `[802.1x, a]`. |
-| `-tmpret` | Temporary file retention in seconds (default: 1800). Set a small value for quick cleanup during development. |
+| `-tmpret` | Temporary file retention in seconds (default: 1800). Within the window a repeated run with the same parameters reuses the cached results instead of rescanning; once the newest file is older than this, the tmp folder is refreshed. Set a small value for quick cleanup during development. |
 | `-rdns` | Reverse-resolves every discovered address (PTR in `ip6.arpa` / `in-addr.arpa`) against the DNS servers found on the link via RA/RDNSS or DHCPv6. Off by default: it is the only probe that sends traffic off-link. |
 | `-h`    | Displays help message and exits. |
 
@@ -150,8 +150,11 @@ The following options are applicable to all scan modes:
 
 ## Output Files
 
-Every run writes its artifacts to the interface's output directory
-(`~/.local/share/ptnetinspector/tmp/<interface>/`):
+Every run writes its artifacts to the per-user data directory that `ptlibs`
+chooses for the tool, scoped to the interface
+(`~/.penterep/ptnetinspector/data/tmp/<interface>/`). Output is never written
+into the source checkout, so running from a cloned repository leaves the
+working tree untouched.
 
 | File | Contents |
 |------|----------|
@@ -161,7 +164,7 @@ Every run writes its artifacts to the interface's output directory
 | `device_addresses.csv` | The same inventory flattened to one row per address, with the owning device repeated on each row. Use this one to search: `grep <address>`, or filter a family with `awk -F, '$3==6'`. |
 | `observed_ports.csv` | Transport ports seen in captured traffic, one row per device/address/port (`MAC, IP, Proto, Port`). Passive only — a port is recorded because a device was seen sending from it, which is not the same as the port being open. |
 | `multicast_groups.csv` | Every multicast group whose traffic arrived on the scanning port, and which MAC sent it. Compared against this host's own memberships to produce the flooding-evidence section of `network-intel.txt`. |
-| `network-intel.txt` | Recon detail collected during the scan: Router Advertisement options, discovered DNS-SD services, Node Information replies, observed ports, the multicast querier, DHCPv6 options, passive fingerprints and reverse-DNS results. |
+| `network-intel.txt` | Recon detail collected during the scan: Router Advertisement options, discovered DNS-SD services, Node Information replies, observed ports, the multicast querier, DHCPv6 options and reverse-DNS results. |
 
 ## What a Scan Collects
 
@@ -172,8 +175,10 @@ Beyond the vulnerability findings, a scan extracts:
   PREF64/NAT64 (RFC 8781) and Captive Portal (RFC 8910).
 - **Passive fingerprints** — initial hop limit and the interface-identifier scheme
   (EUI-64, low-bit/manual, or randomized stable-privacy/temporary). Derived from packets
-  already captured, so they cost no extra traffic. These are heuristics and are reported
-  as *likely*, not as fact.
+  already captured, so they cost no extra traffic. These raw observations are collected to
+  `fingerprint.csv` but are **not** reported, and the tool does **not** guess an operating
+  system from them: without active port probing such a guess (Windows, Linux, macOS/BSD, …)
+  was unreliable enough to mislead, so it was removed.
 - **Node Information** (RFC 4620) — hostnames and full address lists from stacks that
   answer NI Queries. Many BSD and macOS stacks do; Linux generally does not, so silence
   means "no support", not "no host".
