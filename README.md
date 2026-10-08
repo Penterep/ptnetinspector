@@ -149,24 +149,6 @@ The following options are applicable to all scan modes:
 | `-dns`     | IPv6 address(es) of DNS server(s). Multiple addresses can be space-separated. Excluded if not specified. Required for FAKERADNS vulnerability testing (part of FAKERA tests). |
 | `-nofwd`   | Prevents the scanner from forwarding packets (MiTM). Forwarding is allowed by default. |
 
-## Output Files
-
-Every run writes its artifacts to the per-user data directory that `ptlibs`
-chooses for the tool, scoped to the interface
-(`~/.penterep/ptnetinspector/data/tmp/<interface>/`). Output is never written
-into the source checkout, so running from a cloned repository leaves the
-working tree untouched.
-
-| File | Contents |
-|------|----------|
-| `ptnetinspector-output.json` | Full normalized JSON report (written with `-j`). |
-| `ptnetinspector-output.txt` | The terminal report as text. |
-| `devices.csv` / `devices.txt` | Device inventory: MAC, vendor, role, hostname, addresses and observed ports, one device per row, with no findings mixed in. Useful when a segment has many devices and the per-device report becomes hard to read. |
-| `device_addresses.csv` | The same inventory flattened to one row per address, with the owning device repeated on each row. Use this one to search: `grep <address>`, or filter a family with `awk -F, '$3==6'`. |
-| `observed_ports.csv` | Transport ports seen in captured traffic, one row per device/address/port (`MAC, IP, Proto, Port`). Passive only — a port is recorded because a device was seen sending from it, which is not the same as the port being open. |
-| `multicast_groups.csv` | Every multicast group whose traffic arrived on the scanning port, and which MAC sent it. Compared against this host's own memberships to produce the flooding-evidence section of `network-intel.txt`. |
-| `network-intel.txt` | Recon detail collected during the scan: Router Advertisement options, discovered DNS-SD services, Node Information replies, observed ports, the multicast querier, DHCPv6 options and reverse-DNS results. |
-
 ## What a Scan Collects
 
 Beyond the vulnerability findings, a scan extracts:
