@@ -64,3 +64,7 @@
 "Node","a,a+","6","PTV-NET-IDENT-6-WSDEV","Device responds to IPv6 WS-Discovery packets","6-WS","PTL-NET-IDENT-6-WS"
 "Network","802.1x","","PTV-NET-NET-MISCONF-8021X","Network does not have 802.1x deployed","802-1X","PTL-NET-NET-MISCONF-8021X"
 "Network","p","","PTV-NET-NET-MISCONF-TRUNK","Network delivers 802.1Q tagged frames to the port","TRUNK","PTL-NET-NET-MISCONF-TRUNK"
+"Network","p","4","PTV-NET-IDENT-4-INVENTORY","Network reveals IPv4 devices and services to passive observation","4-INVENTORY","PTL-NET-IDENT-4-INVENTORY"
+"Node","p","4","PTV-NET-IDENT-4-INVENTORYDEV","Device reveals its IPv4 address and services to passive observation","4-INVENTORY","PTL-NET-IDENT-4-INVENTORY"
+"Network","p","6","PTV-NET-IDENT-6-INVENTORY","Network reveals IPv6 devices and services to passive observation","6-INVENTORY","PTL-NET-IDENT-6-INVENTORY"
+"Node","p","6","PTV-NET-IDENT-6-INVENTORYDEV","Device reveals its IPv6 address and services to passive observation","6-INVENTORY","PTL-NET-IDENT-6-INVENTORY"

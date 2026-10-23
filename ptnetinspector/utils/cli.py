@@ -394,6 +394,8 @@ def get_help() -> list:
             ["      ptnetinspector -ts 6-OUTRANGE -i eth0"],
             ["      ptnetinspector -ts 6-FAKERA -i eth0 -prefix 2000:6675:7272:7900::/64 -dns 2001:4860:4860::8888 (FAKERA requires prefix and DNS)"],
             ["      ptnetinspector -ts TRUNK -i eth0 (detect 802.1Q trunk/access port)"],
+            ["      ptnetinspector -ts 4-INVENTORY -i eth0 (passive IPv4 device and service inventory; services are ports devices were seen sending from)"],
+            ["      ptnetinspector -ts 6-INVENTORY -i eth0 (passive IPv6 device and service inventory)"],
         ]}
     ]
 
