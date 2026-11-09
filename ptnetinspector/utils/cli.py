@@ -329,6 +329,7 @@ def get_help() -> list:
             ["", "      TRUNK                 Port receives 802.1Q tagged frames (trunk port)"],
             ["", "      4-SNOOPING            IPv4 multicast delivered to ports that did not join (IGMP snooping)"],
             ["", "      6-SNOOPING            IPv6 multicast delivered to ports that did not join (MLD snooping)"],
+            ["", "      ISOLATION             Hosts in the same VLAN reachable directly at layer 2 (no port isolation)"],
             ["", "      802-1X                Network does not have 802.1x deployed"],
             ["", "   Passive reconnaissance"],
             ["", "      INVENTORY             Devices and ports revealed by passive observation (IPv4 and IPv6)"],

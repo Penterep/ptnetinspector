@@ -69,3 +69,4 @@
 "Network","NULL","4,6","PTV-NET-LOCAL-MISCONF","DHCP provides servers on public addresses","LOCAL","PTL-NET-LOCAL-MISCONF"
 "Network","p","4","PTV-NET-4-SNOOPING-MISCONF","Switch delivers IPv4 multicast groups to ports that did not join them","4-SNOOPING","PTL-NET-4-SNOOPING-MISCONF"
 "Network","p","6","PTV-NET-6-SNOOPING-MISCONF","Switch delivers IPv6 multicast groups to ports that did not join them","6-SNOOPING","PTL-NET-6-SNOOPING-MISCONF"
+"Network","a","4,6","PTV-NET-ISOLATION-MISCONF","Network allows direct layer 2 communication between hosts in the same VLAN","ISOLATION","PTL-NET-ISOLATION-MISCONF"
