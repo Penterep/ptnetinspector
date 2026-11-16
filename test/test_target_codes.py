@@ -90,3 +90,16 @@ class TestTargetCodeValidation:
 
         assert result is not None
         assert result[2].ipv4 and not result[2].ipv6
+
+    def test_isolation_runs_with_an_aggressive_only_test(self):
+        """4-ISOLATION with 6-FAKERA picks a+, where ISOLATION is evaluated as well."""
+        result = _validate_target_codes(["4-ISOLATION", "6-FAKERA"], None, IPMode(False, True), False, False, [], [])
+
+        assert result is not None
+        assert result[1] == ["a+"]
+
+    def test_isolation_alone_still_runs_in_active_mode(self):
+        result = _validate_target_codes(["6-ISOLATION"], None, IPMode(False, True), False, False, [], [])
+
+        assert result is not None
+        assert result[1] == ["a"]
