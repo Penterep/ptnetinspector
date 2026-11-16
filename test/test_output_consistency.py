@@ -461,17 +461,17 @@ class TestOwnResultLines:
         _write_csv(temp_dir / "vulnerability_net.csv", NET_FIELDS, [
             {'ID': 'Network', 'Mode': 'p', 'IPver': '', 'Code': 'PTV-NET-TRUNK-MISCONF',
              'Description': 'Network delivers 802.1Q tagged frames to the port', 'Label': '1'},
-            {'ID': 'Network', 'Mode': 'p', 'IPver': '', 'Code': 'PTV-NET-INVENTORY-IDENT',
+            {'ID': 'Network', 'Mode': 'p', 'IPver': '4', 'Code': 'PTV-NET-4-INVENTORY-IDENT',
              'Description': 'Network reveals IPv4 devices', 'Label': '0'},
         ])
         _write_csv(temp_dir / "vulnerability_mac.csv", MAC_FIELDS, [
             {'ID': '1', 'MAC': '00:11:22:00:00:01', 'Mode': 'p', 'IPver': '4',
-             'Code': 'PTV-NET-INVENTORY-IDENTDEV', 'Description': 'Device reveals its IPv4 address', 'Label': '1'},
+             'Code': 'PTV-NET-4-INVENTORY-IDENTDEV', 'Description': 'Device reveals its IPv4 address', 'Label': '1'},
         ])
         (temp_dir / "test_results.json").write_text(_json.dumps({
             "TRUNK": {"mode": "p", "label": 1, "sentence": "802.1Q tagged frames received, the port behaves as a trunk",
                       "details": ["VLAN IDs: 10, 20"], "table": None},
-            "INVENTORY": {"mode": "p", "label": 0, "sentence": "IPv4 devices NOT observed, the network reveals no addresses",
+            "4-INVENTORY": {"mode": "p", "label": 0, "sentence": "IPv4 devices NOT observed, the network reveals no addresses",
                             "details": [], "table": {"headers": ["Device", "MAC"], "rows": [["1", "00:11:22:00:00:01"]]}},
             "LOCAL": {"mode": "NULL", "label": 2, "sentence": "Printed only in the NULL mode", "details": [], "table": None},
         }))

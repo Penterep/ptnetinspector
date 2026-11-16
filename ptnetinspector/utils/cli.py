@@ -329,11 +329,13 @@ def get_help() -> list:
             ["", "      TRUNK                 Port receives 802.1Q tagged frames (trunk port)"],
             ["", "      4-SNOOPING            IPv4 multicast delivered to ports that did not join (IGMP snooping)"],
             ["", "      6-SNOOPING            IPv6 multicast delivered to ports that did not join (MLD snooping)"],
-            ["", "      ISOLATION             Hosts in the same VLAN reachable directly at layer 2 (no port isolation)"],
+            ["", "      4-ISOLATION           IPv4 hosts in the same VLAN reachable directly at layer 2 (no port isolation)"],
+            ["", "      6-ISOLATION           IPv6 hosts in the same VLAN reachable directly at layer 2 (no port isolation)"],
             ["", "      802-1X                Network does not have 802.1x deployed"],
             ["", "   Passive reconnaissance"],
-            ["", "      INVENTORY             Devices and ports revealed by passive observation (IPv4 and IPv6)"],
-            ["", "      LOCAL                 Local information of the tester's host, DHCP servers on public addresses (IPv4 and IPv6)"],
+            ["", "      4-INVENTORY           IPv4 devices and ports revealed by passive observation"],
+            ["", "      6-INVENTORY           IPv6 devices and ports revealed by passive observation"],
+            ["", "      LOCAL                 Local information of the tester's host, DHCP servers on public addresses"],
             ["", "      6-PREDICT-GLOBIP      Device uses predictable IPv6 global address"],
             ["", "      6-PREDICT-LINKLOCALIP Device uses predictable IPv6 link-local address"],
             ["", "   Name and service discovery"],
@@ -432,10 +434,13 @@ def get_help() -> list:
             ["      ptnetinspector -ts 6-OUTRANGE -i eth0"],
             ["      ptnetinspector -ts 6-FAKERA -i eth0 -prefix 2000:6675:7272:7900::/64 -dns 2001:4860:4860::8888 (FAKERA requires prefix and DNS)"],
             ["      ptnetinspector -ts TRUNK -i eth0"],
-            ["      ptnetinspector -ts INVENTORY -i eth0"],
+            ["      ptnetinspector -ts 4-INVENTORY -i eth0"],
+            ["      ptnetinspector -ts 6-INVENTORY -i eth0"],
             ["      ptnetinspector -ts LOCAL -i eth0"],
             ["      ptnetinspector -ts 4-SNOOPING -i eth0"],
             ["      ptnetinspector -ts 6-SNOOPING -i eth0"],
+            ["      ptnetinspector -ts 4-ISOLATION -i eth0"],
+            ["      ptnetinspector -ts 6-ISOLATION -i eth0"],
         ]}
     ]
 
@@ -726,7 +731,8 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
         allowed_ipvers = set()
         for entry in associated_vulns.values():
             ipver = entry.get("IPver", "").strip()
-            allowed_ipvers.update(v.strip() for v in ipver.split(",") if v.strip())
+            if ipver:
+                allowed_ipvers.add(ipver)
 
         # Enable only the IP versions that appear in the selected test codes
         ipv4_enabled = "4" in allowed_ipvers

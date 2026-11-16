@@ -368,10 +368,10 @@ Version 0.2.3
 
 Version 0.2.4
 -------------
-- Added tests TRUNK, INVENTORY, LOCAL and 4-/6-SNOOPING, selectable with `-ts`,
+- Added tests TRUNK, 4-/6-INVENTORY, LOCAL, 4-/6-SNOOPING and 4-/6-ISOLATION, selectable with `-ts`,
   and the NULL mode for tests that need no scanning mode
 - Vulnerability codes of these tests follow the `PTV-NET-<TEST>-<TYPE>` pattern
-  (e.g. `PTV-NET-TRUNK-MISCONF`, `PTV-NET-INVENTORY-IDENT`)
+  (e.g. `PTV-NET-TRUNK-MISCONF`, `PTV-NET-4-INVENTORY-IDENT`)
 - These tests print one result line in the terminal: a ptlibs status mark ([✓] not
   vulnerable, [✗] vulnerable, [!] cannot be determined), a sentence describing the result,
   optional details and an optional table (devices for INVENTORY, local entries for LOCAL,

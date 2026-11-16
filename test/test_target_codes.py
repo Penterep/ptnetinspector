@@ -77,9 +77,9 @@ class TestTargetCodeValidation:
         assert "4-MDNS" in normalized_codes
         assert "4-LLMNR" in normalized_codes
 
-    def test_test_for_both_ip_versions_enables_both_without_flags(self):
-        """A catalog IPver of "4,6" turns on IPv4 and IPv6 when -4/-6 are not given."""
-        result = _validate_target_codes(["INVENTORY"], None, IPMode(False, True), False, False, [], [])
+    def test_tests_for_both_ip_versions_enable_both_without_flags(self):
+        """4-INVENTORY with 6-INVENTORY turns on IPv4 and IPv6 when -4/-6 are not given."""
+        result = _validate_target_codes(["4-INVENTORY", "6-INVENTORY"], None, IPMode(False, True), False, False, [], [])
 
         assert result is not None
         assert result[2].ipv4 and result[2].ipv6
