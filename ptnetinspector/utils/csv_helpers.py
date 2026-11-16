@@ -98,6 +98,7 @@ ARTIFACT_SCHEMAS = {
     'dnssd.csv': ['MAC', 'IP', 'Service', 'Instance', 'Target', 'Port', 'TXT'],
     'observed_ports.csv': ['MAC', 'IP', 'Proto', 'Port'],
     'multicast_groups.csv': ['Group', 'Version', 'Source_MAC'],
+    'joined_groups.csv': ['Group'],
     'querier.csv': ['MAC', 'IP', 'Protocol', 'Group', 'QRV', 'QQIC', 'Max_response'],
     'dhcpv6_options.csv': ['MAC', 'IP', 'Option', 'Value'],
     'node_info.csv': ['MAC', 'IP', 'Type', 'Value'],
