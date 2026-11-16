@@ -506,7 +506,7 @@ class TestOwnResultLines:
 class TestBriefResultLines:
     """Without -vv the original tests print one line per vulnerability, like the new tests."""
 
-    def _output(self, temp_dir, brief):
+    def _output(self, temp_dir, brief, target_macs=None):
         import ptnetinspector.output.non_json as NJ
         import ptnetinspector.utils.csv_helpers as CH
         import io
@@ -547,7 +547,7 @@ class TestBriefResultLines:
              patch.object(NJ, 'get_csv_path', csv_path):
             buf = io.StringIO()
             with contextlib.redirect_stdout(buf):
-                Non_json.read_vulnerability_table("a", IPMode(False, True), brief=brief)
+                Non_json.read_vulnerability_table("a", IPMode(False, True), brief=brief, target_macs=target_macs)
         return re.sub(r'\x1b\[[0-9;]*m', '', buf.getvalue())
 
     def test_one_line_per_test_with_details_and_affected_devices(self, temp_dir):
@@ -562,6 +562,14 @@ class TestBriefResultLines:
         assert "[✓] Network does NOT allow the delivery of IPv6 LLMNR PTR packets" in output
         assert "[!] No IPv6 multicast traffic captured" in output
         assert "Tests: 1 vulnerable, 1 not vulnerable, 2 cannot be determined" in output
+
+    def test_results_about_the_whole_segment_are_left_out_under_target(self, temp_dir):
+        """-target hides network findings; the results of the new tests are network results too."""
+        for brief in (True, False):
+            output = self._output(temp_dir, brief=brief, target_macs={"00:11:22:00:00:04"})
+
+            assert "No IPv6 multicast traffic captured" not in output
+            assert "Device responds to IPv6 MDNS PTR packets" in output
 
     def test_a_table_kept_for_vv_is_left_out(self, temp_dir):
         assert "tcp LISTEN 0.0.0.0:22" not in self._output(temp_dir, brief=True)

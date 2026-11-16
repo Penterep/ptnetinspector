@@ -315,6 +315,8 @@ class Non_json:
             test_code: result for test_code, result in Non_json._load_test_results().items()
             if mode_matches(mode, result['mode'])
             and not (target_codes and test_code not in {code.upper() for code in target_codes})
+            # Like the network findings above, results about the whole segment are left out under -target.
+            and not has_target_filter
         }
 
         # Sort vulnerabilities by code for consistent ordering
