@@ -535,6 +535,10 @@ class TestBriefResultLines:
         (temp_dir / "test_results.json").write_text(_json.dumps({
             "6-SNOOPING": {"mode": "a", "label": 2, "sentence": "No IPv6 multicast traffic captured, MLD snooping cannot be determined",
                            "details": [], "table": None},
+            "LOCAL": {"mode": "a", "label": 2, "sentence": "No DHCP data available, server addresses cannot be checked",
+                      "details": ["Local entries of eth0: 1 sockets, 0 neighbours (table: -vv)"],
+                      "table": {"headers": ["IP", "Type", "Entry"], "rows": [["IPv4", "Socket", "tcp LISTEN 0.0.0.0:22"]]},
+                      "brief_table": False},
         }))
 
         from ptnetinspector.output.non_json import Non_json
@@ -557,7 +561,11 @@ class TestBriefResultLines:
         assert "Device responds to IPv6 MDNS PTR packets |" in output
         assert "[✓] Network does NOT allow the delivery of IPv6 LLMNR PTR packets" in output
         assert "[!] No IPv6 multicast traffic captured" in output
-        assert "Tests: 1 vulnerable, 1 not vulnerable, 1 cannot be determined" in output
+        assert "Tests: 1 vulnerable, 1 not vulnerable, 2 cannot be determined" in output
+
+    def test_a_table_kept_for_vv_is_left_out(self, temp_dir):
+        assert "tcp LISTEN 0.0.0.0:22" not in self._output(temp_dir, brief=True)
+        assert "Local entries of eth0: 1 sockets" in self._output(temp_dir, brief=True)
 
     def test_every_catalog_description_reads_as_a_clean_result(self):
         """A clean original result never repeats the vulnerable sentence."""

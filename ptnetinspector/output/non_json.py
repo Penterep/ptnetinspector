@@ -847,7 +847,12 @@ class Non_json:
             tests.setdefault(test_code.upper(), []).append(code)
 
         results = [
-            (result['label'] if result['label'] in (0, 1, 2) else 2, result['sentence'], result['details'], result['table'])
+            (
+                result['label'] if result['label'] in (0, 1, 2) else 2,
+                result['sentence'],
+                result['details'],
+                result['table'] if result.get('brief_table', True) else None,
+            )
             for result in test_results.values()
         ]
         for codes in tests.values():
