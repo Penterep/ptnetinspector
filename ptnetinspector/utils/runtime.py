@@ -27,6 +27,8 @@ from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
 
 logger = logging.getLogger(__name__)
 
+RUN_COMPLETE_FILE = "run_complete"
+
 
 _debug_handler: logging.Handler | None = None
 _debug_output_allowed = True
@@ -285,6 +287,15 @@ def write_run_signature(tmp_dir: Path, signature: dict) -> None:
             json.dump(signature, f, sort_keys=True)
     except Exception:
         # Signature persistence is optional; run can continue without cache metadata.
+        pass
+
+
+def mark_run_complete(tmp_dir: Path) -> None:
+    """Record that the run finished, so its tmp data may be reused."""
+    try:
+        (tmp_dir / RUN_COMPLETE_FILE).touch()
+    except OSError:
+        # Without the marker the next run only rescans instead of reusing.
         pass
 
 
@@ -631,6 +642,16 @@ def prepare_tmp_files(
     age_of_newest = current_time - newest_mtime
 
     if age_of_newest > retention_seconds:
+        del_tmp_path_fn(interface)
+        create_csv_fn(interface)
+        write_run_signature_fn(tmp_dir, current_signature)
+        return False
+
+    # The signature is written when a run starts, so on its own it cannot tell
+    # a finished run from one interrupted by Ctrl-C with partial data.
+    if not (tmp_dir / RUN_COMPLETE_FILE).exists():
+        if not less_detail:
+            ptprinthelper.ptprint("\033[90mPrevious run did not finish; recreating temporary files\033[0m", "WARNING", condition=True, indent=4)
         del_tmp_path_fn(interface)
         create_csv_fn(interface)
         write_run_signature_fn(tmp_dir, current_signature)

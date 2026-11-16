@@ -210,6 +210,81 @@ class TestGlobalLock:
         assert not lock_file.exists()
 
 
+    def test_a_lock_held_by_a_child_of_a_dead_run_is_cleared(self, tmp_path):
+        """A child that outlived an interrupted run keeps the flock, but the PID in the file is gone."""
+        import fcntl
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        fd = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        os.write(fd, b"999999999")
+        try:
+            assert _cleanup_stale_lock(lock_file) is True
+            assert not lock_file.exists()
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    def test_a_held_lock_of_a_running_process_is_kept(self, tmp_path):
+        import fcntl
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        fd = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        os.write(fd, str(os.getpid()).encode())
+        try:
+            assert _cleanup_stale_lock(lock_file) is False
+            assert lock_file.exists()
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    @pytest.mark.filterwarnings("ignore:This process .* is multi-threaded:DeprecationWarning")
+    def test_a_forked_child_does_not_keep_the_lock(self, tmp_path):
+        """The child closes its inherited copy, so the lock ends with the parent."""
+        import ptnetinspector.utils.lock as lock
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        lock.acquire_global_lock(lock_file, verbose=False)
+        try:
+            read_end, write_end = os.pipe()
+            pid = os.fork()
+            if pid == 0:
+                os.close(read_end)
+                os.write(write_end, b"1" if lock._LOCK_FD is None else b"0")
+                os._exit(0)
+            os.close(write_end)
+            child_closed = os.read(read_end, 1)
+            os.close(read_end)
+            os.waitpid(pid, 0)
+            assert child_closed == b"1"
+            assert lock._LOCK_FD is not None
+            assert lock._lock_is_held(lock_file)
+        finally:
+            lock._release_lock()
+
+
+    def test_another_instance_is_running_only_while_a_live_run_holds_the_lock(self, tmp_path):
+        import fcntl
+        from ptnetinspector.utils.lock import another_instance_running
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        assert another_instance_running(lock_file) is False
+
+        fd = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            os.write(fd, str(os.getpid()).encode())
+            assert another_instance_running(lock_file) is True
+            os.ftruncate(fd, 0)
+            os.lseek(fd, 0, os.SEEK_SET)
+            os.write(fd, b"999999999")
+            assert another_instance_running(lock_file) is False
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+
 class TestRoutingTableCapture:
     """M4: net-tools' `route` is absent on current distributions, and its
     FileNotFoundError is neither CalledProcessError nor TimeoutExpired, so the

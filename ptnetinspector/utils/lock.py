@@ -61,17 +61,38 @@ def _lock_is_held(lock_file: Path) -> bool:
             pass
 
 
-def _cleanup_stale_lock(lock_file: Path) -> bool:
-    """Remove the lock file only when nothing holds it and its PID is gone."""
-    # Never unlink a file whose flock is currently held, whatever it contains.
-    if _lock_is_held(lock_file):
-        return False
+def _default_lock_file() -> Path:
+    return get_output_dir() / ".ptnetinspector.lock"
 
+
+def another_instance_running(lock_path: Path | None = None) -> bool:
+    """Return True when a live ptnetinspector run holds the lock."""
+    lock_file = lock_path or _default_lock_file()
+    if not lock_file.exists() or not _lock_is_held(lock_file):
+        return False
+    try:
+        pid = int(lock_file.read_text().strip())
+    except (OSError, ValueError):
+        return True
+    return _is_process_running(pid)
+
+
+def _cleanup_stale_lock(lock_file: Path) -> bool:
+    """Remove the lock file when its PID is gone.
+
+    A held flock alone does not prove a live run: a child that outlived an
+    interrupted run can still hold it. A held lock is cleared only when it
+    names a PID that is no longer running; an empty file is a run that has
+    just taken the lock and not yet written its PID.
+    """
     try:
         data = lock_file.read_text().strip()
         pid = int(data)
     except (OSError, ValueError):
         pid = None
+
+    if _lock_is_held(lock_file) and pid is None:
+        return False
 
     if pid is not None and _is_process_running(pid):
         return False
@@ -94,6 +115,23 @@ def _release_lock() -> None:
     except OSError:
         # Best-effort unlock on process shutdown.
         pass
+    try:
+        os.close(_LOCK_FD)
+    except OSError:
+        # Descriptor may already be closed.
+        pass
+    _LOCK_FD = None
+
+
+def _close_lock_in_child() -> None:
+    """Drop the inherited lock descriptor in a forked child.
+
+    Closing without unlocking leaves the parent's flock in place, while a child
+    that outlives the parent no longer keeps the lock held.
+    """
+    global _LOCK_FD
+    if _LOCK_FD is None:
+        return
     try:
         os.close(_LOCK_FD)
     except OSError:
@@ -134,7 +172,16 @@ def _wait_for_lock_release(lock_file: Path, verbose: bool = True, timeout: float
             )
             waiting_printed = True
 
-        # Check if stale lock and clean it
+        # A released lock is the normal end of the previous run. Only a lock still
+        # held for a PID that no longer runs means the run ended without cleanup.
+        if not _lock_is_held(lock_file):
+            if verbose:
+                ptprinthelper.ptprint(
+                    "Previous process finished. Starting your run now.",
+                    "INFO",
+                    condition=True
+                )
+            break
         if _cleanup_stale_lock(lock_file):
             if verbose:
                 ptprinthelper.ptprint(
@@ -143,27 +190,6 @@ def _wait_for_lock_release(lock_file: Path, verbose: bool = True, timeout: float
                     condition=True
                 )
             break
-
-        # Try non-blocking lock
-        try:
-            fd_test = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
-            try:
-                fcntl.flock(fd_test, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                # Lock acquired, release immediately as we just needed to test
-                fcntl.flock(fd_test, fcntl.LOCK_UN)
-                os.close(fd_test)
-                if verbose:
-                    ptprinthelper.ptprint(
-                        "Previous process finished. Starting your run now.",
-                        "INFO",
-                        condition=True
-                    )
-                break
-            except OSError:
-                os.close(fd_test)
-        except OSError:
-            # Lock may still be held by an active process.
-            pass
 
         time.sleep(_QUEUE_CHECK_INTERVAL)
 
@@ -184,7 +210,7 @@ def acquire_global_lock(lock_path: Path | None = None, verbose: bool = True) -> 
     if _LOCK_FD is not None:
         return
 
-    lock_file = lock_path or (get_output_dir() / ".ptnetinspector.lock")
+    lock_file = lock_path or _default_lock_file()
     lock_file.parent.mkdir(parents=True, exist_ok=True)
 
     def _attempt_lock() -> int:
@@ -217,3 +243,4 @@ def acquire_global_lock(lock_path: Path | None = None, verbose: bool = True) -> 
     os.write(fd, str(os.getpid()).encode())
     _LOCK_FD = fd
     atexit.register(_release_lock)
+    os.register_at_fork(after_in_child=_close_lock_in_child)
