@@ -265,6 +265,7 @@ def output_802_1x_results():
         target_codes=target_codes,
         target_macs=target_macs,
         target_ips=target_ips,
+        brief=not more_detail,
     )
     Non_json.read_vulnerability_table(
         "802.1x",
@@ -273,6 +274,7 @@ def output_802_1x_results():
         target_macs=target_macs,
         target_ips=target_ips,
         check_addresses=check_addresses,
+        brief=not more_detail,
     )
 
 
