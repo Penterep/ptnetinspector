@@ -81,10 +81,20 @@ def release_held_output():
     held_output = None
 
 
+def _release_before_end_error(end_error):
+    """ptlibs' end_error() ends the process with os._exit(), which skips atexit."""
+    def wrapper(*args, **kwargs):
+        release_held_output()
+        return end_error(*args, **kwargs)
+    return wrapper
+
+
 if lock_verbose and another_instance_running():
+    import ptnetinspector.utils.cli as cli_module
     held_output = io.StringIO()
     sys.stdout = held_output
     atexit.register(release_held_output)
+    cli_module.ptjsonlib_object.end_error = _release_before_end_error(cli_module.ptjsonlib_object.end_error)
 
 # Display logo at startup unless -j without -vv
 from ptnetinspector.utils.cli import display_logo
@@ -449,7 +459,8 @@ def ptnet_aggressive():
 
 
 def ptnet_null():
-    Vulnerability_object.handle_vulnerabilities("NULL")
+    # The cache of an earlier scan may be in the same files, so they are not cut down to -ts.
+    Vulnerability_object.handle_vulnerabilities("NULL", prune=False)
     handle_output(
         "NULL",
         [],
@@ -569,19 +580,29 @@ def main():
     # Configure terminal output policy based on flags
     configure_output_flags(json_output, more_detail, less_detail)
 
-    REUSE_EXISTING_DATA = prepare_tmp_files(
-        interface,
-        tmp_retention,
-        current_signature,
-        lambda iface=interface: get_tmp_path(iface),
-        lambda iface=interface: create_csv(iface),
-        lambda iface=interface: del_tmp_path(iface),
-        lambda: (delete_json_output(json_output_path), delete_text_output(text_output_path)),
-        write_run_signature,
-        load_run_signature,
-        required_files,
-        less_detail,
-    )
+    # The NULL mode reads only the tester's own state, so it must not replace the
+    # cache of an earlier scan on this interface; a following scan reuses it.
+    null_only = scanning_type == ["NULL"]
+    if null_only:
+        delete_json_output(json_output_path)
+        delete_text_output(text_output_path)
+        if not (get_tmp_path(interface) / "role_node.csv").exists():
+            create_csv(interface)
+        REUSE_EXISTING_DATA = False
+    else:
+        REUSE_EXISTING_DATA = prepare_tmp_files(
+            interface,
+            tmp_retention,
+            current_signature,
+            lambda iface=interface: get_tmp_path(iface),
+            lambda iface=interface: create_csv(iface),
+            lambda iface=interface: del_tmp_path(iface),
+            lambda: (delete_json_output(json_output_path), delete_text_output(text_output_path)),
+            write_run_signature,
+            load_run_signature,
+            required_files,
+            less_detail,
+        )
 
     # Start logging terminal output to text file after tmp prep/cleanup
     start_output_logging(text_output_path)
@@ -622,7 +643,8 @@ def main():
             # Final output reads accumulated CSVs; avoid mode filtering
             print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses))
 
-        mark_run_complete(get_tmp_path(interface))
+        if not null_only:
+            mark_run_complete(get_tmp_path(interface))
     except KeyboardInterrupt:
         for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
             signal.signal(sig, signal.SIG_IGN)

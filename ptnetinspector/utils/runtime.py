@@ -10,6 +10,7 @@ import json
 import logging
 import multiprocessing
 import os
+import signal
 import sys
 import time
 import ipaddress
@@ -347,13 +348,17 @@ def prepare_networks_file(interface_name: str, networks_path: Path) -> None:
 
 
 def terminate_child_processes(timeout: float = 1.0) -> None:
-    """Terminate any active multiprocessing children to avoid hung processes on interrupt."""
+    """Terminate any active multiprocessing children, with the processes they started, on interrupt."""
     for proc in multiprocessing.active_children():
         try:
-            proc.terminate()
-        except Exception:
-            # Child may already be exiting.
-            pass
+            # Each child leads its own process group (scan._forked_target).
+            os.killpg(proc.pid, signal.SIGTERM)
+        except OSError:
+            try:
+                proc.terminate()
+            except Exception:
+                # Child may already be exiting.
+                pass
     for proc in multiprocessing.active_children():
         try:
             proc.join(timeout=timeout)

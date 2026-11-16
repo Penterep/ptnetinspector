@@ -7,6 +7,7 @@ import csv
 import ipaddress
 import multiprocessing
 import logging
+import os
 import signal
 from contextlib import contextmanager, nullcontext
 import pandas as pd
@@ -221,13 +222,20 @@ def _close_inherited_scapy_sockets():
         logger.debug("Failed to close inherited Scapy sockets", exc_info=True)
 
 
+_MAIN_PID = os.getpid()
+
+
 def _forked_target(fn, args):
     """Wrapper for multiprocessing.Process targets that clears inherited Scapy sockets.
 
     SIGTERM gets its default action, because the parent's handler raises
-    KeyboardInterrupt, which scapy's sniff() swallows.
+    KeyboardInterrupt, which scapy's sniff() swallows. A child of the main
+    process leads its own process group, so terminating the group also stops
+    the processes the child started.
     """
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    if os.getppid() == _MAIN_PID:
+        os.setpgid(0, 0)
     _close_inherited_scapy_sockets()
     fn(*args)
 

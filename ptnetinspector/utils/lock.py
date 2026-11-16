@@ -222,22 +222,31 @@ def acquire_global_lock(lock_path: Path | None = None, verbose: bool = True) -> 
             os.close(fd_local)
             raise
 
-    # Try to acquire lock without blocking first
-    try:
-        fd = _attempt_lock()
-    except OSError as exc:
-        # If stale lock exists, clean it and retry once
-        if _cleanup_stale_lock(lock_file):
-            try:
-                fd = _attempt_lock()
-            except OSError:
-                # Still can't get lock after cleanup, must wait for active process
-                _wait_for_lock_release(lock_file, verbose)
-                fd = _attempt_lock()
-        else:
-            # Lock is held by active process, wait for release
-            _wait_for_lock_release(lock_file, verbose)
+    def _holds_lock_file(fd_local: int) -> bool:
+        # A run that found a stale lock may have unlinked the file between our
+        # flock and our PID write; a lock on that inode guards nothing.
+        try:
+            on_disk = os.stat(lock_file)
+        except FileNotFoundError:
+            return False
+        held = os.fstat(fd_local)
+        return (held.st_dev, held.st_ino) == (on_disk.st_dev, on_disk.st_ino)
+
+    deadline = time.monotonic() + _QUEUE_TIMEOUT
+    waited = False
+    while True:
+        try:
             fd = _attempt_lock()
+        except OSError:
+            # Another queued run can take the lock between the wait seeing it free
+            # and this attempt, so a failed attempt always goes back to waiting.
+            if not _cleanup_stale_lock(lock_file):
+                _wait_for_lock_release(lock_file, verbose and not waited, deadline - time.monotonic())
+                waited = True
+            continue
+        if _holds_lock_file(fd):
+            break
+        os.close(fd)
 
     os.ftruncate(fd, 0)
     os.write(fd, str(os.getpid()).encode())
