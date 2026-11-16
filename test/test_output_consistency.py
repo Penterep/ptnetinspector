@@ -506,7 +506,7 @@ class TestOwnResultLines:
 class TestBriefResultLines:
     """Without -vv the original tests print one line per vulnerability, like the new tests."""
 
-    def _output(self, temp_dir, brief, target_macs=None):
+    def _output(self, temp_dir, brief, target_macs=None, mode="a"):
         import ptnetinspector.output.non_json as NJ
         import ptnetinspector.utils.csv_helpers as CH
         import io
@@ -519,9 +519,9 @@ class TestBriefResultLines:
             CH.create_csv()
 
         _write_csv(temp_dir / "vulnerability_net.csv", NET_FIELDS, [
-            {'ID': 'Network', 'Mode': 'a', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-MDNS-PTR',
+            {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-MDNS-PTR',
              'Description': 'Network allows the delivery of IPv6 MDNS PTR packets', 'Label': '1'},
-            {'ID': 'Network', 'Mode': 'a', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-LLMNR-PTR',
+            {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-LLMNR-PTR',
              'Description': 'Network allows the delivery of IPv6 LLMNR PTR packets', 'Label': '0'},
         ])
         _write_csv(temp_dir / "vulnerability_mac.csv", MAC_FIELDS, [
@@ -547,7 +547,7 @@ class TestBriefResultLines:
              patch.object(NJ, 'get_csv_path', csv_path):
             buf = io.StringIO()
             with contextlib.redirect_stdout(buf):
-                Non_json.read_vulnerability_table("a", IPMode(False, True), brief=brief, target_macs=target_macs)
+                Non_json.read_vulnerability_table(mode, IPMode(False, True), brief=brief, target_macs=target_macs)
         return re.sub(r'\x1b\[[0-9;]*m', '', buf.getvalue())
 
     def test_one_line_per_test_with_details_and_affected_devices(self, temp_dir):
@@ -570,6 +570,16 @@ class TestBriefResultLines:
 
             assert "No IPv6 multicast traffic captured" not in output
             assert "Device responds to IPv6 MDNS PTR packets" in output
+
+    def test_each_test_once_in_each_section_of_an_active_and_aggressive_run(self, temp_dir):
+        """-t a a+ prints an active and an aggressive section; each test is listed once per section it belongs to."""
+        active = self._output(temp_dir, brief=True, mode="a")
+        aggressive = self._output(temp_dir, brief=True, mode="a+")
+
+        assert active.count("Network allows the delivery of IPv6 MDNS PTR packets") == 1
+        assert aggressive.count("Network allows the delivery of IPv6 MDNS PTR packets") == 1
+        assert active.count("No IPv6 multicast traffic captured") == 1
+        assert "No IPv6 multicast traffic captured" not in aggressive
 
     def test_a_table_kept_for_vv_is_left_out(self, temp_dir):
         assert "tcp LISTEN 0.0.0.0:22" not in self._output(temp_dir, brief=True)

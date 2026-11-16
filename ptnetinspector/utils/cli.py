@@ -1118,6 +1118,8 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
                 ptprinthelper.ptprint(f"Using mode active", "INFO", condition=True, indent=4)
             if ele == "a+":
                 ptprinthelper.ptprint(f"Using mode aggressive", "INFO", condition=True, indent=4)
+            if ele == "NULL":
+                ptprinthelper.ptprint("Using mode NULL (no scan, local data only)", "INFO", condition=True, indent=4)
 
         if more_detail:
             ptprinthelper.ptprint("Displaying full detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
