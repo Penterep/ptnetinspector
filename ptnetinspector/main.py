@@ -282,7 +282,7 @@ def ptnet_eap(combine=False):
     from ptnetinspector.utils.runtime import _suppress_non_json
     if REUSE_EXISTING_DATA:
         print_message("Reusing cached 802.1x results (within retention window)", indent=4)
-        Vulnerability_object.handle_vulnerabilities("802.1x")
+        Vulnerability_object.handle_vulnerabilities("802.1x", prune=False)
         if not _suppress_non_json:
             eap_file = get_csv_path("eap.csv", interface)
             Non_json.output_protocol(interface, ip_mode, "802.1x", "802.1x", eap_file, less_detail)
@@ -328,7 +328,7 @@ def ptnet_passive():
         sort_all_csv(interface)
     else:
         print_message("Reusing cached passive results (within retention window)", indent=4)
-    Vulnerability_object.handle_vulnerabilities("p")
+    Vulnerability_object.handle_vulnerabilities("p", prune=not REUSE_EXISTING_DATA)
 
     protocols_basic = ["MDNS", "LLMNR", "WS-Discovery", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3"]
     protocols_detailed = ["RA"]
@@ -364,7 +364,7 @@ def ptnet_active():
         sort_all_csv(interface)
     else:
         print_message("Reusing cached active results (within retention window)", indent=4)
-    Vulnerability_object.handle_vulnerabilities("a")
+    Vulnerability_object.handle_vulnerabilities("a", prune=not REUSE_EXISTING_DATA)
 
     protocols_basic = ["MDNS", "LLMNR", "WS-Discovery", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3"]
     protocols_detailed = ["RA"]
@@ -420,7 +420,7 @@ def ptnet_aggressive():
         sort_all_csv(interface)
     else:
         print_message("Reusing cached aggressive results (within retention window)", indent=4)
-    Vulnerability_object.handle_vulnerabilities("a+")
+    Vulnerability_object.handle_vulnerabilities("a+", prune=not REUSE_EXISTING_DATA)
 
     protocols_basic = ["MDNS", "LLMNR", "WS-Discovery", "MLDv1", "MLDv2", "IGMPv1/v2"]
     protocols_detailed = ["MLDv2", "IGMPv3", "RA"]
