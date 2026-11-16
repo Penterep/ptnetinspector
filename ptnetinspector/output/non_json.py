@@ -859,7 +859,8 @@ class Non_json:
         ]
         for codes in tests.values():
             code_labels = {code: verdict(set(vulnerabilities[code]['entities'].values())) for code in codes}
-            label = verdict(set(code_labels.values()))
+            # One finding makes the test vulnerable; otherwise it is clean only if every code was determined.
+            label = 1 if 1 in code_labels.values() else 2 if 2 in code_labels.values() else 0
             # The network-scoped code names the finding best; device codes follow it.
             ordered = sorted(codes, key=lambda code: ('Network' not in vulnerabilities[code]['entities'], code))
             headline = next((code for code in ordered if code_labels[code] == label), ordered[0])
@@ -869,7 +870,8 @@ class Non_json:
             for code in ordered:
                 entities = vulnerabilities[code]['entities']
                 devices = sorted((e for e, value in entities.items() if e != 'Network' and value == 1), key=sort_key)
-                if code != headline:
+                # A finding with device rows is already named in the table below.
+                if code != headline and not devices:
                     details.append(sentence(vulnerabilities[code]['description'], code_labels[code]))
                 for device in devices:
                     mac = macs.get(str(device), "")
@@ -895,7 +897,7 @@ class Non_json:
 
         ptprinthelper.ptprint(
             f"Tests: {counts[1]} vulnerable, {counts[0]} not vulnerable, {counts[2]} cannot be determined. "
-            f"Per-device tables, Device Summary and Vulnerability Matrix: -vv",
+            "Details: -vv",
             "INFO", condition=True, indent=4,
         )
 

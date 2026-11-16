@@ -523,6 +523,10 @@ class TestBriefResultLines:
              'Description': 'Network allows the delivery of IPv6 MDNS PTR packets', 'Label': '1'},
             {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-LLMNR-PTR',
              'Description': 'Network allows the delivery of IPv6 LLMNR PTR packets', 'Label': '0'},
+            {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-LLMNR',
+             'Description': 'Network allows the delivery of IPv6 LLMNR A, AAAA or ANY packets', 'Label': '2'},
+            {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-WS',
+             'Description': 'Network allows devices discovery with IPv6 WS-Discovery', 'Label': '0'},
         ])
         _write_csv(temp_dir / "vulnerability_mac.csv", MAC_FIELDS, [
             {'ID': '4', 'MAC': '00:11:22:00:00:04', 'Mode': 'a', 'IPver': '6',
@@ -555,13 +559,21 @@ class TestBriefResultLines:
 
         assert output.count("[✗]") == 1
         assert "[✗] Network allows the delivery of IPv6 MDNS PTR packets" in output
-        assert "        Device responds to IPv6 MDNS PTR packets\n" in output
+        assert "        Device responds to IPv6 MDNS PTR packets\n" not in output
         assert "        Device responds to IPv6 MDNS A, AAAA or ANY packets: cannot be determined" in output
         assert "Finding" in output
         assert "Device responds to IPv6 MDNS PTR packets |" in output
-        assert "[✓] Network does NOT allow the delivery of IPv6 LLMNR PTR packets" in output
+        assert "[✓] Network does NOT allow devices discovery with IPv6 WS-Discovery" in output
         assert "[!] No IPv6 multicast traffic captured" in output
-        assert "Tests: 1 vulnerable, 1 not vulnerable, 2 cannot be determined" in output
+        assert "Tests: 1 vulnerable, 1 not vulnerable, 3 cannot be determined" in output
+
+    def test_a_test_partly_undetermined_and_otherwise_clean_is_undetermined(self, temp_dir):
+        """Green means everything was verified: a clean code beside an undetermined one gives [!], not ✓."""
+        output = self._output(temp_dir, brief=True)
+
+        assert "[!] Network allows the delivery of IPv6 LLMNR A, AAAA or ANY packets: cannot be determined" in output
+        assert "        Network does NOT allow the delivery of IPv6 LLMNR PTR packets" in output
+        assert "[✓] Network does NOT allow the delivery of IPv6 LLMNR PTR packets" not in output
 
     def test_results_about_the_whole_segment_are_left_out_under_target(self, temp_dir):
         """-target hides network findings; the results of the new tests are network results too."""
@@ -612,6 +624,6 @@ class TestBriefResultLines:
     def test_vv_keeps_the_original_tables(self, temp_dir):
         output = self._output(temp_dir, brief=False)
 
-        assert "[1/4]" in output
+        assert "[1/6]" in output
         assert "[*] Vulnerability Summary" in output
         assert "[*] Vulnerability Matrix" in output

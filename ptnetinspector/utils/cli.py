@@ -1122,10 +1122,10 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
                 ptprinthelper.ptprint("Using mode NULL (no scan, local data only)", "INFO", condition=True, indent=4)
 
         if more_detail:
-            ptprinthelper.ptprint("Displaying full detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint("Displaying full detail", "INFO", condition=True, indent=4)
             ptprinthelper.ptprint("Chatty DEBUG diagnostics enabled (-vv)", "INFO", condition=True, indent=4)
         if not more_detail:
-            ptprinthelper.ptprint("Displaying only basic detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint("Displaying only basic detail", "INFO", condition=True, indent=4)
         # Reachability probes only exist in the modes that may transmit; passive and
         # 802.1x never probe, so reporting a check there would be misleading.
         if any(mode in type for mode in ("a", "a+")):
