@@ -884,6 +884,20 @@ def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggress
     return smac, ip_mode
 
 
+def _is_ip_less_selection(test_codes) -> bool:
+    """True when every selected Test code has no IP version (TRUNK, LOCAL, 802-1X),
+    so the interface does not need an address to run them."""
+    if not test_codes:
+        return False
+    try:
+        test_catalog = load_vuln_catalog_by_test()
+    except Exception:
+        return False
+    return all(
+        not entry.get("IPver") for code in test_codes for entry in test_catalog.get(code, [])
+    )
+
+
 def _reconcile_ip_mode(interface, ip_mode, ipver_explicit, list_error, list_warning) -> IPMode:
     """Drop or swap a family the interface cannot carry.
 
@@ -1218,9 +1232,6 @@ def parameter_control(
     # opt-in with -4. An interface with no IPv6 falls back to IPv4 rather than
     # scanning nothing - see _reconcile_ip_mode.
     ip_mode = IPMode(ipv4, ipv6) if (ipv4 or ipv6) else IPMode(False, True)
-    ip_mode = _reconcile_ip_mode(
-        interface, ip_mode, bool(ipv4 or ipv6), list_error, list_warning
-    )
 
     _validate_detail_flags(more_detail, less_detail, json_output)
 
@@ -1243,8 +1254,13 @@ def parameter_control(
             validated_target_codes = test_codes
             if not type:
                 type = inferred_type
-            if not (ipv4 or ipv6) and inferred_ip_mode:
-                ip_mode = inferred_ip_mode
+
+    if not _is_ip_less_selection(validated_target_codes):
+        ip_mode = _reconcile_ip_mode(
+            interface, ip_mode, bool(ipv4 or ipv6), list_error, list_warning
+        )
+    if validated_target_codes and not (ipv4 or ipv6) and inferred_ip_mode:
+        ip_mode = inferred_ip_mode
 
     _require_fakera_params(validated_target_codes, prefix, dns, list_error)
 
