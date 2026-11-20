@@ -366,7 +366,7 @@ Version 0.2.3
   an observation, not a port scan, and not a claim that the port is open. The scanner's own
   frames are skipped and a disabled address family (`-4`/`-6`) is ignored
 
-Version 0.2.4
+Version 0.2.5
 -------------
 - Added tests TRUNK, 4-/6-INVENTORY, LOCAL, 4-/6-SNOOPING and 4-/6-ISOLATION, selectable with `-ts`,
   and the NULL mode for tests that need no scanning mode
@@ -376,4 +376,8 @@ Version 0.2.4
   vulnerable, [✗] vulnerable, [!] cannot be determined), a sentence describing the result,
   optional details and an optional table (devices for INVENTORY, local entries for LOCAL,
   unjoined groups for SNOOPING). Their codes appear only in JSON, and they are left out of
-  the Vulnerability Summary and Matrix
+  the Vulnerability Summary and Matrix. `-vv` keeps the original tables
+- Tests without an IP version (TRUNK, LOCAL, 802-1X) run on an interface without an IP
+  address; the interface address check runs only after the mode is inferred from `-ts`
+- Ctrl+C stops the whole scan process tree, and a cached scan is reused only when it finished
+- In passive mode without `-smac`, the tester's own frames are left out
