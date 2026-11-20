@@ -76,3 +76,30 @@ class TestTargetCodeValidation:
         # Both should be uppercase in normalized output
         assert "4-MDNS" in normalized_codes
         assert "4-LLMNR" in normalized_codes
+
+    def test_tests_for_both_ip_versions_enable_both_without_flags(self):
+        """4-INVENTORY with 6-INVENTORY turns on IPv4 and IPv6 when -4/-6 are not given."""
+        result = _validate_target_codes(["4-INVENTORY", "6-INVENTORY"], None, IPMode(False, True), False, False, [], [])
+
+        assert result is not None
+        assert result[2].ipv4 and result[2].ipv6
+
+    def test_single_ip_version_test_is_unchanged(self):
+        """A test for one IP version still enables only that version."""
+        result = _validate_target_codes(["4-MDNS"], None, IPMode(False, True), False, False, [], [])
+
+        assert result is not None
+        assert result[2].ipv4 and not result[2].ipv6
+
+    def test_isolation_runs_with_an_aggressive_only_test(self):
+        """4-ISOLATION with 6-FAKERA picks a+, where ISOLATION is evaluated as well."""
+        result = _validate_target_codes(["4-ISOLATION", "6-FAKERA"], None, IPMode(False, True), False, False, [], [])
+
+        assert result is not None
+        assert result[1] == ["a+"]
+
+    def test_isolation_alone_still_runs_in_active_mode(self):
+        result = _validate_target_codes(["6-ISOLATION"], None, IPMode(False, True), False, False, [], [])
+
+        assert result is not None
+        assert result[1] == ["a"]

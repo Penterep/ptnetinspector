@@ -5,6 +5,7 @@ consistent, readable format using the accumulated CSV data.
 """
 import csv
 import ipaddress
+import json
 import logging
 import os
 import shutil
@@ -33,6 +34,20 @@ logger = logging.getLogger(__name__)
 # boxed grid for one line per device, and the matrix puts devices on rows so it
 # scrolls instead of splitting into blocks. The file keeps the full version.
 MANY_DEVICES = 10
+
+# Catalog descriptions state the vulnerable case; a clean result reads as its negation.
+NEGATED_PREFIXES = (
+    ("Network allows ", "Network does NOT allow "),
+    ("Network permits ", "Network does NOT permit "),
+    ("Network does not block ", "Network blocks "),
+    ("Network does not have ", "Network has "),
+    ("Device responds to ", "No device responds to "),
+    ("Device uses ", "No device uses "),
+    ("Device connects to ", "No device connects to "),
+    ("Device can be ", "No device can be "),
+    ("Device communication can be ", "No device communication can be "),
+    ("Device does not ignore ", "Every device ignores "),
+)
 
 
 class Non_json:
@@ -137,6 +152,7 @@ class Non_json:
         target_macs: set[str] | None = None,
         target_ips: set[str] | None = None,
         check_addresses: bool = True,
+        brief: bool = False,
     ) -> None:
         """
         Read vulnerability CSV file and create individual tables for each vulnerability,
@@ -149,6 +165,7 @@ class Non_json:
             target_codes (set[str] | None): Optional Test codes to filter by (e.g., {'4-MDNS', '6-MLDV1'}).
             target_macs (set[str] | None): Optional target MAC addresses to filter devices.
             target_ips (set[str] | None): Optional target IP addresses to filter addresses.
+            brief (bool): One result line per vulnerability instead of the tables (default output without -vv).
         """
         if csv_file_path is None:
             csv_file_path = Non_json._resolve_vulnerability_file("vulnerability_ip.csv" if target_ips else "vulnerability_mac.csv")
@@ -291,14 +308,39 @@ class Non_json:
                 return f"{WHITE}●{END}"
             return f"{WHITE}●{END}"
 
+        own_codes = Non_json._own_codes()
+        for code in [code for code in vulnerabilities if code in own_codes]:
+            vulnerabilities.pop(code)
+        test_results = {
+            test_code: result for test_code, result in Non_json._load_test_results().items()
+            if mode_matches(mode, result['mode'])
+            and not (target_codes and test_code not in {code.upper() for code in target_codes})
+            # Like the network findings above, results about the whole segment are left out under -target.
+            and not has_target_filter
+        }
+
         # Sort vulnerabilities by code for consistent ordering
         sorted_codes = sorted(vulnerabilities.keys())
 
-        if not sorted_codes:
+        if not sorted_codes and not test_results:
             return  # No vulnerabilities to display
 
         # Print header
         Non_json.print_box("Vulnerability Analysis")
+        if brief:
+            Non_json._print_brief_results(sorted_codes, vulnerabilities, test_results, vuln_catalog, ipver)
+            return
+        for result in test_results.values():
+            bullet_type = {1: "VULN", 0: "NOTVULN"}.get(result['label'], "WARNING")
+            ptprinthelper.ptprint(result['sentence'], bullet_type, condition=True, indent=4)
+            for line in result['details']:
+                ptprinthelper.ptprint(line, condition=True, indent=8)
+            if result['table']:
+                table = tabulate(result['table']['rows'], headers=result['table']['headers'], tablefmt='grid')
+                for line in table.split('\n'):
+                    ptprinthelper.ptprint(line, condition=True, indent=8)
+        if not sorted_codes:
+            return
         ptprinthelper.ptprint(f"Legend: {RED}✕{END} = Vulnerable | {GREEN}✓{END} = Not Vulnerable | {WHITE}●{END} = N/A", condition=True, indent=4)
         ptprinthelper.ptprint("")  # Empty line for readability
 
@@ -758,6 +800,127 @@ class Non_json:
                 ptprinthelper.ptprint(line, condition=True, indent=indent + len(caption) + 8)
 
     @staticmethod
+    def _print_brief_results(sorted_codes, vulnerabilities, test_results, vuln_catalog, ipver) -> None:
+        """Print every test as one result line with details and an optional table.
+
+        The original tests are grouped by their Test code and rendered the same
+        way as the tests that store their own result sentence, so the default
+        output reads alike for all tests. Vulnerable results come first; the
+        per-code tables, the summary and the matrix stay in -vv.
+        """
+        def sort_key(value):
+            return int(value) if str(value).isdigit() else str(value)
+
+        def verdict(labels):
+            if 1 in labels:
+                return 1
+            if labels and all(label == 2 for label in labels):
+                return 2
+            return 0
+
+        def sentence(description, label):
+            if label == 1:
+                return description
+            if label == 2:
+                return f"{description}: cannot be determined"
+            for prefix, negated in NEGATED_PREFIXES:
+                if description.startswith(prefix):
+                    return negated + description[len(prefix):]
+            return f"{description}: NOT observed"
+
+        def device_addresses():
+            macs, addresses = {}, {}
+            try:
+                role_df = read_csv_text(get_csv_path("role_node.csv"))
+                for _, row in role_df.iterrows():
+                    macs[str(row['Device_Number'])] = str(row['MAC']).lower()
+                addresses_df = filter_ips_by_mode(read_csv_text(get_csv_path("addresses.csv")), ipver)
+                for _, row in addresses_df.iterrows():
+                    addresses.setdefault(str(row['MAC']).lower(), []).append(str(row['IP']))
+            except Exception:
+                logger.debug("Failed to read devices for the result tables", exc_info=True)
+            return macs, addresses
+
+        macs, addresses = device_addresses()
+
+        tests: dict[str, list[str]] = {}
+        for code in sorted_codes:
+            test_code = vuln_catalog.get(code, {}).get('Test', '') or code
+            tests.setdefault(test_code.upper(), []).append(code)
+
+        results = [
+            (
+                result['label'] if result['label'] in (0, 1, 2) else 2,
+                result['sentence'],
+                result['details'],
+                result['table'] if result.get('brief_table', True) else None,
+            )
+            for result in test_results.values()
+        ]
+        for codes in tests.values():
+            code_labels = {code: verdict(set(vulnerabilities[code]['entities'].values())) for code in codes}
+            # One finding makes the test vulnerable; otherwise it is clean only if every code was determined.
+            label = 1 if 1 in code_labels.values() else 2 if 2 in code_labels.values() else 0
+            # The network-scoped code names the finding best; device codes follow it.
+            ordered = sorted(codes, key=lambda code: ('Network' not in vulnerabilities[code]['entities'], code))
+            headline = next((code for code in ordered if code_labels[code] == label), ordered[0])
+
+            details = []
+            rows = []
+            for code in ordered:
+                entities = vulnerabilities[code]['entities']
+                devices = sorted((e for e, value in entities.items() if e != 'Network' and value == 1), key=sort_key)
+                # A finding with device rows is already named in the table below.
+                if code != headline and not devices:
+                    details.append(sentence(vulnerabilities[code]['description'], code_labels[code]))
+                for device in devices:
+                    mac = macs.get(str(device), "")
+                    rows.append([device, mac.upper(), ", ".join(addresses.get(mac, [])) or "-", vulnerabilities[code]['description']])
+            rows.sort(key=lambda row: sort_key(row[0]))
+            table = {'headers': ["Device", "MAC", "IP", "Finding"], 'rows': rows} if rows else None
+            results.append((label, sentence(vulnerabilities[headline]['description'], label), details, table))
+
+        counts = {1: 0, 0: 0, 2: 0}
+        for label in (1, 2, 0):
+            for result_label, text, details, table in results:
+                if result_label != label:
+                    continue
+                counts[label] += 1
+                bullet_type = {1: "VULN", 0: "NOTVULN"}.get(label, "WARNING")
+                ptprinthelper.ptprint(text, bullet_type, condition=True, indent=4)
+                for line in details:
+                    ptprinthelper.ptprint(line, condition=True, indent=8)
+                if table:
+                    rendered = tabulate(table['rows'], headers=table['headers'], tablefmt='grid')
+                    for line in rendered.split('\n'):
+                        ptprinthelper.ptprint(line, condition=True, indent=8)
+
+        ptprinthelper.ptprint(
+            f"Tests: {counts[1]} vulnerable, {counts[0]} not vulnerable, {counts[2]} cannot be determined. "
+            "Details: -vv",
+            "INFO", condition=True, indent=4,
+        )
+
+    @staticmethod
+    def _load_test_results() -> dict:
+        """Results stored by tests that report a sentence instead of the tables."""
+        try:
+            with open(get_csv_path("test_results.json"), encoding="utf-8") as handle:
+                return dict(sorted(json.load(handle).items()))
+        except (OSError, ValueError):
+            return {}
+
+    @staticmethod
+    def _own_codes() -> set[str]:
+        """Vulnerability codes of the tests in test_results.json, kept out of the tables."""
+        test_catalog = load_vuln_catalog_by_test()
+        return {
+            entry["Code"].upper()
+            for test_code in Non_json._load_test_results()
+            for entry in test_catalog.get(test_code, [])
+        }
+
+    @staticmethod
     def _print_network_findings(
         mode: str,
         vulnerability_file: str,
@@ -772,6 +935,8 @@ class Non_json:
             vuln_df = read_csv_text(vulnerability_file)
             vuln_net_df = read_csv_text(vulnerability_net_file)
 
+            own_codes = Non_json._own_codes()
+
             # Every verdict that counts towards the overall status line.
             all_vuln_results = []
 
@@ -779,6 +944,8 @@ class Non_json:
             if not has_target_filter:
                 for _, vuln_row in vuln_net_df[vuln_net_df['ID'] == "Network"].iterrows():
                     code = vuln_row.get('Code', '')
+                    if code.strip().upper() in own_codes:
+                        continue
                     if target_vuln_codes_set and code.strip().upper() not in target_vuln_codes_set:
                         continue
                     if not mode_matches(mode, vuln_row['Mode']):
@@ -796,6 +963,8 @@ class Non_json:
                         continue
                     code = vuln_row.get('Code', '')
                     if code.strip().upper() not in target_vuln_codes_set:
+                        continue
+                    if code.strip().upper() in own_codes:
                         continue
                     if target_macs_set and vuln_row.get('MAC', '').strip().upper() not in target_macs_set:
                         continue
@@ -833,6 +1002,7 @@ class Non_json:
         target_codes: set[str] | None = None,
         target_macs: set[str] | None = None,
         target_ips: set[str] | None = None,
+        brief: bool = False,
     ) -> None:
         """
         Output general device and network information, including vulnerabilities.
@@ -845,6 +1015,7 @@ class Non_json:
             target_codes (set[str] | None): Optional filter for vulnerability codes.
             target_macs (set[str] | None): Optional filter for target MAC addresses.
             target_ips (set[str] | None): Optional filter for target IP addresses.
+            brief (bool): Devices only; the findings are left to the result lines (default output without -vv).
         """
         if addresses_file_name is None:
             addresses_file_name = get_csv_path("addresses.csv")
@@ -878,15 +1049,16 @@ class Non_json:
         # rendered before the inventory and regardless of whether any device was
         # discovered. Keeping them inside the inventory guard hid them completely on
         # a quiet link, and hid the 802.1x verdict in the mode that only has one.
-        Non_json._print_network_findings(
-            mode,
-            vulnerability_file,
-            vulnerability_net_file,
-            target_codes_set,
-            target_vuln_codes_set,
-            target_macs_set,
-            has_target_filter,
-        )
+        if not brief:
+            Non_json._print_network_findings(
+                mode,
+                vulnerability_file,
+                vulnerability_net_file,
+                target_codes_set,
+                target_vuln_codes_set,
+                target_macs_set,
+                has_target_filter,
+            )
 
         if has_additional_data(addresses_file_name) and has_additional_data(role_node_file):
             role_node_df_full = read_csv_text(role_node_file)
@@ -952,6 +1124,7 @@ class Non_json:
             all_ip = addresses_df['IP'].to_list()
             from ptnetinspector.entities.port import Port
             ports_by_mac = Port.collect_by_mac()
+            own_codes = Non_json._own_codes()
             for index, row in role_node_df.iterrows():
                 mac_address = row['MAC']
                 device_number = row['Device_Number']
@@ -999,6 +1172,8 @@ class Non_json:
                         labelled.append(f"{port}/{proto}" + (f" ({service})" if service else ""))
                     ptprinthelper.ptprint(f"Ports {', '.join(labelled)}", condition=True, indent=8)
 
+                if brief:
+                    continue
 
                 vuln_df = read_csv_text(vulnerability_file)
                 if target_ips_set and has_additional_data(vulnerability_ip_file):
@@ -1026,6 +1201,8 @@ class Non_json:
                         device_vulns = device_vulns[device_vulns['Code'].str.upper().isin(target_vuln_codes_set)]
                 for _, vuln_row in device_vulns.iterrows():
                     code = vuln_row.get('Code', '')
+                    if str(code).strip().upper() in own_codes:
+                        continue
                     desc = vuln_row.get('Description', '')
                     ipver_vuln = vuln_row.get('IPver', '')
                     label = normalize_label(vuln_row.get('Label'))

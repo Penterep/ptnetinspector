@@ -95,3 +95,18 @@ class TestCLIParsing:
         assert "Before block" in captured.out
         assert "During block" not in captured.out
         assert "After enable" in captured.out
+
+    def test_help_lists_every_test_code_under_ts(self):
+        """Every Test code from the catalog is listed in the -ts section of the help."""
+        from ptnetinspector.utils.cli import get_help
+        from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
+
+        options = next(section["options"] for section in get_help() if "options" in section)
+        assert options[0][0].strip() == "-ts"
+        ts_rows = []
+        for row in options[1:]:
+            if row[0].strip():
+                break
+            ts_rows.append(row[1].split()[0])
+
+        assert set(load_vuln_catalog_by_test()) <= set(ts_rows)

@@ -217,7 +217,7 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: Object with parsed arguments.
     """
     parser = CustomArgumentParser(description='start ptnetinspector')
-    parser.add_argument("-t", nargs='+', choices=["802.1x", "p", "a", "a+"], help="first mandatory argument")
+    parser.add_argument("-t", nargs='+', choices=["802.1x", "p", "a", "a+", "NULL"], help="first mandatory argument")
     parser.add_argument("-i", dest="interface", help="second mandatory argument")
     parser.add_argument("-j", action="store_true")
     parser.add_argument("-target", dest="targets", nargs="+", action="append", help="target MAC/IP address(es) for results filtering (space-separated; -target can be repeated)")
@@ -324,25 +324,65 @@ def get_help() -> list:
         ]},
         {"usage": ["ptnetinspector -t <mode> -i <interface> [options]"]},
         {"options": [
-            ["-t              ", "Type of scan (mandatory, multiple choices allowed):"],
-            ["                ", "   802.1x    Test for 802.1x protocol"],
-            ["                ", "   p         Passive mode - sniff incoming packets"],
-            ["                ", "   a         Active mode - test vulnerabilities with various packets"],
-            ["                ", "   a+        Aggressive mode - perform tests as fake router"],
-            ["-i              ", "Interface (mandatory)"],
-            ["-j              ", "Output in JSON format"],
-            ["-target         ", "Target MAC/IP address(es) for filtering (space-separated; MAC => device + all IPs, IP => only that address)"],
-            ["-vv             ", "Show full details of network scan plus DEBUG diagnostics"],
-            ["-less           ", "Show minimum details of network scan"],
-            ["-nc             ", "Do not probe found addresses for reachability (reports all observed addresses)"],
-            ["-rdns           ", "Reverse-resolve discovered addresses (PTR) against the DNS servers found on the link"],
-            ["                ", "   sends unicast DNS off-link, so it is off by default"],
-            ["-4              ", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
-            ["-6              ", "Only IPv6 traffic"],
-            ["                ", "   default: IPv6 only; add -4 to also scan IPv4"],
-            ["-ts             ", "Filter vulnerabilities by Test code (space-separated, e.g., -ts 4-MDNS 6-LLMNR)"],
-            ["-tmpret         ", "Temporary file retention in seconds (default: 1800; set small for dev reset)"],
-            ["-h              ", "Show this help message and exit"]
+            ["-ts", "Filter vulnerabilities by Test code (space-separated, e.g., -ts 4-MDNS 6-LLMNR)"],
+            ["", "   Layer 2 and switching"],
+            ["", "      TRUNK                 Port receives 802.1Q tagged frames (trunk port)"],
+            ["", "      4-SNOOPING            IPv4 multicast delivered to ports that did not join (IGMP snooping)"],
+            ["", "      6-SNOOPING            IPv6 multicast delivered to ports that did not join (MLD snooping)"],
+            ["", "      4-ISOLATION           IPv4 hosts in the same VLAN reachable directly at layer 2 (no port isolation)"],
+            ["", "      6-ISOLATION           IPv6 hosts in the same VLAN reachable directly at layer 2 (no port isolation)"],
+            ["", "      802-1X                Network does not have 802.1x deployed"],
+            ["", "   Passive reconnaissance"],
+            ["", "      4-INVENTORY           IPv4 devices and ports revealed by passive observation"],
+            ["", "      6-INVENTORY           IPv6 devices and ports revealed by passive observation"],
+            ["", "      LOCAL                 Local information of the tester's host, DHCP servers on public addresses"],
+            ["", "      6-PREDICT-GLOBIP      Device uses predictable IPv6 global address"],
+            ["", "      6-PREDICT-LINKLOCALIP Device uses predictable IPv6 link-local address"],
+            ["", "   Name and service discovery"],
+            ["", "      4-MDNS                Delivery of IPv4 mDNS queries"],
+            ["", "      6-MDNS                Delivery of IPv6 mDNS queries"],
+            ["", "      4-LLMNR               Delivery of IPv4 LLMNR queries"],
+            ["", "      6-LLMNR               Delivery of IPv6 LLMNR queries"],
+            ["", "      4-DNSSD               Device discovery with IPv4 DNS Service Discovery"],
+            ["", "      6-DNSSD               Device discovery with IPv6 DNS Service Discovery"],
+            ["", "      4-WS                  Device discovery with IPv4 WS-Discovery"],
+            ["", "      6-WS                  Device discovery with IPv6 WS-Discovery"],
+            ["", "   ICMP and ICMPv6"],
+            ["", "      4-BRCASTECHO          Delivery of broadcast ICMP Echo Request"],
+            ["", "      4-MULTIECHO           Delivery of multicast ICMP Echo Request"],
+            ["", "      6-MULTIECHO           Delivery of multicast ICMPv6 Echo Request"],
+            ["", "      4-INVPACKET           Delivery of invalid ICMP packets"],
+            ["", "      6-INVPACKET           Delivery of invalid ICMPv6 packets"],
+            ["", "      6-INVECHODO           Delivery of ICMPv6 Echo Request with invalid Destination Options"],
+            ["", "      6-INVECHOHBH          Delivery of ICMPv6 Echo Request with invalid Hop-by-Hop Options"],
+            ["", "      6-INVEMPTYDO          Delivery of empty packets with invalid Destination Options"],
+            ["", "      6-INVEMPTYHBH         Delivery of empty packets with invalid Hop-by-Hop Options"],
+            ["", "      6-OUTRANGE            Delivery of ICMPv6 from sources outside the local network range"],
+            ["", "      4-ICMPREDIR           Network does not block ICMP Redirect messages"],
+            ["", "   Multicast listener discovery"],
+            ["", "      6-MLDV1               Delivery of illegitimate MLDv1 queries"],
+            ["", "      6-MLDV2               Delivery of illegitimate MLDv2 queries"],
+            ["", "   Router advertisement"],
+            ["", "      6-FAKERA              Network does not have RA guard configured (requires -prefix and -dns)"],
+            ["-t", "Type of scan (mandatory, multiple choices allowed):"],
+            ["", "   802.1x    Test for 802.1x protocol"],
+            ["", "   p         Passive mode - sniff incoming packets"],
+            ["", "   a         Active mode - test vulnerabilities with various packets"],
+            ["", "   a+        Aggressive mode - perform tests as fake router"],
+            ["", "   NULL      No scan, only evaluate already-available data (used by LOCAL)"],
+            ["-i", "Interface (mandatory)"],
+            ["-j", "Output in JSON format"],
+            ["-target", "Target MAC/IP address(es) for filtering (space-separated; MAC => device + all IPs, IP => only that address)"],
+            ["-vv", "Show full details of network scan plus DEBUG diagnostics"],
+            ["-less", "Show minimum details of network scan"],
+            ["-nc", "Do not probe found addresses for reachability (reports all observed addresses)"],
+            ["-rdns", "Reverse-resolve discovered addresses (PTR) against the DNS servers found on the link"],
+            ["", "   sends unicast DNS off-link, so it is off by default"],
+            ["-4", "Only IPv4 traffic (cannot be used alone for a+ mode)"],
+            ["-6", "Only IPv6 traffic"],
+            ["", "   default: IPv6 only; add -4 to also scan IPv4"],
+            ["-tmpret", "Temporary file retention in seconds (default: 1800; set small for dev reset)"],
+            ["-h", "Show this help message and exit"]
         ]},
         {"passive scan options (mode p)": [
             ["-d       <seconds>     ", "Duration of passive scan (float allowed, default: 30)"]
@@ -396,6 +436,11 @@ def get_help() -> list:
             ["      ptnetinspector -ts TRUNK -i eth0"],
             ["      ptnetinspector -ts 4-INVENTORY -i eth0"],
             ["      ptnetinspector -ts 6-INVENTORY -i eth0"],
+            ["      ptnetinspector -ts LOCAL -i eth0"],
+            ["      ptnetinspector -ts 4-SNOOPING -i eth0"],
+            ["      ptnetinspector -ts 6-SNOOPING -i eth0"],
+            ["      ptnetinspector -ts 4-ISOLATION -i eth0"],
+            ["      ptnetinspector -ts 6-ISOLATION -i eth0"],
         ]}
     ]
 
@@ -613,6 +658,7 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
             return None
 
         has_eap = False
+        has_null = False
         passive_only = False
         passive_possible = False
         active_only = False
@@ -623,6 +669,8 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
         for modes in modes_per_entry:
             if modes == ["802.1x"]:
                 has_eap = True
+            if modes == ["NULL"]:
+                has_null = True
             if modes == ["p"]:
                 passive_only = True
             if "p" in modes:
@@ -640,6 +688,9 @@ def _validate_target_codes(target_codes, scan_types, ip_mode, ipv4, ipv6, list_e
 
         if has_eap:
             inferred_scan_types.append("802.1x")
+
+        if has_null:
+            inferred_scan_types.append("NULL")
 
         # Choose the SINGLE most appropriate mode based on what tests require:
         # Strategy: Prefer the less intrusive mode that can satisfy all selected tests
@@ -831,6 +882,20 @@ def _validate_active_mode(interface, ip_mode, duration_passive, duration_aggress
         list_error.append(err)
 
     return smac, ip_mode
+
+
+def _is_ip_less_selection(test_codes) -> bool:
+    """True when every selected Test code has no IP version (TRUNK, LOCAL, 802-1X),
+    so the interface does not need an address to run them."""
+    if not test_codes:
+        return False
+    try:
+        test_catalog = load_vuln_catalog_by_test()
+    except Exception:
+        return False
+    return all(
+        not entry.get("IPver") for code in test_codes for entry in test_catalog.get(code, [])
+    )
 
 
 def _reconcile_ip_mode(interface, ip_mode, ipver_explicit, list_error, list_warning) -> IPMode:
@@ -1067,12 +1132,14 @@ def _print_parameter_info(interface, ip_mode, json_output, type, more_detail, le
                 ptprinthelper.ptprint(f"Using mode active", "INFO", condition=True, indent=4)
             if ele == "a+":
                 ptprinthelper.ptprint(f"Using mode aggressive", "INFO", condition=True, indent=4)
+            if ele == "NULL":
+                ptprinthelper.ptprint("Using mode NULL (no scan, local data only)", "INFO", condition=True, indent=4)
 
         if more_detail:
-            ptprinthelper.ptprint("Displaying full detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint("Displaying full detail", "INFO", condition=True, indent=4)
             ptprinthelper.ptprint("Chatty DEBUG diagnostics enabled (-vv)", "INFO", condition=True, indent=4)
         if not more_detail:
-            ptprinthelper.ptprint("Displaying only basic detail (except for mode 802.1x)", "INFO", condition=True, indent=4)
+            ptprinthelper.ptprint("Displaying only basic detail", "INFO", condition=True, indent=4)
         # Reachability probes only exist in the modes that may transmit; passive and
         # 802.1x never probe, so reporting a check there would be misleading.
         if any(mode in type for mode in ("a", "a+")):
@@ -1165,9 +1232,6 @@ def parameter_control(
     # opt-in with -4. An interface with no IPv6 falls back to IPv4 rather than
     # scanning nothing - see _reconcile_ip_mode.
     ip_mode = IPMode(ipv4, ipv6) if (ipv4 or ipv6) else IPMode(False, True)
-    ip_mode = _reconcile_ip_mode(
-        interface, ip_mode, bool(ipv4 or ipv6), list_error, list_warning
-    )
 
     _validate_detail_flags(more_detail, less_detail, json_output)
 
@@ -1190,8 +1254,13 @@ def parameter_control(
             validated_target_codes = test_codes
             if not type:
                 type = inferred_type
-            if not (ipv4 or ipv6) and inferred_ip_mode:
-                ip_mode = inferred_ip_mode
+
+    if not _is_ip_less_selection(validated_target_codes):
+        ip_mode = _reconcile_ip_mode(
+            interface, ip_mode, bool(ipv4 or ipv6), list_error, list_warning
+        )
+    if validated_target_codes and not (ipv4 or ipv6) and inferred_ip_mode:
+        ip_mode = inferred_ip_mode
 
     _require_fakera_params(validated_target_codes, prefix, dns, list_error)
 
@@ -1201,13 +1270,14 @@ def parameter_control(
     prefix_len = None
     network = None
 
-    if type == ["p"] or ("p" in type and "802.1x" in type):
+    scan_types = [mode for mode in type if mode != "NULL"]
+    if scan_types == ["p"] or ("p" in scan_types and "802.1x" in scan_types):
         duration_passive = _validate_passive_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning)
-    elif type == ["802.1x"]:
+    elif scan_types == ["802.1x"]:
         _validate_802_1x_mode(duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error)
-    elif type == ["a"] or ("a" in type and "802.1x" in type and len(type) == 2):
+    elif scan_types == ["a"] or ("a" in scan_types and "802.1x" in scan_types and len(scan_types) == 2):
         smac, ip_mode = _validate_active_mode(interface, ip_mode, duration_passive, duration_aggressive, prefix, sip, rpref, period, chl, mtu, dns, smac, nofwd, list_error, list_warning)
-    if type == ["a+"] or ("a+" in type and ("802.1x" in type or "a" in type)):
+    if scan_types == ["a+"] or ("a+" in scan_types and ("802.1x" in scan_types or "a" in scan_types)):
         duration_aggressive, prefix_len, network, smac, sip, rpref, period, chl, mtu, dns = _validate_aggressive_mode(
             interface, ip_mode, duration_passive, duration_aggressive, prefix, smac, sip, rpref, period, chl, mtu, dns, nofwd, list_error, list_warning
         )

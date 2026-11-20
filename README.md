@@ -4,7 +4,7 @@
 | |_) / _ \ '_ \| __/ _ \ '__/ _ \ '_ \    | |/ _ \ / _ \| / __|
 |  __/  __/ | | | ||  __/ | |  __/ |_) |   | | (_) | (_) | \__ \
 |_|   \___|_| |_|\__\___|_|  \___| .__/    |_|\___/ \___/|_|___/
-                                 |_|      ptnetinspector v0.2.3
+                                 |_|      ptnetinspector v0.2.5
                                        https://www.penterep.com
 ```
 
@@ -107,11 +107,11 @@ The following options are applicable to all scan modes:
 
 | Option  | Description |
 |---------|-------------|
-| `-t`    | Type of scan (**mandatory**, can choose more than one): <br> - `802.1x`: Network test for 802.1x protocol <br> - `a`: Active mode for network scanning <br> - `a+`: Aggressive mode for network scanning <br> - `p`: Passive mode for network scanning |
+| `-t`    | Type of scan (**mandatory**, can choose more than one): <br> - `802.1x`: Network test for 802.1x protocol <br> - `a`: Active mode for network scanning <br> - `a+`: Aggressive mode for network scanning <br> - `p`: Passive mode for network scanning <br> - `NULL`: No scan, only evaluates data available on the tester itself (used by `LOCAL`; inferred by `-ts`) |
 | `-i`    | Interface (**mandatory**) |
 | `-target` | Target device(s) by MAC address (space-separated or repeated). Filters output to only show results for specified MAC(s). Example: `-target ca:01:08:2b:00:01 -target 00:0c:29:35:45:d8` or `-target ca:01:08:2b:00:01 00:0c:29:35:45:d8` |
 | `-j`    | Output in JSON format. Displays only JSON output unless used with other options. Includes errors if present. |
-| `-vv` | Displays full details of the network scan plus DEBUG diagnostics. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown. |
+| `-vv` | Displays full details of the network scan plus DEBUG diagnostics. When used with `-j`, outputs detailed and JSON data. Default: Basic details are shown: every test is reported as one result line (✗ vulnerable, ✓ not vulnerable, ! cannot be determined) with its details and, where it helps, a table of the affected devices. The per-code tables, Vulnerability Summary, Device Summary and Vulnerability Matrix are shown with `-vv`. |
 | `-less` | Displays minimum details of the network scan. When used with `-j`, outputs minimal and JSON data. Default: Basic details are shown. |
 | `-nc`   | Disables checking if found addresses are valid and responsive. No ARP/Neighbour-Solicitation probes are sent, and every observed address is reported instead of only the ones that answered — including neighbours on a private range outside the auto-detected subnets. Publicly routable addresses seen in transit stay excluded (they belong to hosts beyond the router, not to the device that relayed the frame); the raw view is always in `addresses_unfiltered.csv`. |
 | `-4`    | Only scan IPv4 traffic (cannot be used alone for `a+` mode). |
@@ -178,6 +178,8 @@ Beyond the vulnerability findings, a scan extracts:
   plus a join to an otherwise unused group to probe whether the switch snoops. The
   snooping result is inferential and depends on switch configuration.
 - **Duplicate Address Detection** — addresses caught at the moment a host claims them.
+- **Joined multicast groups** — the groups the tester itself has joined when the capture
+  ends, so the snooping test compares received groups with the memberships of that moment.
 
 ## Examples
 
@@ -237,6 +239,26 @@ ptnetinspector -ts 6-MLDV1 6-OUTRANGE -i eth0 -j
 Mixed 802.1x and other tests (auto-infers modes `[802.1x, a]`):
 ```
 ptnetinspector -ts 802-1X 6-OUTRANGE 4-MULTIECHO -i eth0
+```
+
+Layer 2 tests of the port (auto-infer passive mode `p`): `TRUNK` reports 802.1Q or 802.1ad tagged frames reaching the port, `4-SNOOPING`/`6-SNOOPING` report multicast groups another host reported that reach a port which never joined them (IGMP/MLD snooping missing). Groups nobody reported may be flooded by design, so they leave the result undetermined; a capture longer than the querier interval (usually 125 s) makes the result more reliable:
+```
+ptnetinspector -ts TRUNK 4-SNOOPING 6-SNOOPING -i eth0 -d 130
+```
+
+Devices and ports revealed by passive observation alone (auto-infers mode `p`):
+```
+ptnetinspector -ts 4-INVENTORY 6-INVENTORY -i eth0
+```
+
+Port isolation: hosts in the same VLAN other than the gateway or a DHCP server that answer a direct ARP/Neighbor Solicitation probe, or whose frames reach the port at all (auto-infers mode `a`, also evaluated in `a+`):
+```
+ptnetinspector -ts 4-ISOLATION 6-ISOLATION -i eth0
+```
+
+Local overview of the tester (auto-infers mode `NULL`, sends nothing): neighbours and sockets of the interface and the servers DHCP/DHCPv6 provided; a server on a public address is reported. DHCP data is read from NetworkManager:
+```
+ptnetinspector -ts LOCAL -i eth0
 ```
 
 ### Reverse DNS Resolution

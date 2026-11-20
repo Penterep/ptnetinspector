@@ -214,7 +214,7 @@ class TestRetentionWindow:
     REQUIRED = ["addresses.csv", "addresses_unfiltered.csv", "networks.csv"]
 
     def _run(self, tmp_path, retention, *, age=None, saved_sig=None,
-             current_sig=None, make_required=True, make_params=True):
+             current_sig=None, make_required=True, make_params=True, make_complete=True):
         import os
         import time
 
@@ -227,6 +227,8 @@ class TestRetentionWindow:
                 (tmp_path / name).write_text("MAC,IP\n", encoding="utf-8")
         if make_params:
             (tmp_path / "run_params.json").write_text("{}", encoding="utf-8")
+        if make_complete:
+            (tmp_path / "run_complete").touch()
         if age is not None:
             stamp = time.time() - age
             for path in tmp_path.iterdir():
@@ -289,6 +291,12 @@ class TestRetentionWindow:
                                   current_sig=_make_sig(scanning_type=["p"]))
         assert reused is False
         assert calls["delete"] == 1
+
+    def test_interrupted_run_refreshes_within_the_window(self, tmp_path):
+        """A run stopped by Ctrl-C leaves no completion marker, so its partial data is not reused."""
+        reused, calls = self._run(tmp_path, 1800, age=10, make_complete=False)
+        assert reused is False
+        assert calls["delete"] == 1 and calls["create"] == 1
 
     def test_missing_required_file_refreshes_within_the_window(self, tmp_path):
         reused, calls = self._run(tmp_path, 1800, age=10, make_required=False)

@@ -210,6 +210,131 @@ class TestGlobalLock:
         assert not lock_file.exists()
 
 
+    def test_a_lock_held_by_a_child_of_a_dead_run_is_cleared(self, tmp_path):
+        """A child that outlived an interrupted run keeps the flock, but the PID in the file is gone."""
+        import fcntl
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        fd = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        os.write(fd, b"999999999")
+        try:
+            assert _cleanup_stale_lock(lock_file) is True
+            assert not lock_file.exists()
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    def test_a_held_lock_of_a_running_process_is_kept(self, tmp_path):
+        import fcntl
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        fd = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        os.write(fd, str(os.getpid()).encode())
+        try:
+            assert _cleanup_stale_lock(lock_file) is False
+            assert lock_file.exists()
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    @pytest.mark.filterwarnings("ignore:This process .* is multi-threaded:DeprecationWarning")
+    def test_a_forked_child_does_not_keep_the_lock(self, tmp_path):
+        """The child closes its inherited copy, so the lock ends with the parent."""
+        import ptnetinspector.utils.lock as lock
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        lock.acquire_global_lock(lock_file, verbose=False)
+        try:
+            read_end, write_end = os.pipe()
+            pid = os.fork()
+            if pid == 0:
+                os.close(read_end)
+                os.write(write_end, b"1" if lock._LOCK_FD is None else b"0")
+                os._exit(0)
+            os.close(write_end)
+            child_closed = os.read(read_end, 1)
+            os.close(read_end)
+            os.waitpid(pid, 0)
+            assert child_closed == b"1"
+            assert lock._LOCK_FD is not None
+            assert lock._lock_is_held(lock_file)
+        finally:
+            lock._release_lock()
+
+
+    def test_another_instance_is_running_only_while_a_live_run_holds_the_lock(self, tmp_path):
+        import fcntl
+        from ptnetinspector.utils.lock import another_instance_running
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        assert another_instance_running(lock_file) is False
+
+        fd = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            os.write(fd, str(os.getpid()).encode())
+            assert another_instance_running(lock_file) is True
+            os.ftruncate(fd, 0)
+            os.lseek(fd, 0, os.SEEK_SET)
+            os.write(fd, b"999999999")
+            assert another_instance_running(lock_file) is False
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+
+    def test_a_second_waiter_taking_the_lock_first_sends_this_one_back_to_waiting(self, tmp_path, monkeypatch):
+        """Two queued runs may see the lock free at once; the one that loses goes back to waiting."""
+        import fcntl
+        import ptnetinspector.utils.lock as lock
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        other = os.open(lock_file, os.O_RDWR | os.O_CREAT, 0o600)
+        fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        os.write(other, str(os.getpid()).encode())
+        calls = []
+
+        def fake_wait(path, verbose=True, timeout=0):
+            calls.append(timeout)
+            if len(calls) == 2:
+                fcntl.flock(other, fcntl.LOCK_UN)
+
+        monkeypatch.setattr(lock, "_wait_for_lock_release", fake_wait)
+        try:
+            lock.acquire_global_lock(lock_file, verbose=False)
+            assert len(calls) == 2
+            assert lock._LOCK_FD is not None
+        finally:
+            lock._release_lock()
+            os.close(other)
+
+    def test_a_lock_file_replaced_after_flock_is_taken_again(self, tmp_path, monkeypatch):
+        """A lock file replaced between the flock and the PID write is locked again."""
+        import fcntl
+        import ptnetinspector.utils.lock as lock
+
+        lock_file = tmp_path / ".ptnetinspector.lock"
+        real_flock = fcntl.flock
+        replaced = []
+
+        def flock_then_replace(fd, operation):
+            real_flock(fd, operation)
+            if operation == fcntl.LOCK_EX | fcntl.LOCK_NB and not replaced:
+                replaced.append(fd)
+                lock_file.unlink()
+                lock_file.write_text("")
+
+        monkeypatch.setattr(lock.fcntl, "flock", flock_then_replace)
+        try:
+            lock.acquire_global_lock(lock_file, verbose=False)
+            assert replaced
+            assert os.fstat(lock._LOCK_FD).st_ino == os.stat(lock_file).st_ino
+        finally:
+            lock._release_lock()
+
+
 class TestRoutingTableCapture:
     """M4: net-tools' `route` is absent on current distributions, and its
     FileNotFoundError is neither CalledProcessError nor TimeoutExpired, so the
@@ -271,3 +396,55 @@ class TestTerminationSignals:
         assert "atexit.register(_restore_host_state)" in source
         # And a self-heal for the SIGKILL case, which cannot be trapped.
         assert "flush_tagged_rules()" in source
+
+
+
+def _sleep_forever():
+    import time
+    while True:
+        time.sleep(0.1)
+
+
+def _start_grandchild(pid_file):
+    import multiprocessing
+    from ptnetinspector.scan import _forked_target
+
+    grandchild = multiprocessing.Process(target=_forked_target, args=(_sleep_forever, []))
+    grandchild.start()
+    with open(pid_file, "w") as handle:
+        handle.write(str(grandchild.pid))
+    _sleep_forever()
+
+
+class TestChildProcessTree:
+    """Terminating a child also stops the processes it started (the active scan inside -t a+)."""
+
+    @pytest.mark.filterwarnings("ignore:This process .* is multi-threaded:DeprecationWarning")
+    def test_terminating_children_stops_their_own_children_too(self, tmp_path):
+        import multiprocessing
+        import time
+        from ptnetinspector.scan import _forked_target
+        from ptnetinspector.utils.runtime import terminate_child_processes
+
+        pid_file = tmp_path / "grandchild.pid"
+        child = multiprocessing.get_context("fork").Process(
+            target=_forked_target, args=(_start_grandchild, [str(pid_file)])
+        )
+        child.start()
+        deadline = time.monotonic() + 5
+        while not pid_file.exists() or not pid_file.read_text():
+            assert time.monotonic() < deadline
+            time.sleep(0.05)
+        grandchild_pid = int(pid_file.read_text())
+
+        terminate_child_processes()
+
+        deadline = time.monotonic() + 5
+        while True:
+            try:
+                os.kill(grandchild_pid, 0)
+            except ProcessLookupError:
+                break
+            assert time.monotonic() < deadline, "grandchild survived"
+            time.sleep(0.05)
+        assert not child.is_alive()

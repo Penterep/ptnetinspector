@@ -10,6 +10,7 @@ import json
 import logging
 import multiprocessing
 import os
+import signal
 import sys
 import time
 import ipaddress
@@ -26,6 +27,8 @@ from ptnetinspector.utils.vuln_catalog import load_vuln_catalog_by_test
 
 
 logger = logging.getLogger(__name__)
+
+RUN_COMPLETE_FILE = "run_complete"
 
 
 _debug_handler: logging.Handler | None = None
@@ -288,6 +291,15 @@ def write_run_signature(tmp_dir: Path, signature: dict) -> None:
         pass
 
 
+def mark_run_complete(tmp_dir: Path) -> None:
+    """Record that the run finished, so its tmp data may be reused."""
+    try:
+        (tmp_dir / RUN_COMPLETE_FILE).touch()
+    except OSError:
+        # Without the marker the next run only rescans instead of reusing.
+        pass
+
+
 def load_run_signature(tmp_dir: Path):
     sig_path = tmp_dir / "run_params.json"
     try:
@@ -336,13 +348,17 @@ def prepare_networks_file(interface_name: str, networks_path: Path) -> None:
 
 
 def terminate_child_processes(timeout: float = 1.0) -> None:
-    """Terminate any active multiprocessing children to avoid hung processes on interrupt."""
+    """Terminate any active multiprocessing children, with the processes they started, on interrupt."""
     for proc in multiprocessing.active_children():
         try:
-            proc.terminate()
-        except Exception:
-            # Child may already be exiting.
-            pass
+            # Each child leads its own process group (scan._forked_target).
+            os.killpg(proc.pid, signal.SIGTERM)
+        except OSError:
+            try:
+                proc.terminate()
+            except Exception:
+                # Child may already be exiting.
+                pass
     for proc in multiprocessing.active_children():
         try:
             proc.join(timeout=timeout)
@@ -636,6 +652,16 @@ def prepare_tmp_files(
         write_run_signature_fn(tmp_dir, current_signature)
         return False
 
+    # The signature is written when a run starts, so on its own it cannot tell
+    # a finished run from one interrupted by Ctrl-C with partial data.
+    if not (tmp_dir / RUN_COMPLETE_FILE).exists():
+        if not less_detail:
+            ptprinthelper.ptprint("\033[90mPrevious run did not finish; recreating temporary files\033[0m", "WARNING", condition=True, indent=4)
+        del_tmp_path_fn(interface)
+        create_csv_fn(interface)
+        write_run_signature_fn(tmp_dir, current_signature)
+        return False
+
     saved_signature = load_run_signature_fn(tmp_dir)
     if saved_signature is None:
         if not less_detail:
@@ -738,12 +764,13 @@ def handle_output(
             target_codes=target_codes,
             target_macs=target_macs,
             target_ips=target_ips,
+            brief=not more_detail,
         )
         # The device summary is printed inside read_vulnerability_table, between
         # the Vulnerability Summary counts and the Vulnerability Matrix.
         Non_json.read_vulnerability_table(scan_type, ip_mode, target_codes=target_codes,
                                           target_macs=target_macs, target_ips=target_ips,
-                                          check_addresses=check_addresses)
+                                          check_addresses=check_addresses, brief=not more_detail)
 
         if more_detail:
             time_file = get_csv_path_fn("time_incoming.csv")

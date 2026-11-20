@@ -440,3 +440,190 @@ class TestVulnerabilitySortHandlesEveryFileShape:
                'Description': 'a', 'Label': '2'}
         assert [r['Label'] for r in self._run(temp_dir, [row, {**row, 'Label': '1'}])] == ['1']
         assert [r['Label'] for r in self._run(temp_dir, [{**row, 'Label': '1'}, row])] == ['2']
+
+
+class TestOwnResultLines:
+    """Tests with their own result sentences print one line instead of the tables."""
+
+    @pytest.fixture
+    def output(self, temp_dir):
+        import ptnetinspector.output.non_json as NJ
+        import ptnetinspector.utils.csv_helpers as CH
+        import io
+        import contextlib
+        import re
+
+        csv_path = lambda name, iface=None: temp_dir / name
+        with patch('ptnetinspector.utils.path.get_tmp_path', lambda i=None: temp_dir), \
+             patch.object(CH, 'get_tmp_path', lambda i=None: temp_dir):
+            CH.create_csv()
+
+        _write_csv(temp_dir / "vulnerability_net.csv", NET_FIELDS, [
+            {'ID': 'Network', 'Mode': 'p', 'IPver': '', 'Code': 'PTV-NET-TRUNK-MISCONF',
+             'Description': 'Network delivers 802.1Q tagged frames to the port', 'Label': '1'},
+            {'ID': 'Network', 'Mode': 'p', 'IPver': '4', 'Code': 'PTV-NET-4-INVENTORY-IDENT',
+             'Description': 'Network reveals IPv4 devices', 'Label': '0'},
+        ])
+        _write_csv(temp_dir / "vulnerability_mac.csv", MAC_FIELDS, [
+            {'ID': '1', 'MAC': '00:11:22:00:00:01', 'Mode': 'p', 'IPver': '4',
+             'Code': 'PTV-NET-4-INVENTORY-IDENTDEV', 'Description': 'Device reveals its IPv4 address', 'Label': '1'},
+        ])
+        (temp_dir / "test_results.json").write_text(_json.dumps({
+            "TRUNK": {"mode": "p", "label": 1, "sentence": "802.1Q tagged frames received, the port behaves as a trunk",
+                      "details": ["VLAN IDs: 10, 20"], "table": None},
+            "4-INVENTORY": {"mode": "p", "label": 0, "sentence": "IPv4 devices NOT observed, the network reveals no addresses",
+                            "details": [], "table": {"headers": ["Device", "MAC"], "rows": [["1", "00:11:22:00:00:01"]]}},
+            "LOCAL": {"mode": "NULL", "label": 2, "sentence": "Printed only in the NULL mode", "details": [], "table": None},
+        }))
+
+        from ptnetinspector.output.non_json import Non_json
+        with patch('ptnetinspector.utils.path.get_tmp_path', lambda i=None: temp_dir), \
+             patch('ptnetinspector.utils.ip_utils.get_csv_path', csv_path), \
+             patch.object(NJ, 'get_csv_path', csv_path):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                Non_json.read_vulnerability_table("p", IPMode(True, True))
+        return re.sub(r'\x1b\[[0-9;]*m', '', buf.getvalue())
+
+    def test_result_sentences_follow_the_label(self, output):
+        assert "[✗] 802.1Q tagged frames received, the port behaves as a trunk" in output
+        assert "[✓] IPv4 devices NOT observed, the network reveals no addresses" in output
+
+    def test_details_and_table_follow_the_sentence(self, output):
+        assert "VLAN IDs: 10, 20" in output
+        assert "00:11:22:00:00:01" in output
+
+    def test_results_of_other_modes_are_not_printed(self, output):
+        assert "Printed only in the NULL mode" not in output
+
+    def test_no_codes_counters_or_tables(self, output):
+        assert "PTV-" not in output
+        assert "[1/" not in output
+        assert "Vulnerability Summary" not in output
+        assert "Vulnerability Matrix" not in output
+
+
+class TestBriefResultLines:
+    """Without -vv the original tests print one line per vulnerability, like the new tests."""
+
+    def _output(self, temp_dir, brief, target_macs=None, mode="a"):
+        import ptnetinspector.output.non_json as NJ
+        import ptnetinspector.utils.csv_helpers as CH
+        import io
+        import contextlib
+        import re
+
+        csv_path = lambda name, iface=None: temp_dir / name
+        with patch('ptnetinspector.utils.path.get_tmp_path', lambda i=None: temp_dir), \
+             patch.object(CH, 'get_tmp_path', lambda i=None: temp_dir):
+            CH.create_csv()
+
+        _write_csv(temp_dir / "vulnerability_net.csv", NET_FIELDS, [
+            {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-MDNS-PTR',
+             'Description': 'Network allows the delivery of IPv6 MDNS PTR packets', 'Label': '1'},
+            {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-LLMNR-PTR',
+             'Description': 'Network allows the delivery of IPv6 LLMNR PTR packets', 'Label': '0'},
+            {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-LLMNR',
+             'Description': 'Network allows the delivery of IPv6 LLMNR A, AAAA or ANY packets', 'Label': '2'},
+            {'ID': 'Network', 'Mode': 'a,a+', 'IPver': '6', 'Code': 'PTV-NET-IDENT-6-WS',
+             'Description': 'Network allows devices discovery with IPv6 WS-Discovery', 'Label': '0'},
+        ])
+        _write_csv(temp_dir / "vulnerability_mac.csv", MAC_FIELDS, [
+            {'ID': '4', 'MAC': '00:11:22:00:00:04', 'Mode': 'a', 'IPver': '6',
+             'Code': 'PTV-NET-IDENT-6-MDNS-PTRDEV', 'Description': 'Device responds to IPv6 MDNS PTR packets', 'Label': '1'},
+            {'ID': '5', 'MAC': '00:11:22:00:00:05', 'Mode': 'a', 'IPver': '6',
+             'Code': 'PTV-NET-IDENT-6-MDNS-PTRDEV', 'Description': 'Device responds to IPv6 MDNS PTR packets', 'Label': '0'},
+            {'ID': '4', 'MAC': '00:11:22:00:00:04', 'Mode': 'a', 'IPver': '6',
+             'Code': 'PTV-NET-IDENT-6-MDNSDEV', 'Description': 'Device responds to IPv6 MDNS A, AAAA or ANY packets', 'Label': '2'},
+        ])
+        (temp_dir / "test_results.json").write_text(_json.dumps({
+            "6-SNOOPING": {"mode": "a", "label": 2, "sentence": "No IPv6 multicast traffic captured, MLD snooping cannot be determined",
+                           "details": [], "table": None},
+            "LOCAL": {"mode": "a", "label": 2, "sentence": "No DHCP data available, server addresses cannot be checked",
+                      "details": ["Local entries of eth0: 1 sockets, 0 neighbours (table: -vv)"],
+                      "table": {"headers": ["IP", "Type", "Entry"], "rows": [["IPv4", "Socket", "tcp LISTEN 0.0.0.0:22"]]},
+                      "brief_table": False},
+        }))
+
+        from ptnetinspector.output.non_json import Non_json
+        with patch('ptnetinspector.utils.path.get_tmp_path', lambda i=None: temp_dir), \
+             patch('ptnetinspector.utils.ip_utils.get_csv_path', csv_path), \
+             patch.object(NJ, 'get_csv_path', csv_path):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                Non_json.read_vulnerability_table(mode, IPMode(False, True), brief=brief, target_macs=target_macs)
+        return re.sub(r'\x1b\[[0-9;]*m', '', buf.getvalue())
+
+    def test_one_line_per_test_with_details_and_affected_devices(self, temp_dir):
+        output = self._output(temp_dir, brief=True)
+
+        assert output.count("[✗]") == 1
+        assert "[✗] Network allows the delivery of IPv6 MDNS PTR packets" in output
+        assert "        Device responds to IPv6 MDNS PTR packets\n" not in output
+        assert "        Device responds to IPv6 MDNS A, AAAA or ANY packets: cannot be determined" in output
+        assert "Finding" in output
+        assert "Device responds to IPv6 MDNS PTR packets |" in output
+        assert "[✓] Network does NOT allow devices discovery with IPv6 WS-Discovery" in output
+        assert "[!] No IPv6 multicast traffic captured" in output
+        assert "Tests: 1 vulnerable, 1 not vulnerable, 3 cannot be determined" in output
+
+    def test_a_test_partly_undetermined_and_otherwise_clean_is_undetermined(self, temp_dir):
+        """Green means everything was verified: a clean code beside an undetermined one gives [!], not ✓."""
+        output = self._output(temp_dir, brief=True)
+
+        assert "[!] Network allows the delivery of IPv6 LLMNR A, AAAA or ANY packets: cannot be determined" in output
+        assert "        Network does NOT allow the delivery of IPv6 LLMNR PTR packets" in output
+        assert "[✓] Network does NOT allow the delivery of IPv6 LLMNR PTR packets" not in output
+
+    def test_results_about_the_whole_segment_are_left_out_under_target(self, temp_dir):
+        """-target hides network findings; the results of the new tests are network results too."""
+        for brief in (True, False):
+            output = self._output(temp_dir, brief=brief, target_macs={"00:11:22:00:00:04"})
+
+            assert "No IPv6 multicast traffic captured" not in output
+            assert "Device responds to IPv6 MDNS PTR packets" in output
+
+    def test_each_test_once_in_each_section_of_an_active_and_aggressive_run(self, temp_dir):
+        """-t a a+ prints an active and an aggressive section; each test is listed once per section it belongs to."""
+        active = self._output(temp_dir, brief=True, mode="a")
+        aggressive = self._output(temp_dir, brief=True, mode="a+")
+
+        assert active.count("Network allows the delivery of IPv6 MDNS PTR packets") == 1
+        assert aggressive.count("Network allows the delivery of IPv6 MDNS PTR packets") == 1
+        assert active.count("No IPv6 multicast traffic captured") == 1
+        assert "No IPv6 multicast traffic captured" not in aggressive
+
+    def test_a_table_kept_for_vv_is_left_out(self, temp_dir):
+        assert "tcp LISTEN 0.0.0.0:22" not in self._output(temp_dir, brief=True)
+        assert "Local entries of eth0: 1 sockets" in self._output(temp_dir, brief=True)
+
+    def test_every_catalog_description_reads_as_a_clean_result(self):
+        """A clean original result never repeats the vulnerable sentence."""
+        from ptnetinspector.output.non_json import NEGATED_PREFIXES
+        from ptnetinspector.utils.vuln_catalog import load_vuln_catalog
+
+        own_tests = ("TRUNK", "4-INVENTORY", "6-INVENTORY", "LOCAL", "4-SNOOPING", "6-SNOOPING", "4-ISOLATION", "6-ISOLATION")
+        for entry in load_vuln_catalog().values():
+            if entry["Test"].upper() in own_tests:
+                continue
+            assert any(entry["Description"].startswith(prefix) for prefix, _ in NEGATED_PREFIXES), entry["Description"]
+
+    def test_new_and_original_tests_share_one_order(self, temp_dir):
+        output = self._output(temp_dir, brief=True)
+
+        assert output.index("[✗]") < output.index("[!]") < output.index("[✓]")
+
+    def test_no_tables_summary_or_matrix(self, temp_dir):
+        output = self._output(temp_dir, brief=True)
+
+        assert "PTV-" not in output
+        assert "[1/" not in output
+        assert "[*] Vulnerability Summary" not in output
+        assert "[*] Vulnerability Matrix" not in output
+
+    def test_vv_keeps_the_original_tables(self, temp_dir):
+        output = self._output(temp_dir, brief=False)
+
+        assert "[1/6]" in output
+        assert "[*] Vulnerability Summary" in output
+        assert "[*] Vulnerability Matrix" in output

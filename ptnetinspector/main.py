@@ -7,6 +7,7 @@ tmp/cache management, and final JSON/text output. It wires together utilities fr
 final normalized JSON via `output.json` by reading the accumulated CSVs.
 """
 import atexit
+import io
 import signal
 import sys
 import warnings
@@ -27,7 +28,7 @@ from ptnetinspector.utils.csv_helpers import create_csv, sort_all_csv, has_addit
 from ptnetinspector.utils.interface import Interface, IptablesRule, flush_tagged_rules, restore_forwarding_state
 from ptnetinspector.utils.oui import create_vendor_csv
 from ptnetinspector.utils.path import del_tmp_path, get_csv_path, get_output_dir, get_tmp_path, set_current_interface
-from ptnetinspector.utils.lock import acquire_global_lock
+from ptnetinspector.utils.lock import acquire_global_lock, another_instance_running
 from ptnetinspector.utils.runtime import (
     build_run_signature,
     check_interface_status,
@@ -46,6 +47,7 @@ from ptnetinspector.utils.runtime import (
     terminate_child_processes,
     write_run_signature,
     load_run_signature,
+    mark_run_complete,
     _suppress_non_json,
 )
 from ptnetinspector.vulnerability import Vulnerability
@@ -59,12 +61,44 @@ ptjsonlib_object = PtJsonLib()
 args = parse_args()
 verbose_output = args.vv
 
+# Configure chatty DEBUG diagnostics for -vv output mode.
+configure_debug_logging(args.vv, args.j, verbose_output)
+
+# Determine lock verbosity: suppress if -j and not -vv
+lock_verbose = not (args.j and not verbose_output)
+# While another instance runs, only the waiting message is shown; the logo and
+# the parameter overview are held back and printed once this run may start.
+held_output = None
+
+
+def release_held_output():
+    """Print the held-back output, also when parameter errors end the run early."""
+    global held_output
+    if held_output is None:
+        return
+    sys.stdout = sys.__stdout__
+    sys.stdout.write(held_output.getvalue())
+    held_output = None
+
+
+def _release_before_end_error(end_error):
+    """ptlibs' end_error() ends the process with os._exit(), which skips atexit."""
+    def wrapper(*args, **kwargs):
+        release_held_output()
+        return end_error(*args, **kwargs)
+    return wrapper
+
+
+if lock_verbose and another_instance_running():
+    import ptnetinspector.utils.cli as cli_module
+    held_output = io.StringIO()
+    sys.stdout = held_output
+    atexit.register(release_held_output)
+    cli_module.ptjsonlib_object.end_error = _release_before_end_error(cli_module.ptjsonlib_object.end_error)
+
 # Display logo at startup unless -j without -vv
 from ptnetinspector.utils.cli import display_logo
 display_logo(args.j, verbose_output)
-
-# Configure chatty DEBUG diagnostics for -vv output mode.
-configure_debug_logging(args.vv, args.j, verbose_output)
 
 # Validate and process parameters FIRST (before acquiring lock)
 # This ensures invalid parameters cause immediate errors without waiting in queue
@@ -119,11 +153,12 @@ configure_debug_logging(args.vv, args.j, verbose_output)
     args.reverse_dns,
 )
 
-# Determine lock verbosity: suppress if -j and not -vv
-lock_verbose = not (json_output and not more_detail)
+if held_output is not None:
+    sys.stdout = sys.__stdout__
 # Acquire global lock - will wait and queue if another instance is running
 # This is done AFTER parameter validation to avoid queueing with invalid parameters
 acquire_global_lock(verbose=lock_verbose)
+release_held_output()
 
 # The tmp directory is scoped per interface, and the recovery below reads the
 # forwarding state recorded in it, so the context has to be set first.
@@ -240,6 +275,7 @@ def output_802_1x_results():
         target_codes=target_codes,
         target_macs=target_macs,
         target_ips=target_ips,
+        brief=not more_detail,
     )
     Non_json.read_vulnerability_table(
         "802.1x",
@@ -248,6 +284,7 @@ def output_802_1x_results():
         target_macs=target_macs,
         target_ips=target_ips,
         check_addresses=check_addresses,
+        brief=not more_detail,
     )
 
 
@@ -255,6 +292,7 @@ def ptnet_eap(combine=False):
     from ptnetinspector.utils.runtime import _suppress_non_json
     if REUSE_EXISTING_DATA:
         print_message("Reusing cached 802.1x results (within retention window)", indent=4)
+        Vulnerability_object.handle_vulnerabilities("802.1x", prune=False)
         if not _suppress_non_json:
             eap_file = get_csv_path("eap.csv", interface)
             Non_json.output_protocol(interface, ip_mode, "802.1x", "802.1x", eap_file, less_detail)
@@ -298,9 +336,9 @@ def ptnet_passive():
         handle_addresses(interface, ip_mode, passive=True, check_addresses=check_addresses)
         create_vendor_csv()
         sort_all_csv(interface)
-        Vulnerability_object.handle_vulnerabilities("p")
     else:
         print_message("Reusing cached passive results (within retention window)", indent=4)
+    Vulnerability_object.handle_vulnerabilities("p", prune=not REUSE_EXISTING_DATA)
 
     protocols_basic = ["MDNS", "LLMNR", "WS-Discovery", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3"]
     protocols_detailed = ["RA"]
@@ -334,9 +372,9 @@ def ptnet_active():
         handle_addresses(interface, ip_mode, check_addresses=check_addresses)
         create_vendor_csv()
         sort_all_csv(interface)
-        Vulnerability_object.handle_vulnerabilities("a")
     else:
         print_message("Reusing cached active results (within retention window)", indent=4)
+    Vulnerability_object.handle_vulnerabilities("a", prune=not REUSE_EXISTING_DATA)
 
     protocols_basic = ["MDNS", "LLMNR", "WS-Discovery", "MLDv1", "MLDv2", "IGMPv1/v2", "IGMPv3"]
     protocols_detailed = ["RA"]
@@ -390,9 +428,9 @@ def ptnet_aggressive():
         handle_addresses(interface, ip_mode, check_addresses=check_addresses)
         create_vendor_csv()
         sort_all_csv(interface)
-        Vulnerability_object.handle_vulnerabilities("a+")
     else:
         print_message("Reusing cached aggressive results (within retention window)", indent=4)
+    Vulnerability_object.handle_vulnerabilities("a+", prune=not REUSE_EXISTING_DATA)
 
     protocols_basic = ["MDNS", "LLMNR", "WS-Discovery", "MLDv1", "MLDv2", "IGMPv1/v2"]
     protocols_detailed = ["MLDv2", "IGMPv3", "RA"]
@@ -420,9 +458,30 @@ def ptnet_aggressive():
         print_message("Reused scan data and performed analysis", condition=True)
 
 
+def ptnet_null():
+    # The cache of an earlier scan may be in the same files, so they are not cut down to -ts.
+    Vulnerability_object.handle_vulnerabilities("NULL", prune=False)
+    handle_output(
+        "NULL",
+        [],
+        [],
+        json_output,
+        more_detail,
+        less_detail,
+        check_addresses,
+        interface,
+        ip_mode,
+        target_codes,
+        lambda fname: get_csv_path(fname, interface),
+        target_macs,
+        target_ips,
+    )
+
+
 def execute_scan(scan_types):
     global _HOST_STATE_DIRTY
     has_eap = "802.1x" in scan_types
+    has_null = "NULL" in scan_types
     has_passive = "p" in scan_types
     has_active = "a" in scan_types
     has_aggressive = "a+" in scan_types
@@ -433,6 +492,9 @@ def execute_scan(scan_types):
             check_eap_detected()
             if json_output:
                 Json.output_object(False, "802.1x", target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses)
+
+    if has_null:
+        ptnet_null()
 
     if has_passive:
         _HOST_STATE_DIRTY = True
@@ -518,19 +580,29 @@ def main():
     # Configure terminal output policy based on flags
     configure_output_flags(json_output, more_detail, less_detail)
 
-    REUSE_EXISTING_DATA = prepare_tmp_files(
-        interface,
-        tmp_retention,
-        current_signature,
-        lambda iface=interface: get_tmp_path(iface),
-        lambda iface=interface: create_csv(iface),
-        lambda iface=interface: del_tmp_path(iface),
-        lambda: (delete_json_output(json_output_path), delete_text_output(text_output_path)),
-        write_run_signature,
-        load_run_signature,
-        required_files,
-        less_detail,
-    )
+    # The NULL mode reads only the tester's own state, so it must not replace the
+    # cache of an earlier scan on this interface; a following scan reuses it.
+    null_only = scanning_type == ["NULL"]
+    if null_only:
+        delete_json_output(json_output_path)
+        delete_text_output(text_output_path)
+        if not (get_tmp_path(interface) / "role_node.csv").exists():
+            create_csv(interface)
+        REUSE_EXISTING_DATA = False
+    else:
+        REUSE_EXISTING_DATA = prepare_tmp_files(
+            interface,
+            tmp_retention,
+            current_signature,
+            lambda iface=interface: get_tmp_path(iface),
+            lambda iface=interface: create_csv(iface),
+            lambda iface=interface: del_tmp_path(iface),
+            lambda: (delete_json_output(json_output_path), delete_text_output(text_output_path)),
+            write_run_signature,
+            load_run_signature,
+            required_files,
+            less_detail,
+        )
 
     # Start logging terminal output to text file after tmp prep/cleanup
     start_output_logging(text_output_path)
@@ -570,7 +642,12 @@ def main():
                 Non_json.print_box("Json output")
             # Final output reads accumulated CSVs; avoid mode filtering
             print(Json.output_object(True, None, target_codes=target_codes, ipver=ip_mode, target_macs=target_macs, target_ips=target_ips, check_addresses=check_addresses))
+
+        if not null_only:
+            mark_run_complete(get_tmp_path(interface))
     except KeyboardInterrupt:
+        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            signal.signal(sig, signal.SIG_IGN)
         terminate_child_processes()
         _restore_host_state()
         print_message("Scan interrupted by user", "WARNING")

@@ -7,6 +7,8 @@ import csv
 import ipaddress
 import multiprocessing
 import logging
+import os
+import signal
 from contextlib import contextmanager, nullcontext
 import pandas as pd
 from scapy.all import *
@@ -46,7 +48,7 @@ from ptnetinspector.entities.querier import Querier
 from ptnetinspector.entities.dhcpv6_options import DHCPv6Options
 from ptnetinspector.entities.ra_options import RAOption
 from ptnetinspector.entities.node_info import NodeInfo
-from ptnetinspector.utils.interface import Interface
+from ptnetinspector.utils.interface import Interface, get_joined_multicast_groups
 from ptnetinspector.entities.router import Router
 from ptnetinspector.entities.node import Node
 from ptnetinspector.entities.port import Port
@@ -220,8 +222,20 @@ def _close_inherited_scapy_sockets():
         logger.debug("Failed to close inherited Scapy sockets", exc_info=True)
 
 
+_MAIN_PID = os.getpid()
+
+
 def _forked_target(fn, args):
-    """Wrapper for multiprocessing.Process targets that clears inherited Scapy sockets."""
+    """Wrapper for multiprocessing.Process targets that clears inherited Scapy sockets.
+
+    SIGTERM gets its default action, because the parent's handler raises
+    KeyboardInterrupt, which scapy's sniff() swallows. A child of the main
+    process leads its own process group, so terminating the group also stops
+    the processes the child started.
+    """
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    if os.getppid() == _MAIN_PID:
+        os.setpgid(0, 0)
     _close_inherited_scapy_sockets()
     fn(*args)
 
@@ -332,6 +346,22 @@ class Save:
                     })
 
                 writer.writerow(row)
+
+    @staticmethod
+    def save_joined_groups(interface):
+        """Record the multicast groups this host has joined, as they were when the capture ended.
+
+        The received groups in multicast_groups.csv are compared with these; read later,
+        at evaluation over cached data, the memberships may already be different.
+        """
+        try:
+            with open(get_csv_path("joined_groups.csv"), "w", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["Group"])
+                writer.writeheader()
+                for group in sorted(get_joined_multicast_groups(interface)):
+                    writer.writerow({"Group": group})
+        except OSError as error:
+            logger.debug("Could not record joined multicast groups: %s", error)
 
     @staticmethod
     def save_packets(interface, ip_mode, packets):
@@ -982,6 +1012,7 @@ class Run:
                 finish_time = str(datetime.now())
                 with _csv_guard():
                     Time.save_start_end(finish_time)
+                    Save.save_joined_groups(interface)
                     Save.save_packets(interface, ip_mode, pkts)
 
             if mode == "a":
